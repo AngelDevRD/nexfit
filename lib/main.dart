@@ -39,9 +39,9 @@ class _AppGymAppState extends State<AppGymApp> {
       child: MaterialApp(
         title: 'AppGym',
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.light(),
+        theme: AppTheme.dark(),
         darkTheme: AppTheme.dark(),
-        themeMode: ThemeMode.system,
+        themeMode: ThemeMode.dark,
         home: Consumer<AuthProvider>(
           builder: (context, auth, _) {
             switch (auth.status) {

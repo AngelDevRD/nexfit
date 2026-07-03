@@ -118,14 +118,14 @@ class AppTheme {
       surfaceContainerHighest: AppColors.surfaceContainerHighest,
       inversePrimary: AppColors.inversePrimary,
     );
-    final baseText = GoogleFonts.interTextTheme(ThemeData.dark().textTheme);
+    final coloredText = ThemeData.dark().textTheme.apply(
+      bodyColor: AppColors.onBackground,
+      displayColor: AppColors.onBackground,
+    );
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      textTheme: baseText.apply(
-        bodyColor: AppColors.onBackground,
-        displayColor: AppColors.onBackground,
-      ),
+      textTheme: GoogleFonts.interTextTheme(coloredText),
       scaffoldBackgroundColor: AppColors.darkBackground,
       appBarTheme: const AppBarTheme(
         centerTitle: false,
