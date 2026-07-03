@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
+import '../../core/theme.dart';
 import '../../models/exercise.dart';
 import '../../models/user.dart';
 import '../../services/routine_service.dart';
@@ -26,9 +27,11 @@ class _ExerciseDraft {
 class _DayDraft {
   final TextEditingController nameController;
   String? muscleFocus;
+  bool expanded;
   final List<_ExerciseDraft> exercises = [];
 
-  _DayDraft(String name) : nameController = TextEditingController(text: name);
+  _DayDraft(String name, {this.expanded = true})
+    : nameController = TextEditingController(text: name);
 }
 
 class RoutineBuilderScreen extends StatefulWidget {
@@ -46,11 +49,19 @@ class _RoutineBuilderScreenState extends State<RoutineBuilderScreen> {
   String? _error;
 
   void _addDay() {
-    setState(() => _days.add(_DayDraft('Día ${_days.length + 1}')));
+    setState(
+      () => _days.add(
+        _DayDraft('Día ${_days.length + 1}', expanded: _days.isEmpty),
+      ),
+    );
   }
 
   void _removeDay(int index) {
     setState(() => _days.removeAt(index));
+  }
+
+  void _toggleDay(int index) {
+    setState(() => _days[index].expanded = !_days[index].expanded);
   }
 
   Future<void> _addExerciseToDay(int dayIndex) async {
@@ -131,52 +142,109 @@ class _RoutineBuilderScreenState extends State<RoutineBuilderScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Nueva rutina')),
+      backgroundColor: AppColors.background,
+      appBar: AppBar(title: const Text('Constructor de rutinas')),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: AppColors.secondary,
+        foregroundColor: AppColors.onSecondary,
         onPressed: _saving ? null : _save,
         child: _saving
-            ? const CircularProgressIndicator()
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
             : const Icon(Icons.check),
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-        children: [
-          TextField(
-            controller: _nameController,
-            decoration: const InputDecoration(labelText: 'Nombre de la rutina'),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.md,
+            AppSpacing.md,
+            96,
           ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: _goal,
-            decoration: const InputDecoration(labelText: 'Objetivo (opcional)'),
-            items: goalOptions.entries
-                .map(
-                  (e) => DropdownMenuItem(value: e.key, child: Text(e.value)),
-                )
-                .toList(),
-            onChanged: (v) => setState(() => _goal = v),
-          ),
-          if (_error != null) ...[
-            const SizedBox(height: 12),
+          children: [
             Text(
-              _error!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
+              'Nombre de la rutina',
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: AppColors.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            TextField(
+              controller: _nameController,
+              decoration: const InputDecoration(
+                hintText: 'Ej: Mi rutina de volumen',
+              ),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                _error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ],
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              'Objetivo',
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: AppColors.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: goalOptions.entries.map((entry) {
+                final selected = _goal == entry.key;
+                return ChoiceChip(
+                  label: Text(entry.value),
+                  selected: selected,
+                  onSelected: (_) =>
+                      setState(() => _goal = selected ? null : entry.key),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              'Estructura semanal',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            for (int i = 0; i < _days.length; i++)
+              _DayCard(
+                day: _days[i],
+                onAddExercise: () => _addExerciseToDay(i),
+                onRemoveDay: () => _removeDay(i),
+                onToggle: () => _toggleDay(i),
+                onExercisesChanged: () => setState(() {}),
+              ),
+            const SizedBox(height: AppSpacing.sm),
+            Material(
+              color: AppColors.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                onTap: _addDay,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.edit_calendar, size: 20),
+                      const SizedBox(width: AppSpacing.sm),
+                      Text(
+                        'Agregar día',
+                        style: Theme.of(context).textTheme.labelLarge,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ],
-          const SizedBox(height: 20),
-          for (int i = 0; i < _days.length; i++)
-            _DayCard(
-              day: _days[i],
-              onAddExercise: () => _addExerciseToDay(i),
-              onRemoveDay: () => _removeDay(i),
-            ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: _addDay,
-            icon: const Icon(Icons.add),
-            label: const Text('Agregar día'),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -186,11 +254,15 @@ class _DayCard extends StatefulWidget {
   final _DayDraft day;
   final VoidCallback onAddExercise;
   final VoidCallback onRemoveDay;
+  final VoidCallback onToggle;
+  final VoidCallback onExercisesChanged;
 
   const _DayCard({
     required this.day,
     required this.onAddExercise,
     required this.onRemoveDay,
+    required this.onToggle,
+    required this.onExercisesChanged,
   });
 
   @override
@@ -200,55 +272,129 @@ class _DayCard extends StatefulWidget {
 class _DayCardState extends State<_DayCard> {
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
+    final expanded = widget.day.expanded;
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      decoration: BoxDecoration(
+        color: expanded
+            ? AppColors.surfaceContainer
+            : AppColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Row(
               children: [
+                Icon(
+                  Icons.calendar_today,
+                  size: 18,
+                  color: expanded ? AppColors.secondary : AppColors.outline,
+                ),
+                const SizedBox(width: AppSpacing.sm),
                 Expanded(
-                  child: TextField(
-                    controller: widget.day.nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Nombre del día',
-                    ),
-                  ),
+                  child: expanded
+                      ? TextField(
+                          controller: widget.day.nameController,
+                          style: Theme.of(context).textTheme.titleMedium,
+                          decoration: const InputDecoration(
+                            isDense: true,
+                            border: InputBorder.none,
+                          ),
+                        )
+                      : Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                widget.day.nameController.text,
+                                style: Theme.of(context).textTheme.labelLarge,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: AppSpacing.xs),
+                            Text(
+                              '(${widget.day.exercises.length} ejercicios)',
+                              style: Theme.of(context).textTheme.labelMedium
+                                  ?.copyWith(color: AppColors.onSurfaceVariant),
+                            ),
+                          ],
+                        ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete_outline),
+                  color: AppColors.outline,
                   onPressed: widget.onRemoveDay,
+                ),
+                IconButton(
+                  icon: Icon(expanded ? Icons.expand_less : Icons.expand_more),
+                  color: expanded ? AppColors.primary : AppColors.outline,
+                  onPressed: widget.onToggle,
                 ),
               ],
             ),
-            ...widget.day.exercises.map(
-              (draft) => ListTile(
-                dense: true,
-                title: Text(draft.exercise.name),
-                subtitle: Text(
-                  '${draft.targetSets}x${draft.targetRepsMin}-${draft.targetRepsMax} · descanso ${draft.targetRestSeconds}s',
-                ),
-                trailing: IconButton(
-                  icon: const Icon(Icons.tune),
-                  onPressed: () async {
-                    await _editTargets(context, draft);
-                    setState(() {});
-                  },
-                ),
+          ),
+          if (expanded)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                0,
+                AppSpacing.md,
+                AppSpacing.md,
+              ),
+              child: Column(
+                children: [
+                  for (final draft in widget.day.exercises)
+                    _ExerciseRow(
+                      draft: draft,
+                      onEdit: () async {
+                        await _editTargets(context, draft);
+                        widget.onExercisesChanged();
+                      },
+                    ),
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      onTap: widget.onAddExercise,
+                      child: Container(
+                        margin: const EdgeInsets.only(top: AppSpacing.sm),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: AppSpacing.sm,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                          border: Border.all(
+                            color: AppColors.outlineVariant,
+                            style: BorderStyle.solid,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.add_circle_outline,
+                              color: AppColors.primary,
+                              size: 18,
+                            ),
+                            const SizedBox(width: AppSpacing.sm),
+                            Text(
+                              'Agregar ejercicio',
+                              style: Theme.of(context).textTheme.labelLarge
+                                  ?.copyWith(color: AppColors.primary),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                onPressed: widget.onAddExercise,
-                icon: const Icon(Icons.add),
-                label: const Text('Agregar ejercicio'),
-              ),
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -312,6 +458,61 @@ class _DayCardState extends State<_DayCard> {
               Navigator.of(context).pop();
             },
             child: const Text('Guardar'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExerciseRow extends StatelessWidget {
+  final _ExerciseDraft draft;
+  final VoidCallback onEdit;
+
+  const _ExerciseRow({required this.draft, required this.onEdit});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: const Icon(
+              Icons.fitness_center,
+              color: AppColors.primary,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  draft.exercise.name,
+                  style: Theme.of(context).textTheme.labelLarge,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  '${draft.targetSets} x ${draft.targetRepsMin}-${draft.targetRepsMax} · ${draft.targetRestSeconds}s',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.tune, color: AppColors.outline),
+            onPressed: onEdit,
           ),
         ],
       ),

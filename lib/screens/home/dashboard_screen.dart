@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
+import '../../core/theme.dart';
+import '../../models/gamification.dart';
 import '../../models/stats.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/gamification_service.dart';
 import '../../services/stats_service.dart';
 import '../calculators/calculators_hub_screen.dart';
 import '../calendar/calendar_screen.dart';
@@ -24,8 +27,9 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   late final StatsService _statsService;
+  late final GamificationService _gamificationService;
   TrainingStreak? _streak;
-  StrengthProfile? _profile;
+  GamificationProfile? _gamification;
   bool _loading = true;
   String? _error;
 
@@ -33,6 +37,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _statsService = StatsService(context.read<ApiClient>());
+    _gamificationService = GamificationService(context.read<ApiClient>());
     _load();
   }
 
@@ -44,11 +49,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     try {
       final results = await Future.wait([
         _statsService.streak(),
-        _statsService.strengthProfile(),
+        _gamificationService.profile(),
       ]);
       setState(() {
         _streak = results[0] as TrainingStreak;
-        _profile = results[1] as StrengthProfile;
+        _gamification = results[1] as GamificationProfile;
         _loading = false;
       });
     } catch (e) {
@@ -62,211 +67,526 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
+    final firstName = user?.name.split(' ').first ?? '';
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Hola, ${user?.name.split(' ').first ?? ''} 👋'),
-      ),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            if (_loading)
-              const Center(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
                 child: Padding(
-                  padding: EdgeInsets.all(24),
-                  child: CircularProgressIndicator(),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.md,
+                    AppSpacing.sm,
+                    AppSpacing.md,
+                    0,
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundColor: AppColors.primaryContainer,
+                        child: Text(
+                          firstName.isNotEmpty
+                              ? firstName[0].toUpperCase()
+                              : '?',
+                          style: const TextStyle(
+                            color: AppColors.onPrimaryContainer,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Text(
+                          'Hola, $firstName',
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const GamificationScreen(),
+                          ),
+                        ),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryContainer,
+                            borderRadius: BorderRadius.circular(AppRadius.full),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.military_tech,
+                                size: 18,
+                                color: AppColors.onPrimaryContainer,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'XP ${(_gamification?.totalXp ?? 0).toStringAsFixed(0)}',
+                                style: Theme.of(context).textTheme.labelLarge
+                                    ?.copyWith(
+                                      color: AppColors.onPrimaryContainer,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            if (_error != null)
-              Text(
-                _error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            if (!_loading && _error == null) ...[
-              Row(
-                children: [
-                  Expanded(
-                    child: _StatCard(
-                      icon: Icons.local_fire_department,
-                      label: 'Racha actual',
-                      value: '${_streak?.currentStreakDays ?? 0} días',
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _StatCard(
-                      icon: Icons.trending_up,
-                      label: 'Volumen semanal',
-                      value:
-                          '${(_profile?.weeklyVolumeKg ?? 0).toStringAsFixed(0)} kg',
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-            ],
-            FilledButton.icon(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const StartWorkoutScreen()),
-              ),
-              icon: const Icon(Icons.play_arrow),
-              label: const Text('Iniciar entrenamiento'),
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const StatsHubScreen()),
-                    ),
-                    icon: const Icon(Icons.bar_chart),
-                    label: const Text('Estadísticas'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const CalculatorsHubScreen(),
+              if (_loading)
+                const SliverFillRemaining(
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (_error != null)
+                SliverFillRemaining(
+                  child: Center(
+                    child: Text(
+                      _error!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
                       ),
                     ),
-                    icon: const Icon(Icons.calculate_outlined),
-                    label: const Text('Calculadoras'),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.md,
+                    AppSpacing.lg,
+                    AppSpacing.md,
+                    AppSpacing.xl,
+                  ),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      _StreakCard(streak: _streak),
+                      const SizedBox(height: AppSpacing.lg),
+                      Text(
+                        'Próximo entrenamiento',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      _NextWorkoutCard(
+                        onStart: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const StartWorkoutScreen(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      Text(
+                        'Más funciones',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      GridView.count(
+                        crossAxisCount: 2,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        mainAxisSpacing: AppSpacing.md,
+                        crossAxisSpacing: AppSpacing.md,
+                        childAspectRatio: 1.5,
+                        children: [
+                          _FeatureTile(
+                            icon: Icons.restaurant,
+                            iconBg: AppColors.tertiaryContainer,
+                            iconColor: AppColors.onTertiaryContainer,
+                            label: 'Nutrición',
+                            value: 'Registro diario',
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const NutritionScreen(),
+                              ),
+                            ),
+                          ),
+                          _FeatureTile(
+                            icon: Icons.bedtime,
+                            iconBg: AppColors.surfaceContainerHighest,
+                            iconColor: AppColors.secondary,
+                            label: 'Recuperación',
+                            value: 'Check-in de hoy',
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const RecoveryScreen(),
+                              ),
+                            ),
+                          ),
+                          _AiCoachTile(
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const CoachChatScreen(),
+                              ),
+                            ),
+                          ),
+                          _FeatureTile(
+                            icon: Icons.flag,
+                            iconBg: AppColors.surfaceContainerHighest,
+                            iconColor: AppColors.primary,
+                            label: 'Objetivos',
+                            value: 'Ver progreso',
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const GoalsScreen(),
+                              ),
+                            ),
+                          ),
+                          _FeatureTile(
+                            icon: Icons.calendar_month,
+                            iconBg: AppColors.surfaceContainerHighest,
+                            iconColor: AppColors.onSurfaceVariant,
+                            label: 'Calendario',
+                            value: 'Descarga y planes',
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const CalendarScreen(),
+                              ),
+                            ),
+                          ),
+                          _FeatureTile(
+                            icon: Icons.emoji_events,
+                            iconBg: AppColors.surfaceContainerHighest,
+                            iconColor: AppColors.secondaryContainer,
+                            label: 'Logros',
+                            value: 'Nivel y medallas',
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const GamificationScreen(),
+                              ),
+                            ),
+                          ),
+                          _FeatureTile(
+                            icon: Icons.calculate,
+                            iconBg: AppColors.surfaceContainerHighest,
+                            iconColor: AppColors.primary,
+                            label: 'Calculadoras',
+                            value: '1RM, IMC y más',
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const CalculatorsHubScreen(),
+                              ),
+                            ),
+                          ),
+                          _FeatureTile(
+                            icon: Icons.bar_chart,
+                            iconBg: AppColors.surfaceContainerHighest,
+                            iconColor: AppColors.tertiary,
+                            label: 'Estadísticas',
+                            value: 'Progreso y récords',
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const StatsHubScreen(),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ]),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Más funciones',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 12),
-            GridView.count(
-              crossAxisCount: 3,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-              childAspectRatio: 0.95,
-              children: [
-                _QuickAccessTile(
-                  icon: Icons.restaurant_outlined,
-                  label: 'Nutrición',
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const NutritionScreen()),
-                  ),
-                ),
-                _QuickAccessTile(
-                  icon: Icons.bedtime_outlined,
-                  label: 'Recuperación',
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const RecoveryScreen()),
-                  ),
-                ),
-                _QuickAccessTile(
-                  icon: Icons.flag_outlined,
-                  label: 'Objetivos',
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const GoalsScreen()),
-                  ),
-                ),
-                _QuickAccessTile(
-                  icon: Icons.calendar_month_outlined,
-                  label: 'Calendario',
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const CalendarScreen()),
-                  ),
-                ),
-                _QuickAccessTile(
-                  icon: Icons.smart_toy_outlined,
-                  label: 'Gemelo Digital',
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const CoachChatScreen()),
-                  ),
-                ),
-                _QuickAccessTile(
-                  icon: Icons.emoji_events_outlined,
-                  label: 'Nivel y logros',
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const GamificationScreen(),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _QuickAccessTile extends StatelessWidget {
+class _StreakCard extends StatelessWidget {
+  final TrainingStreak? streak;
+
+  const _StreakCard({required this.streak});
+
+  @override
+  Widget build(BuildContext context) {
+    final days = streak?.currentStreakDays ?? 0;
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainer,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: const Border(
+          left: BorderSide(color: AppColors.secondary, width: 4),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'CONTINUIDAD',
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.local_fire_department,
+                          color: AppColors.secondary,
+                          size: 28,
+                        ),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            'Racha de $days días',
+                            style: Theme.of(context).textTheme.headlineSmall,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.trending_up,
+                size: 48,
+                color: AppColors.secondary,
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          SizedBox(
+            height: 32,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: List.generate(7, (i) {
+                final active = i < (days.clamp(0, 7));
+                final heights = [10.0, 16.0, 13.0, 22.0, 18.0, 26.0, 32.0];
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    child: Container(
+                      height: heights[i],
+                      decoration: BoxDecoration(
+                        color: active
+                            ? AppColors.secondary
+                            : AppColors.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(AppRadius.full),
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            days > 0
+                ? '¡Seguí así, vas muy bien esta semana!'
+                : 'Arrancá hoy tu racha de entrenamiento.',
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NextWorkoutCard extends StatelessWidget {
+  final VoidCallback onStart;
+
+  const _NextWorkoutCard({required this.onStart});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.surfaceContainerHigh,
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        onTap: onStart,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryContainer,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: const Icon(
+                  Icons.fitness_center,
+                  color: AppColors.onPrimaryContainer,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Elegí una rutina o entrená libre',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    Text(
+                      'Registro de series en tiempo real',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.sm,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryContainer,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      'Comenzar',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: AppColors.onPrimaryContainer,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.play_arrow,
+                      size: 18,
+                      color: AppColors.onPrimaryContainer,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FeatureTile extends StatelessWidget {
   final IconData icon;
+  final Color iconBg;
+  final Color iconColor;
   final String label;
+  final String value;
   final VoidCallback onTap;
 
-  const _QuickAccessTile({
+  const _FeatureTile({
     required this.icon,
+    required this.iconBg,
+    required this.iconColor,
     required this.label,
+    required this.value,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return Material(
+      color: AppColors.surfaceContainer,
+      borderRadius: BorderRadius.circular(AppRadius.lg),
       child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: Theme.of(context).colorScheme.primary),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: Icon(icon, color: iconColor, size: 20),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(label, style: Theme.of(context).textTheme.labelLarge),
+              Text(
+                value,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.onSurfaceVariant,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _StatCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
+class _AiCoachTile extends StatelessWidget {
+  final VoidCallback onTap;
 
-  const _StatCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
+  const _AiCoachTile({required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: Theme.of(context).colorScheme.primary),
-            const SizedBox(height: 8),
-            Text(value, style: Theme.of(context).textTheme.titleLarge),
-            Text(label, style: Theme.of(context).textTheme.bodySmall),
-          ],
+    return Material(
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            gradient: const LinearGradient(
+              colors: [AppColors.primaryContainer, AppColors.tertiaryContainer],
+            ),
+          ),
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.smart_toy, color: Colors.white),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              const Expanded(
+                child: Text(
+                  'Gemelo Digital',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: Colors.white),
+            ],
+          ),
         ),
       ),
     );

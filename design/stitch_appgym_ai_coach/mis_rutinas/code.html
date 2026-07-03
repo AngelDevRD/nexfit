@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AppGym - Tus Rutinas</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "secondary-fixed": "#50fec5",
+                    "primary-fixed": "#e4dfff",
+                    "surface-variant": "#34343b",
+                    "surface-container-lowest": "#0e0e14",
+                    "on-primary": "#2900a0",
+                    "surface-tint": "#c6bfff",
+                    "surface": "#131319",
+                    "on-background": "#e4e1ea",
+                    "secondary-fixed-dim": "#1fe0aa",
+                    "background": "#131319",
+                    "primary-fixed-dim": "#c6bfff",
+                    "on-secondary-fixed": "#002116",
+                    "inverse-on-surface": "#303036",
+                    "outline-variant": "#474554",
+                    "surface-bright": "#39383f",
+                    "on-tertiary-fixed": "#001e2f",
+                    "on-tertiary-fixed-variant": "#004b6f",
+                    "on-error-container": "#ffdad6",
+                    "surface-container-high": "#2a2930",
+                    "tertiary-fixed": "#c9e6ff",
+                    "secondary": "#44f5bd",
+                    "inverse-surface": "#e4e1ea",
+                    "tertiary-container": "#0079ae",
+                    "error-container": "#93000a",
+                    "on-primary-fixed": "#160066",
+                    "inverse-primary": "#5847d2",
+                    "tertiary-fixed-dim": "#8aceff",
+                    "tertiary": "#8aceff",
+                    "surface-container-highest": "#34343b",
+                    "on-secondary-container": "#005840",
+                    "secondary-container": "#00d8a2",
+                    "on-tertiary": "#00344e",
+                    "on-surface": "#e4e1ea",
+                    "error": "#ffb4ab",
+                    "surface-container": "#1f1f25",
+                    "on-primary-fixed-variant": "#4029ba",
+                    "surface-container-low": "#1b1b21",
+                    "primary": "#c6bfff",
+                    "on-secondary": "#003828",
+                    "on-error": "#690005",
+                    "primary-container": "#6c5ce7",
+                    "on-secondary-fixed-variant": "#00513b",
+                    "surface-dim": "#131319",
+                    "on-primary-container": "#faf6ff",
+                    "outline": "#928ea0",
+                    "on-tertiary-container": "#f4f8ff",
+                    "on-surface-variant": "#c8c4d7"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "margin-desktop": "48px",
+                    "md": "16px",
+                    "margin-mobile": "16px",
+                    "base": "4px",
+                    "gutter": "16px",
+                    "margin-tablet": "24px",
+                    "xs": "4px",
+                    "sm": "8px",
+                    "lg": "24px",
+                    "xl": "32px"
+            },
+            "fontFamily": {
+                    "title-lg": ["Inter"],
+                    "label-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "label-lg": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "headline-lg-mobile": ["Inter"]
+            },
+            "fontSize": {
+                    "title-lg": ["22px", {"lineHeight": "28px", "fontWeight": "500"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "letterSpacing": "0.5px", "fontWeight": "400"}],
+                    "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "500"}],
+                    "display-lg": ["57px", {"lineHeight": "64px", "letterSpacing": "-0.25px", "fontWeight": "700"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.25px", "fontWeight": "400"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #131319;
+            color: #e4e1ea;
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .routine-card {
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s;
+        }
+        .routine-card:active {
+            transform: scale(0.97);
+        }
+        .glass-effect {
+            background: rgba(28, 28, 38, 0.7);
+            backdrop-filter: blur(12px);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="min-h-screen pb-24">
+<!-- TopAppBar -->
+<header class="w-full top-0 sticky z-50 bg-background/80 backdrop-blur-md">
+<div class="flex justify-between items-center px-margin-mobile py-sm w-full">
+<div class="flex items-center gap-3">
+<div class="relative w-10 h-10 rounded-full overflow-hidden border-2 border-primary/20">
+<img class="w-full h-full object-cover" data-alt="A professional athletic profile portrait of a fit individual in a high-tech gym setting, soft dramatic violet lighting, sharp focus on the face, minimalist obsidian and mint aesthetic, digital interface overlay elements showing training levels." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCWmT1lBxmyF-H8smwriPy4h_gX3Ry_DMWlgzmNssUT0_BObXHBJSLMDaHaiu7xPw6faXsRiZXrS2Kx2LXGgaObVuOdf24uJM8-yJOMBm-mN7X2i7AnmwxmwRBRl8uHhTEtyoKCi8VJx56K4e6eb5FoLEErf8oMDA0XGW1TG2kqVOjTy3fJ-wPy82tV85xX8etrdjfFqtjCO-vDvwnD4uV1hvpGwdJM88rJjNhaJa-pkDS75HJcQz8b"/>
+<div class="absolute bottom-0 right-0 bg-primary-container text-[8px] font-bold px-1 rounded-tl-md">LVL 24</div>
+</div>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile font-bold text-primary">AppGym</h1>
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-variant/50 transition-colors scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-primary">bolt</span>
+</button>
+</div>
+</header>
+<main class="px-margin-mobile pt-lg">
+<header class="mb-lg flex justify-between items-end">
+<div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Tus Rutinas</h2>
+<p class="font-body-md text-on-surface-variant">Gestión de entrenamiento personalizado</p>
+</div>
+</header>
+<!-- Search & Filter Bar -->
+<div class="flex gap-sm mb-lg">
+<div class="flex-1 bg-surface-container rounded-xl px-md py-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-on-surface font-body-md w-full p-0" placeholder="Buscar rutina..." type="text"/>
+</div>
+<button class="bg-surface-container w-12 h-12 rounded-xl flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined">filter_list</span>
+</button>
+</div>
+<!-- Routines List -->
+<div class="space-y-md">
+<!-- Card 1: Push Day -->
+<div class="routine-card bg-surface-container rounded-[20px] p-md flex flex-col gap-md relative overflow-hidden group">
+<div class="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 blur-3xl"></div>
+<div class="flex justify-between items-start">
+<div class="flex flex-col">
+<span class="text-secondary font-label-md uppercase tracking-wider mb-xs">Fuerza</span>
+<h3 class="font-title-lg text-title-lg text-on-surface">Push Day</h3>
+</div>
+<button class="text-on-surface-variant">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<div class="flex items-center gap-lg">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">fitness_center</span>
+<span class="font-label-md text-on-surface">8 Ejercicios</span>
+</div>
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">schedule</span>
+<span class="font-label-md text-on-surface">55 min</span>
+</div>
+</div>
+<div class="flex justify-between items-center pt-sm border-t border-outline-variant/30">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-secondary text-[16px]">history</span>
+<span class="font-label-md text-on-surface-variant italic">Ayer</span>
+</div>
+<button class="bg-secondary-container text-on-secondary-container px-lg py-sm rounded-full font-label-lg flex items-center gap-2 group-hover:scale-105 transition-transform">
+                        Entrenar
+                        <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+</div>
+</div>
+<!-- Card 2: Legs & Core -->
+<div class="routine-card bg-surface-container rounded-[20px] p-md flex flex-col gap-md relative overflow-hidden group">
+<div class="flex justify-between items-start">
+<div class="flex flex-col">
+<span class="text-secondary font-label-md uppercase tracking-wider mb-xs">Resistencia</span>
+<h3 class="font-title-lg text-title-lg text-on-surface">Legs &amp; Core</h3>
+</div>
+<button class="text-on-surface-variant">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<div class="flex items-center gap-lg">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">fitness_center</span>
+<span class="font-label-md text-on-surface">12 Ejercicios</span>
+</div>
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">schedule</span>
+<span class="font-label-md text-on-surface">75 min</span>
+</div>
+</div>
+<div class="flex justify-between items-center pt-sm border-t border-outline-variant/30">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-on-surface-variant text-[16px]">history</span>
+<span class="font-label-md text-on-surface-variant italic">Hace 3 días</span>
+</div>
+<button class="bg-surface-variant/50 text-on-surface px-lg py-sm rounded-full font-label-lg flex items-center gap-2">
+                        Entrenar
+                        <span class="material-symbols-outlined text-[18px]">play_arrow</span>
+</button>
+</div>
+</div>
+<!-- Card 3: Pull Day (Glassmorphism look) -->
+<div class="routine-card bg-surface-container-low rounded-[20px] p-md border border-outline-variant/20">
+<div class="flex justify-between items-start mb-md">
+<div>
+<span class="text-primary font-label-md uppercase tracking-wider mb-xs">Frecuencia</span>
+<h3 class="font-title-lg text-title-lg text-on-surface">Pull Day</h3>
+</div>
+<button class="text-on-surface-variant">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<div class="flex items-center gap-lg mb-md">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">fitness_center</span>
+<span class="font-label-md text-on-surface">7 Ejercicios</span>
+</div>
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">schedule</span>
+<span class="font-label-md text-on-surface">45 min</span>
+</div>
+</div>
+<div class="flex justify-between items-center pt-sm border-t border-outline-variant/30">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-on-surface-variant text-[16px]">history</span>
+<span class="font-label-md text-on-surface-variant italic">Hace 1 semana</span>
+</div>
+<button class="bg-surface-variant/50 text-on-surface px-lg py-sm rounded-full font-label-lg flex items-center gap-2">
+                        Entrenar
+                        <span class="material-symbols-outlined text-[18px]">play_arrow</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+<!-- FAB: Floating Action Button -->
+<button class="fixed bottom-24 right-6 w-14 h-14 bg-primary-container text-on-primary-container rounded-2xl shadow-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-40 group">
+<span class="material-symbols-outlined text-[28px]">add</span>
+<span class="absolute right-16 bg-primary-container px-3 py-1 rounded-lg text-label-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Nueva Rutina</span>
+</button>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 bg-surface-container h-20 px-4 w-full flex justify-around items-center">
+<!-- Inicio -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:opacity-100 transition-opacity scale-110 duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-md text-label-md">Inicio</span>
+</a>
+<!-- Ejercicios -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:opacity-100 transition-opacity scale-110 duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">fitness_center</span>
+<span class="font-label-md text-label-md">Ejercicios</span>
+</a>
+<!-- Rutinas (Active) -->
+<a class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-full px-5 py-1 scale-110 duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">assignment</span>
+<span class="font-label-md text-label-md">Rutinas</span>
+</a>
+<!-- Entrenar -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:opacity-100 transition-opacity scale-110 duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">play_circle</span>
+<span class="font-label-md text-label-md">Entrenar</span>
+</a>
+<!-- Perfil -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:opacity-100 transition-opacity scale-110 duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-md text-label-md">Perfil</span>
+</a>
+</nav>
+<script>
+        // Micro-interaction for search bar focus
+        const searchInput = document.querySelector('input');
+        const searchContainer = searchInput.parentElement;
+        
+        searchInput.addEventListener('focus', () => {
+            searchContainer.classList.add('ring-2', 'ring-primary/30');
+            searchContainer.classList.replace('bg-surface-container', 'bg-surface-container-high');
+        });
+        
+        searchInput.addEventListener('blur', () => {
+            searchContainer.classList.remove('ring-2', 'ring-primary/30');
+            searchContainer.classList.replace('bg-surface-container-high', 'bg-surface-container');
+        });
+
+        // Add stagger fade-in effect to cards
+        document.querySelectorAll('.routine-card').forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.animationDelay = `${index * 0.1}s`;
+            card.classList.add('animate-fade-in');
+        });
+    </script>
+</body></html>

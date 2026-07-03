@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
+import '../../core/theme.dart';
 import '../../models/exercise.dart';
 import '../../models/workout.dart';
 import '../../services/workout_service.dart';
@@ -23,6 +26,9 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
   WorkoutSession? _session;
   int? _restSeconds;
   bool _finishing = false;
+  List<PersonalRecord>? _newRecords;
+  Timer? _elapsedTimer;
+  Duration _elapsed = Duration.zero;
 
   @override
   void initState() {
@@ -34,6 +40,16 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
   Future<void> _load() async {
     final session = await _service.get(widget.sessionId);
     setState(() => _session = session);
+    _elapsedTimer ??= Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(() => _elapsed = DateTime.now().difference(session.startedAt));
+    });
+  }
+
+  @override
+  void dispose() {
+    _elapsedTimer?.cancel();
+    super.dispose();
   }
 
   Map<int, List<WorkoutSet>> _groupedSets() {
@@ -105,7 +121,7 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
           .where((r) => !previousRecordIds.contains(r.id))
           .toList();
       if (freshRecords.isNotEmpty && mounted) {
-        await _showRecordCelebration(freshRecords);
+        setState(() => _newRecords = freshRecords);
       }
     }
 
@@ -114,42 +130,21 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
     }
   }
 
-  Future<void> _showRecordCelebration(List<PersonalRecord> records) {
-    return showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('🏆 ¡Nuevo récord personal!'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: records
-              .map(
-                (r) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    '${recordTypeLabels[r.recordType] ?? r.recordType}: ${r.value}'
-                    '${r.previousValue != null ? ' (antes: ${r.previousValue})' : ''}',
-                  ),
-                ),
-              )
-              .toList(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('¡Genial!'),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _finish() async {
     setState(() => _finishing = true);
     await _service.finishSession(widget.sessionId);
     if (mounted) {
       Navigator.of(context).popUntil((route) => route.isFirst);
     }
+  }
+
+  String _formatElapsed(Duration d) {
+    final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    if (d.inHours > 0) {
+      return '${d.inHours}:$minutes:$seconds';
+    }
+    return '$minutes:$seconds';
   }
 
   @override
@@ -164,21 +159,65 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
     }
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Entrenamiento en curso'),
+        titleSpacing: 0,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Entrenamiento en curso',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(color: AppColors.primary),
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.timer, size: 14, color: AppColors.secondary),
+                const SizedBox(width: 4),
+                Text(
+                  _formatElapsed(_elapsed),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelMedium?.copyWith(color: AppColors.secondary),
+                ),
+              ],
+            ),
+          ],
+        ),
         actions: [
-          TextButton(
-            onPressed: _finishing ? null : _finish,
-            child: _finishing
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text(
-                    'Finalizar',
-                    style: TextStyle(color: Colors.white),
+          Padding(
+            padding: const EdgeInsets.only(right: AppSpacing.md),
+            child: Material(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                onTap: _finishing ? null : _finish,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.sm,
                   ),
+                  child: _finishing
+                      ? const SizedBox(
+                          height: 16,
+                          width: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.onPrimary,
+                          ),
+                        )
+                      : Text(
+                          'Finalizar',
+                          style: Theme.of(context).textTheme.labelLarge
+                              ?.copyWith(color: AppColors.onPrimary),
+                        ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -187,95 +226,309 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
         icon: const Icon(Icons.add),
         label: const Text('Agregar ejercicio'),
       ),
-      body: Column(
+      body: Stack(
         children: [
-          if (_restSeconds != null)
-            RestTimerBanner(
-              key: ValueKey(DateTime.now().millisecondsSinceEpoch),
-              seconds: _restSeconds!,
-              onDismiss: () => setState(() => _restSeconds = null),
-            ),
-          Expanded(
-            child: exercisesInSession.isEmpty
-                ? const Center(
-                    child: Text(
-                      'Agregá un ejercicio para empezar a registrar series.',
-                    ),
-                  )
-                : ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: exercisesInSession.entries.map((entry) {
-                      final exercise = entry.value;
-                      final sets = grouped[entry.key]!;
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                exercise.name,
-                                style: Theme.of(context).textTheme.titleMedium,
-                              ),
-                              const Divider(),
-                              for (final set in sets)
-                                ListTile(
-                                  dense: true,
-                                  contentPadding: EdgeInsets.zero,
-                                  leading: CircleAvatar(
-                                    radius: 14,
-                                    child: Text('${set.setNumber}'),
-                                  ),
-                                  title: Text(
-                                    '${set.weightKg} kg × ${set.reps} reps${set.isWarmup ? ' (calentamiento)' : ''}',
-                                  ),
-                                  subtitle: Text(
-                                    [
-                                      if (set.rpe != null) 'RPE ${set.rpe}',
-                                      if (set.rir != null) 'RIR ${set.rir}',
-                                      if (set.techniques.isNotEmpty)
-                                        set.techniques
-                                            .map(
-                                              (t) =>
-                                                  availableTechniques[t] ?? t,
-                                            )
-                                            .join(', '),
-                                    ].join(' · '),
-                                  ),
-                                  trailing: IconButton(
-                                    icon: const Icon(
-                                      Icons.delete_outline,
-                                      size: 20,
-                                    ),
-                                    onPressed: () async {
-                                      await _service.deleteSet(set.id);
-                                      _load();
-                                    },
-                                  ),
-                                ),
-                              Align(
-                                alignment: Alignment.centerLeft,
-                                child: TextButton.icon(
-                                  onPressed: () => _addSetFor(
-                                    exercise,
-                                    sets.length + 1,
-                                    initialWeight: sets.last.weightKg,
-                                    initialReps: sets.last.reps,
-                                  ),
-                                  icon: const Icon(Icons.add),
-                                  label: const Text('Agregar serie'),
-                                ),
-                              ),
-                            ],
-                          ),
+          Column(
+            children: [
+              if (_newRecords != null && _newRecords!.isNotEmpty)
+                _RecordBanner(
+                  records: _newRecords!,
+                  onDismiss: () => setState(() => _newRecords = null),
+                ),
+              Expanded(
+                child: exercisesInSession.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'Agregá un ejercicio para empezar a registrar series.',
                         ),
-                      );
-                    }).toList(),
+                      )
+                    : ListView(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.md,
+                          AppSpacing.md,
+                          AppSpacing.md,
+                          120,
+                        ),
+                        children: exercisesInSession.entries.map((entry) {
+                          final exercise = entry.value;
+                          final sets = grouped[entry.key]!;
+                          return _ExerciseFocusCard(
+                            exercise: exercise,
+                            sets: sets,
+                            onAddSet: () => _addSetFor(
+                              exercise,
+                              sets.length + 1,
+                              initialWeight: sets.last.weightKg,
+                              initialReps: sets.last.reps,
+                            ),
+                            onDeleteSet: (set) async {
+                              await _service.deleteSet(set.id);
+                              _load();
+                            },
+                          );
+                        }).toList(),
+                      ),
+              ),
+            ],
+          ),
+          if (_restSeconds != null)
+            Positioned(
+              bottom: 88,
+              right: AppSpacing.md,
+              child: RestTimerBanner(
+                key: ValueKey(DateTime.now().millisecondsSinceEpoch),
+                seconds: _restSeconds!,
+                onDismiss: () => setState(() => _restSeconds = null),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecordBanner extends StatelessWidget {
+  final List<PersonalRecord> records;
+  final VoidCallback onDismiss;
+
+  const _RecordBanner({required this.records, required this.onDismiss});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.sm,
+        AppSpacing.md,
+        0,
+      ),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.secondaryContainer.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(
+          color: AppColors.secondaryContainer.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: const BoxDecoration(
+              color: AppColors.secondaryContainer,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.emoji_events,
+              size: 20,
+              color: AppColors.onSecondaryContainer,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '¡Récord Personal!',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelLarge?.copyWith(color: AppColors.secondary),
+                ),
+                for (final r in records)
+                  Text(
+                    '${recordTypeLabels[r.recordType] ?? r.recordType}: ${r.value}'
+                    '${r.previousValue != null ? ' (antes: ${r.previousValue})' : ''}',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                    ),
                   ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.close, size: 18),
+            color: AppColors.onSurfaceVariant,
+            onPressed: onDismiss,
           ),
         ],
       ),
     );
+  }
+}
+
+class _ExerciseFocusCard extends StatelessWidget {
+  final ExerciseSummary exercise;
+  final List<WorkoutSet> sets;
+  final VoidCallback onAddSet;
+  final ValueChanged<WorkoutSet> onDeleteSet;
+
+  const _ExerciseFocusCard({
+    required this.exercise,
+    required this.sets,
+    required this.onAddSet,
+    required this.onDeleteSet,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = muscleGroupColors[exercise.muscleGroup] ?? Colors.grey;
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainer,
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                  child: Icon(Icons.fitness_center, color: color),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        exercise.name,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      Text(
+                        exercise.muscleGroup,
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(color: AppColors.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
+            decoration: const BoxDecoration(
+              border: Border(
+                top: BorderSide(color: AppColors.outlineVariant),
+                bottom: BorderSide(color: AppColors.outlineVariant),
+              ),
+            ),
+            child: Row(
+              children: [
+                _headerCell(context, 'SET'),
+                _headerCell(context, 'KG'),
+                _headerCell(context, 'REPS'),
+                _headerCell(context, 'RPE'),
+                const SizedBox(width: 32),
+              ],
+            ),
+          ),
+          for (final set in sets)
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.sm,
+              ),
+              child: Row(
+                children: [
+                  _cell(
+                    context,
+                    Container(
+                      width: 26,
+                      height: 26,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: set.isWarmup
+                            ? Colors.transparent
+                            : AppColors.secondaryContainer,
+                        shape: BoxShape.circle,
+                        border: set.isWarmup
+                            ? Border.all(color: AppColors.outline)
+                            : null,
+                      ),
+                      child: Text(
+                        '${set.setNumber}',
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              color: set.isWarmup
+                                  ? AppColors.outline
+                                  : AppColors.onSecondaryContainer,
+                            ),
+                      ),
+                    ),
+                  ),
+                  _cell(context, Text('${set.weightKg}')),
+                  _cell(context, Text('${set.reps}')),
+                  _cell(context, Text(set.rpe != null ? '${set.rpe}' : '—')),
+                  SizedBox(
+                    width: 32,
+                    child: IconButton(
+                      icon: const Icon(Icons.close, size: 16),
+                      color: AppColors.onSurfaceVariant,
+                      padding: EdgeInsets.zero,
+                      onPressed: () => onDeleteSet(set),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Material(
+              color: AppColors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                onTap: onAddSet,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.add, size: 18),
+                      const SizedBox(width: AppSpacing.xs),
+                      Text(
+                        'Añadir serie',
+                        style: Theme.of(context).textTheme.labelLarge,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _headerCell(BuildContext context, String label) {
+    return Expanded(
+      child: Text(
+        label,
+        textAlign: TextAlign.center,
+        style: Theme.of(
+          context,
+        ).textTheme.labelSmall?.copyWith(color: AppColors.onSurfaceVariant),
+      ),
+    );
+  }
+
+  Widget _cell(BuildContext context, Widget child) {
+    return Expanded(child: Center(child: child));
   }
 }

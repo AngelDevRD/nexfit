@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AppGym - Biblioteca de Ejercicios</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "secondary-fixed": "#50fec5",
+                    "primary-fixed": "#e4dfff",
+                    "surface-variant": "#34343b",
+                    "surface-container-lowest": "#0e0e14",
+                    "on-primary": "#2900a0",
+                    "surface-tint": "#c6bfff",
+                    "surface": "#131319",
+                    "on-background": "#e4e1ea",
+                    "secondary-fixed-dim": "#1fe0aa",
+                    "background": "#131319",
+                    "primary-fixed-dim": "#c6bfff",
+                    "on-secondary-fixed": "#002116",
+                    "inverse-on-surface": "#303036",
+                    "outline-variant": "#474554",
+                    "surface-bright": "#39383f",
+                    "on-tertiary-fixed": "#001e2f",
+                    "on-tertiary-fixed-variant": "#004b6f",
+                    "on-error-container": "#ffdad6",
+                    "surface-container-high": "#2a2930",
+                    "tertiary-fixed": "#c9e6ff",
+                    "secondary": "#44f5bd",
+                    "inverse-surface": "#e4e1ea",
+                    "tertiary-container": "#0079ae",
+                    "error-container": "#93000a",
+                    "on-primary-fixed": "#160066",
+                    "inverse-primary": "#5847d2",
+                    "tertiary-fixed-dim": "#8aceff",
+                    "tertiary": "#8aceff",
+                    "surface-container-highest": "#34343b",
+                    "on-secondary-container": "#005840",
+                    "secondary-container": "#00d8a2",
+                    "on-tertiary": "#00344e",
+                    "on-surface": "#e4e1ea",
+                    "error": "#ffb4ab",
+                    "surface-container": "#1f1f25",
+                    "on-primary-fixed-variant": "#4029ba",
+                    "surface-container-low": "#1b1b21",
+                    "primary": "#c6bfff",
+                    "on-secondary": "#003828",
+                    "on-error": "#690005",
+                    "primary-container": "#6c5ce7",
+                    "on-secondary-fixed-variant": "#00513b",
+                    "surface-dim": "#131319",
+                    "on-primary-container": "#faf6ff",
+                    "outline": "#928ea0",
+                    "on-tertiary-container": "#f4f8ff",
+                    "on-surface-variant": "#c8c4d7"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "margin-desktop": "48px",
+                    "md": "16px",
+                    "margin-mobile": "16px",
+                    "base": "4px",
+                    "gutter": "16px",
+                    "margin-tablet": "24px",
+                    "xs": "4px",
+                    "sm": "8px",
+                    "lg": "24px",
+                    "xl": "32px"
+            },
+            "fontFamily": {
+                    "title-lg": ["Inter"],
+                    "label-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "label-lg": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "headline-lg-mobile": ["Inter"]
+            },
+            "fontSize": {
+                    "title-lg": ["22px", {"lineHeight": "28px", "fontWeight": "500"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "letterSpacing": "0.5px", "fontWeight": "400"}],
+                    "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "500"}],
+                    "display-lg": ["57px", {"lineHeight": "64px", "letterSpacing": "-0.25px", "fontWeight": "700"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.25px", "fontWeight": "400"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Custom scrollbar for horizontal chips */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Muscle-specific chip styles requested */
+        .chip-pecho { background-color: rgba(255, 84, 112, 0.15); color: #FF5470; border: 1px solid rgba(255, 84, 112, 0.3); }
+        .chip-espalda { background-color: rgba(68, 245, 189, 0.15); color: #44F5BD; border: 1px solid rgba(68, 245, 189, 0.3); }
+        .chip-piernas { background-color: rgba(138, 206, 255, 0.15); color: #8ACEFF; border: 1px solid rgba(138, 206, 255, 0.3); }
+        .chip-hombros { background-color: rgba(198, 191, 255, 0.15); color: #C6BFFF; border: 1px solid rgba(198, 191, 255, 0.3); }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen pb-24">
+<!-- TopAppBar -->
+<header class="w-full top-0 sticky z-50 bg-background/80 backdrop-blur-md flex justify-between items-center px-margin-mobile py-sm w-full">
+<div class="flex items-center gap-sm">
+<div class="relative">
+<div class="w-10 h-10 rounded-full overflow-hidden border-2 border-primary">
+<img class="w-full h-full object-cover" data-alt="A professional close-up studio portrait of a fitness athlete, high-contrast dramatic lighting on a dark obsidian background, violet and mint rim lights, sharp focus on facial features, representing a premium AI fitness coach profile photo." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBeg8gxYs_62fze9qzYLgdyIdbw6Dzze1SJq4pU9PaiFOvxdsgc5e3exqfMU64Zvo0XxaN-Wy2EMSk3gMDAu5JfS4ALEFskVlPe99pL3a0Pmp8sGUjD1xdhbH59DBB7faeB1aXANUwNGyvlIQRj4ZDSzFuytZ5Zgw8XG8upYsiE4mGq4vaHe3DW9mQ2aPrWDI2IQ7SCdcx1nerAW5KT4NZj97vtol3hJnROUbU_aLW7d-VQukLu6hQ8"/>
+</div>
+<span class="absolute -bottom-1 -right-1 bg-secondary text-on-secondary-fixed text-[10px] font-bold px-1 rounded-full border border-background">XP 42</span>
+</div>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile font-bold text-primary">AppGym</h1>
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-variant/50 transition-colors scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-primary">bolt</span>
+</button>
+</header>
+<main class="px-margin-mobile">
+<!-- Search Bar -->
+<section class="mt-md mb-lg">
+<div class="relative flex items-center w-full">
+<span class="material-symbols-outlined absolute left-4 text-on-surface-variant">search</span>
+<input class="w-full pl-12 pr-4 py-3 bg-surface-container border-none rounded-xl text-body-md focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-on-surface-variant/50" placeholder="Buscar ejercicios..." type="text"/>
+<button class="absolute right-4 text-primary">
+<span class="material-symbols-outlined">tune</span>
+</button>
+</div>
+</section>
+<!-- Muscle Group Filters -->
+<section class="mb-lg">
+<div class="flex gap-sm overflow-x-auto hide-scrollbar py-2">
+<button class="px-4 py-1.5 rounded-full text-label-md font-medium chip-pecho whitespace-nowrap">Pecho</button>
+<button class="px-4 py-1.5 rounded-full text-label-md font-medium chip-espalda whitespace-nowrap">Espalda</button>
+<button class="px-4 py-1.5 rounded-full text-label-md font-medium chip-piernas whitespace-nowrap">Piernas</button>
+<button class="px-4 py-1.5 rounded-full text-label-md font-medium chip-hombros whitespace-nowrap">Hombros</button>
+<button class="px-4 py-1.5 rounded-full text-label-md font-medium bg-surface-container text-on-surface-variant border border-outline-variant whitespace-nowrap">Bíceps</button>
+<button class="px-4 py-1.5 rounded-full text-label-md font-medium bg-surface-container text-on-surface-variant border border-outline-variant whitespace-nowrap">Tríceps</button>
+</div>
+</section>
+<!-- Exercise List -->
+<section class="space-y-md">
+<div class="flex justify-between items-center mb-base">
+<h2 class="text-title-lg font-title-lg">Ejercicios Populares</h2>
+<span class="text-label-md text-primary-fixed-dim">Ver todo</span>
+</div>
+<!-- Exercise Card 1 -->
+<div class="flex items-center gap-md p-md bg-surface-container rounded-[16px] hover:bg-surface-variant/30 transition-all cursor-pointer active:scale-[0.98]">
+<div class="w-16 h-16 rounded-lg overflow-hidden bg-surface-container-high flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="A hyper-realistic cinematic 3D render of a gym exercise, specifically a professional chest press bench, minimalist dark studio setting with vibrant mint and violet neon highlights, sharp textures and technical precision, atmospheric smoke, high-performance athletic feel." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDt0FqMaTAX66Q1ltdaHFHBxxQu5qgf7X3PxwJ-bJAKLIuvhY3qzMvw6kBy43ewax7L0ij96UDyDYbN5IhV9uXulojkF4rMoWe5QK_V7SJIYTUc3Uyzl9f3m8Hbjr-mTrxpsGxczT12hjhYjBNMpO8_YcHAmtc3oRfjceLkKELwmyfGB8oh0Lrlqo1VyPWV_8cgHYGvQ39bUvrxDOJpsDWh0TThAhEIRmfQ1d6gb90iu4pkOBlTMUpg"/>
+</div>
+<div class="flex-grow min-w-0">
+<h3 class="text-body-lg font-semibold text-on-surface truncate">Press de Banca con Barra</h3>
+<div class="flex items-center gap-sm mt-1">
+<span class="text-label-md text-secondary">Intermedio</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="text-label-md text-on-surface-variant">Barra, Banco</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+</div>
+<!-- Exercise Card 2 -->
+<div class="flex items-center gap-md p-md bg-surface-container rounded-[16px] hover:bg-surface-variant/30 transition-all cursor-pointer active:scale-[0.98]">
+<div class="w-16 h-16 rounded-lg overflow-hidden bg-surface-container-high flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="A highly detailed close-up of heavy chrome dumbbells on a textured black rubber gym floor, dramatic side lighting creating long shadows, violet and mint color grading, sleek modern athletic aesthetic, ultra-sharp detail and photorealistic quality." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAlgWTxvIhQ-bcIUJBAE4e_10S-hbVsfYnAJNFFA2zFimM9h13Psyj_0uAsrUFspTE0zNs1Y72ak2bwIXZRpuYicyhMcU1D8kFdz-DPiUuhQl819HQn4PV5QiHWcRY5XCbr4O3UGKU7s4djo9RK4n-M7jlyO7a5CxxeFhYrN_Cnl3uy0jiT6DqkHjB7DUdJNfjdL8re6b38xKxfUIjRU8vk-iLxr1eZVpbEhDbL_--t8YWJSJkVxrUG"/>
+</div>
+<div class="flex-grow min-w-0">
+<h3 class="text-body-lg font-semibold text-on-surface truncate">Aperturas con Mancuernas</h3>
+<div class="flex items-center gap-sm mt-1">
+<span class="text-label-md text-primary">Principiante</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="text-label-md text-on-surface-variant">Mancuernas</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+</div>
+<!-- Exercise Card 3 -->
+<div class="flex items-center gap-md p-md bg-surface-container rounded-[16px] hover:bg-surface-variant/30 transition-all cursor-pointer active:scale-[0.98]">
+<div class="w-16 h-16 rounded-lg overflow-hidden bg-surface-container-high flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="A wide-angle cinematic shot of a modern pull-up station in an obsidian-themed high-tech gym, cool blue and purple ambient lighting, glowing digital interfaces in the background, sharp focus on the equipment, professional and motivational mood." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAJ0XpGujiClFmm0bXzf7yyAu979b17WGf5Sp8jB4G6R0JEEJn-Y_n57VO-t9MqCRSQVlYLctxFay12sGzMmzzvjxt55tGfvJrPQW9RxOMGoV_ChSWUn53H68ckjnJsK-6d1AspE6Der8S6O3tcMihNU3NtzQzwI6o12vadn-xYOUEFyJ5NI4bQUYMjRBYIBbAStLfCc_AIFKjB01_10mLkyuOMskJeig7ZPTiN0GnCWQF69qtx3-tA"/>
+</div>
+<div class="flex-grow min-w-0">
+<h3 class="text-body-lg font-semibold text-on-surface truncate">Dominadas Pronas</h3>
+<div class="flex items-center gap-sm mt-1">
+<span class="text-label-md text-error">Avanzado</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="text-label-md text-on-surface-variant">Peso Corporal</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+</div>
+<!-- Exercise Card 4 -->
+<div class="flex items-center gap-md p-md bg-surface-container rounded-[16px] hover:bg-surface-variant/30 transition-all cursor-pointer active:scale-[0.98]">
+<div class="w-16 h-16 rounded-lg overflow-hidden bg-surface-container-high flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="Technical 3D visualization of a leg press machine in a dark studio, minimalist aesthetics with mint glowing accents on the moving parts, professional fitness equipment design, dark moody lighting, sharp high-contrast details." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA21EyKVQcXq-bDDkfZf3Oy0YFvLb3a9SRMXV8XLNfi25kQmCDdqTkQrHwfwbyeb-Tk7Trtf2GcI_WMrPi-dQHRsl1KlKqno2oiRf9nyvpwezk5p3tEaeb8PEfP8XE4TuFQ56kmhX5o1gpqfdXcT5CAuVpoiY3QCEgSJyeQ4ppyaIr66s5XPfvA5CAUWfoRiDwiQzrXLX2PhnQo9kjL9TPVJfSN_Sg0LcskDo4yGA9WyfiSdqArz2Mw"/>
+</div>
+<div class="flex-grow min-w-0">
+<h3 class="text-body-lg font-semibold text-on-surface truncate">Prensa de Piernas</h3>
+<div class="flex items-center gap-sm mt-1">
+<span class="text-label-md text-secondary">Intermedio</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="text-label-md text-on-surface-variant">Máquina</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+</div>
+<!-- Exercise Card 5 -->
+<div class="flex items-center gap-md p-md bg-surface-container rounded-[16px] hover:bg-surface-variant/30 transition-all cursor-pointer active:scale-[0.98]">
+<div class="w-16 h-16 rounded-lg overflow-hidden bg-surface-container-high flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="Close up of a barbell with heavy weight plates on a lifting platform, dark professional gym setting, atmospheric dust in the air illuminated by a single violet spotlight, high-performance strength training aesthetic, ultra-sharp realistic textures." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC2swnWAmhTH4Lz_OzsByMYukgbMizcVFidGbYOomtmTu3-ciUDPolvhM049XcEnbe7dUIFEIP02EHdnm29edqgSNTIDNR1DKA8YwE3bQXuLEHTwyErIqgUJ8cioQpZIhzhdcd5IBGwAUusLj-AhNXxUpgeJh7f3QkqnzgyHF-feyF_2OBXpkM2nuad8774l1ikjUMM5W_xoksSivuZb18JsyzKs25t8T6b4hBEEPqJ97tJodifZ7Mb"/>
+</div>
+<div class="flex-grow min-w-0">
+<h3 class="text-body-lg font-semibold text-on-surface truncate">Peso Muerto Convencional</h3>
+<div class="flex items-center gap-sm mt-1">
+<span class="text-label-md text-error">Avanzado</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="text-label-md text-on-surface-variant">Barra</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 bg-surface-container flex justify-around items-center h-20 px-4 w-full">
+<!-- Inicio -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:opacity-100 transition-opacity" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-md text-label-md">Inicio</span>
+</a>
+<!-- Ejercicios (Active) -->
+<a class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-full px-5 py-1 scale-110 duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">fitness_center</span>
+<span class="font-label-md text-label-md">Ejercicios</span>
+</a>
+<!-- Rutinas -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:opacity-100 transition-opacity" href="#">
+<span class="material-symbols-outlined">assignment</span>
+<span class="font-label-md text-label-md">Rutinas</span>
+</a>
+<!-- Entrenar -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:opacity-100 transition-opacity" href="#">
+<span class="material-symbols-outlined">play_circle</span>
+<span class="font-label-md text-label-md">Entrenar</span>
+</a>
+<!-- Perfil -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant opacity-70 hover:opacity-100 transition-opacity" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-md text-label-md">Perfil</span>
+</a>
+</nav>
+<script>
+        // Simple interactivity for chips
+        const chips = document.querySelectorAll('.rounded-full[class*="chip-"], .rounded-full.bg-surface-container');
+        chips.forEach(chip => {
+            chip.addEventListener('click', () => {
+                // Toggle visual feedback (active state logic)
+                chips.forEach(c => c.style.transform = 'scale(1)');
+                chip.style.transform = 'scale(1.05)';
+                setTimeout(() => chip.style.transform = 'scale(1)', 150);
+            });
+        });
+
+        // Search bar micro-interaction
+        const searchInput = document.querySelector('input[type="text"]');
+        searchInput.addEventListener('focus', () => {
+            searchInput.parentElement.classList.add('ring-2', 'ring-primary/30');
+        });
+        searchInput.addEventListener('blur', () => {
+            searchInput.parentElement.classList.remove('ring-2', 'ring-primary/30');
+        });
+    </script>
+</body></html>

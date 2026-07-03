@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Login | AppGym</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "secondary-fixed": "#50fec5",
+                    "primary-fixed": "#e4dfff",
+                    "surface-variant": "#34343b",
+                    "surface-container-lowest": "#0e0e14",
+                    "on-primary": "#2900a0",
+                    "surface-tint": "#c6bfff",
+                    "surface": "#131319",
+                    "on-background": "#e4e1ea",
+                    "secondary-fixed-dim": "#1fe0aa",
+                    "background": "#131319",
+                    "primary-fixed-dim": "#c6bfff",
+                    "on-secondary-fixed": "#002116",
+                    "inverse-on-surface": "#303036",
+                    "outline-variant": "#474554",
+                    "surface-bright": "#39383f",
+                    "on-tertiary-fixed": "#001e2f",
+                    "on-tertiary-fixed-variant": "#004b6f",
+                    "on-error-container": "#ffdad6",
+                    "surface-container-high": "#2a2930",
+                    "tertiary-fixed": "#c9e6ff",
+                    "secondary": "#44f5bd",
+                    "inverse-surface": "#e4e1ea",
+                    "tertiary-container": "#0079ae",
+                    "error-container": "#93000a",
+                    "on-primary-fixed": "#160066",
+                    "inverse-primary": "#5847d2",
+                    "tertiary-fixed-dim": "#8aceff",
+                    "tertiary": "#8aceff",
+                    "surface-container-highest": "#34343b",
+                    "on-secondary-container": "#005840",
+                    "secondary-container": "#00d8a2",
+                    "on-tertiary": "#00344e",
+                    "on-surface": "#e4e1ea",
+                    "error": "#ffb4ab",
+                    "surface-container": "#1f1f25",
+                    "on-primary-fixed-variant": "#4029ba",
+                    "surface-container-low": "#1b1b21",
+                    "primary": "#c6bfff",
+                    "on-secondary": "#003828",
+                    "on-error": "#690005",
+                    "primary-container": "#6c5ce7",
+                    "on-secondary-fixed-variant": "#00513b",
+                    "surface-dim": "#131319",
+                    "on-primary-container": "#faf6ff",
+                    "outline": "#928ea0",
+                    "on-tertiary-container": "#f4f8ff",
+                    "on-surface-variant": "#c8c4d7"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "margin-desktop": "48px",
+                    "md": "16px",
+                    "margin-mobile": "16px",
+                    "base": "4px",
+                    "gutter": "16px",
+                    "margin-tablet": "24px",
+                    "xs": "4px",
+                    "sm": "8px",
+                    "lg": "24px",
+                    "xl": "32px"
+            },
+            "fontFamily": {
+                    "title-lg": ["Inter"],
+                    "label-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "label-lg": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "headline-lg-mobile": ["Inter"]
+            },
+            "fontSize": {
+                    "title-lg": ["22px", {"lineHeight": "28px", "fontWeight": "500"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "letterSpacing": "0.5px", "fontWeight": "400"}],
+                    "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "500"}],
+                    "display-lg": ["57px", {"lineHeight": "64px", "letterSpacing": "-0.25px", "fontWeight": "700"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.25px", "fontWeight": "400"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #131319;
+            color: #e4e1ea;
+            -webkit-font-smoothing: antialiased;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            background: rgba(31, 31, 37, 0.8);
+            backdrop-filter: blur(12px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background min-h-screen flex flex-col items-center justify-center p-margin-mobile relative overflow-hidden">
+<!-- Background Atmospheric Effect -->
+<div class="absolute inset-0 pointer-events-none opacity-30">
+<div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary-container/20 rounded-full blur-[120px]"></div>
+<div class="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-secondary-container/10 rounded-full blur-[120px]"></div>
+</div>
+<main class="w-full max-w-[420px] relative z-10 flex flex-col items-center">
+<!-- Logo & Branding -->
+<div class="mb-xl text-center flex flex-col items-center">
+<div class="w-16 h-16 bg-primary-container rounded-xl flex items-center justify-center mb-md shadow-xl transition-transform hover:scale-105 duration-300">
+<span class="material-symbols-outlined text-on-primary-container !text-[40px]" data-icon="bolt" style="font-variation-settings: 'FILL' 1;">bolt</span>
+</div>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-primary-fixed-dim tracking-tight">AppGym</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-xs">Tu evolución impulsada por datos.</p>
+</div>
+<!-- Conversational Welcome -->
+<div class="mb-lg w-full px-sm text-left">
+<h2 class="font-title-lg text-title-lg text-on-background">¡Hola de nuevo!</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Listo para superar tus límites? Solo introduce tus credenciales para continuar con tu progreso.</p>
+</div>
+<!-- Login Form -->
+<form class="w-full space-y-md" onsubmit="event.preventDefault();">
+<div class="space-y-sm">
+<div class="relative group">
+<input class="w-full h-[56px] px-md bg-surface-container border-none rounded-xl text-on-surface placeholder:text-on-surface-variant/50 focus:ring-2 focus:ring-primary-container transition-all outline-none" placeholder="Correo electrónico" type="email"/>
+<span class="absolute right-md top-1/2 -translate-y-1/2 material-symbols-outlined text-on-surface-variant/50 group-focus-within:text-primary" data-icon="mail">mail</span>
+</div>
+<div class="relative group">
+<input class="w-full h-[56px] px-md bg-surface-container border-none rounded-xl text-on-surface placeholder:text-on-surface-variant/50 focus:ring-2 focus:ring-primary-container transition-all outline-none" placeholder="Contraseña" type="password"/>
+<span class="absolute right-md top-1/2 -translate-y-1/2 material-symbols-outlined text-on-surface-variant/50 group-focus-within:text-primary cursor-pointer" data-icon="visibility">visibility</span>
+</div>
+</div>
+<div class="flex justify-end px-xs">
+<a class="font-label-lg text-label-lg text-primary hover:text-primary-fixed transition-colors" href="#">¿Olvidaste tu contraseña?</a>
+</div>
+<button class="w-full h-[56px] bg-primary-container text-on-primary-container rounded-xl font-label-lg text-label-lg flex items-center justify-center gap-sm active:scale-95 transition-transform shadow-lg shadow-primary-container/20" type="submit">
+                Iniciar sesión
+                <span class="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</form>
+<!-- Social Divider -->
+<div class="w-full flex items-center gap-md my-xl opacity-60">
+<div class="flex-grow h-[1px] bg-outline-variant"></div>
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest">O continuar con</span>
+<div class="flex-grow h-[1px] bg-outline-variant"></div>
+</div>
+<!-- Social Buttons -->
+<div class="grid grid-cols-2 gap-md w-full">
+<button class="h-[52px] bg-surface-container-high rounded-xl flex items-center justify-center gap-sm hover:bg-surface-variant transition-colors border border-outline-variant/30 active:scale-95 transition-transform">
+<img class="w-5 h-5" data-alt="A clean, minimalist high-fidelity render of the Google 'G' logo on a dark background, centered and balanced with soft studio lighting reflecting off a matte glass surface. The overall aesthetic is professional, modern, and perfectly aligned with a dark theme fitness application design language." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAnCg-OLHDkssB2cTX8mq4P5GwNELqVhbxpGxUEvI8ctmtJfGOZczfizJ2tP4KBM4lFesUs880LVMHK6w1sucjeFOB_XCzjS8XdWNBr4sUWjEqmtsAvf02U2WmAEO8VGmnJKezu2Xp1Qp3TeLeuC0wFs7aRjWdZdVh6FGZDF1GRCC0po94nWglPJJ2MA3Xu6vZw7pxz5Td3y3Z5Dc4J_O_Wjg4L-jpMrvjwpCuY3qX9TLUqO7LZIAqI"/>
+<span class="font-label-lg text-label-lg">Google</span>
+</button>
+<button class="h-[52px] bg-surface-container-high rounded-xl flex items-center justify-center gap-sm hover:bg-surface-variant transition-colors border border-outline-variant/30 active:scale-95 transition-transform">
+<span class="material-symbols-outlined !text-[20px]" data-icon="apple" style="font-variation-settings: 'FILL' 1;">apps</span>
+<span class="font-label-lg text-label-lg">Apple</span>
+</button>
+</div>
+<!-- Footer / Redirect -->
+<p class="mt-xl font-body-md text-body-md text-on-surface-variant">
+            ¿No tienes una cuenta? 
+            <a class="font-label-lg text-label-lg text-secondary-fixed-dim hover:underline ml-xs" href="#">Crear cuenta</a>
+</p>
+<!-- AI Assistant Micro-tip -->
+<div class="mt-xl p-md bg-surface-container-low rounded-2xl flex items-start gap-md border border-outline-variant/20 max-w-[320px] shadow-sm">
+<span class="material-symbols-outlined text-secondary-fixed shrink-0" data-icon="auto_awesome">auto_awesome</span>
+<p class="font-body-md text-body-md text-on-surface-variant italic">
+                "Tip: Los usuarios que entrenan a esta hora suelen quemar un 15% más de calorías. ¡Vamos por ello!"
+            </p>
+</div>
+</main>
+<!-- UI Enhancement Interaction Script -->
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const inputs = document.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.addEventListener('focus', () => {
+                    input.parentElement.style.transform = 'translateY(-2px)';
+                    input.parentElement.style.transition = 'transform 0.3s ease';
+                });
+                input.addEventListener('blur', () => {
+                    input.parentElement.style.transform = 'translateY(0)';
+                });
+            });
+
+            // Toggle password visibility placeholder
+            const visibilityToggle = document.querySelector('[data-icon="visibility"]');
+            visibilityToggle.addEventListener('click', function() {
+                const input = this.previousElementSibling;
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    this.textContent = 'visibility_off';
+                } else {
+                    input.type = 'password';
+                    this.textContent = 'visibility';
+                }
+            });
+        });
+    </script>
+</body></html>

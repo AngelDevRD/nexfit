@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AppGym - Constructor de Rutinas</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-fixed": "#c9e6ff",
+                    "surface-tint": "#c6bfff",
+                    "inverse-on-surface": "#303036",
+                    "background": "#131319",
+                    "surface": "#131319",
+                    "surface-dim": "#131319",
+                    "on-surface": "#e4e1ea",
+                    "surface-variant": "#34343b",
+                    "surface-container-highest": "#34343b",
+                    "on-tertiary-container": "#f4f8ff",
+                    "secondary-fixed-dim": "#1fe0aa",
+                    "on-background": "#e4e1ea",
+                    "secondary-fixed": "#50fec5",
+                    "surface-container-lowest": "#0e0e14",
+                    "outline": "#928ea0",
+                    "secondary": "#44f5bd",
+                    "on-primary-container": "#faf6ff",
+                    "on-secondary-fixed-variant": "#00513b",
+                    "on-tertiary": "#00344e",
+                    "surface-container-low": "#1b1b21",
+                    "tertiary-fixed-dim": "#8aceff",
+                    "primary-container": "#6c5ce7",
+                    "primary-fixed-dim": "#c6bfff",
+                    "on-tertiary-fixed": "#001e2f",
+                    "on-surface-variant": "#c8c4d7",
+                    "tertiary-container": "#0079ae",
+                    "on-tertiary-fixed-variant": "#004b6f",
+                    "on-primary-fixed-variant": "#4029ba",
+                    "on-secondary-fixed": "#002116",
+                    "on-error-container": "#ffdad6",
+                    "inverse-primary": "#5847d2",
+                    "tertiary": "#8aceff",
+                    "error": "#ffb4ab",
+                    "primary-fixed": "#e4dfff",
+                    "outline-variant": "#474554",
+                    "inverse-surface": "#e4e1ea",
+                    "on-error": "#690005",
+                    "surface-container-high": "#2a2930",
+                    "on-secondary": "#003828",
+                    "surface-container": "#1f1f25",
+                    "on-primary-fixed": "#160066",
+                    "on-primary": "#2900a0",
+                    "error-container": "#93000a",
+                    "surface-bright": "#39383f",
+                    "secondary-container": "#00d8a2",
+                    "primary": "#c6bfff",
+                    "on-secondary-container": "#005840"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "lg": "24px",
+                    "sm": "8px",
+                    "margin-desktop": "48px",
+                    "gutter": "16px",
+                    "margin-mobile": "16px",
+                    "margin-tablet": "24px",
+                    "xs": "4px",
+                    "base": "4px",
+                    "md": "16px",
+                    "xl": "32px"
+            },
+            "fontFamily": {
+                    "display-lg": ["Inter"],
+                    "label-md": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "title-lg": ["Inter"],
+                    "label-lg": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "body-md": ["Inter"]
+            },
+            "fontSize": {
+                    "display-lg": ["57px", {"lineHeight": "64px", "letterSpacing": "-0.25px", "fontWeight": "700"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                    "title-lg": ["22px", {"lineHeight": "28px", "fontWeight": "500"}],
+                    "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "500"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "letterSpacing": "0.5px", "fontWeight": "400"}],
+                    "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "600"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.25px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #131319;
+            color: #e4e1ea;
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            user-select: none;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #131319;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #34343b;
+            border-radius: 10px;
+        }
+        .glass-header {
+            backdrop-filter: blur(12px);
+            background-color: rgba(19, 19, 25, 0.85);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="overflow-x-hidden">
+<!-- Top Navigation Bar -->
+<nav class="fixed top-0 z-40 w-full glass-header px-margin-mobile py-base flex justify-between items-center bg-background">
+<div class="flex items-center gap-sm transition-all duration-200 active:scale-95">
+<span class="material-symbols-outlined text-primary text-headline-lg-mobile">fitness_center</span>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile font-bold text-on-background">AppGym</h1>
+</div>
+<div class="flex items-center gap-sm">
+<span class="font-label-lg text-secondary px-sm py-xs bg-secondary/10 rounded-full border border-secondary/20">XP 2450</span>
+<div class="w-10 h-10 rounded-full bg-surface-variant overflow-hidden border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="A cinematic, high-resolution portrait of an athletic user profile picture. The lighting is dramatic and low-key, with cool blue and vibrant violet highlights reflecting off the skin. The background is a blurred, futuristic high-tech gym environment with minimalist black equipment. The aesthetic is clean, professional, and motivational, fitting for an AI-driven fitness app." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBhhm_EvN3kPioNXwFgajjXrRB-EfBgNivTv-PsADJKEBqEUd8V-16zbPYL4tqVyu2V23LuNPqsg0sjQPSb9VTGGdgFIymXvyDU5uWB3hoPbeZ5hMqS4dkFdI9mDIja0uHbXcJM1vStH_3mjgXRcA-LgbpPb4BFfGRunugACmfceGJgSLSKHRUNRUPHNGWkLVADni0gcyYp11IUFEaD-oc2vjXFTkl54-BI56OhicuLOycuCPju6yPf"/>
+</div>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="mt-20 px-margin-mobile pb-32 max-w-2xl mx-auto">
+<!-- Routine Header Form -->
+<section class="mb-xl">
+<div class="space-y-md">
+<div>
+<label class="block font-label-lg text-on-surface-variant mb-xs ml-sm">Nombre de la rutina</label>
+<input class="w-full bg-surface-container-low border-none rounded-xl px-md py-sm text-body-lg focus:ring-2 focus:ring-primary-container transition-all placeholder:text-outline/50" placeholder="Ej: Mi Rutina de Volumen" type="text"/>
+<p class="text-error font-label-md mt-xs ml-sm flex items-center gap-xs">
+<span class="material-symbols-outlined text-[14px]">error</span> Nombre requerido
+                    </p>
+</div>
+<div>
+<label class="block font-label-lg text-on-surface-variant mb-sm ml-sm">Objetivo</label>
+<div class="flex flex-wrap gap-sm">
+<!-- Chips -->
+<button class="px-md py-sm rounded-full bg-primary-container text-on-primary-container font-label-lg transition-all active:scale-95">Hipertrofia</button>
+<button class="px-md py-sm rounded-full bg-surface-container-high text-on-surface-variant font-label-lg hover:bg-surface-container-highest transition-all active:scale-95">Fuerza</button>
+<button class="px-md py-sm rounded-full bg-surface-container-high text-on-surface-variant font-label-lg hover:bg-surface-container-highest transition-all active:scale-95">Pérdida de grasa</button>
+<button class="px-md py-sm rounded-full bg-surface-container-high text-on-surface-variant font-label-lg hover:bg-surface-container-highest transition-all active:scale-95">Recomposición</button>
+<button class="px-md py-sm rounded-full bg-surface-container-high text-on-surface-variant font-label-lg hover:bg-surface-container-highest transition-all active:scale-95">Resistencia</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Days List -->
+<section class="space-y-md">
+<h2 class="font-title-lg text-on-surface ml-sm">Estructura semanal</h2>
+<!-- Day Card 1 (Expanded) -->
+<div class="bg-surface-container rounded-xl overflow-hidden shadow-sm border border-outline-variant/10">
+<div class="p-md flex justify-between items-center border-b border-outline-variant/10">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-secondary">calendar_today</span>
+<input class="bg-transparent border-none p-0 font-title-lg text-on-surface focus:ring-0 w-48" type="text" value="Día 1: Push Day"/>
+</div>
+<div class="flex items-center gap-md">
+<button class="text-outline hover:text-error transition-colors">
+<span class="material-symbols-outlined">delete</span>
+</button>
+<button class="text-primary">
+<span class="material-symbols-outlined">expand_less</span>
+</button>
+</div>
+</div>
+<div class="p-md space-y-sm">
+<!-- Exercise Rows -->
+<div class="flex items-center justify-between p-sm rounded-lg hover:bg-surface-container-high transition-all group">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-lg bg-surface-container-highest flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">fitness_center</span>
+</div>
+<div>
+<p class="font-label-lg text-on-surface">Press de Banca</p>
+<p class="font-label-md text-on-surface-variant">3 x 8-12 · 90s</p>
+</div>
+</div>
+<button class="w-10 h-10 flex items-center justify-center text-outline hover:text-primary transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+<div class="flex items-center justify-between p-sm rounded-lg hover:bg-surface-container-high transition-all group">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-lg bg-surface-container-highest flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">fitness_center</span>
+</div>
+<div>
+<p class="font-label-lg text-on-surface">Press Militar</p>
+<p class="font-label-md text-on-surface-variant">3 x 10-12 · 60s</p>
+</div>
+</div>
+<button class="w-10 h-10 flex items-center justify-center text-outline hover:text-primary transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+<div class="flex items-center justify-between p-sm rounded-lg hover:bg-surface-container-high transition-all group">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-lg bg-surface-container-highest flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">fitness_center</span>
+</div>
+<div>
+<p class="font-label-lg text-on-surface">Extensiones de Tríceps</p>
+<p class="font-label-md text-on-surface-variant">4 x 12-15 · 45s</p>
+</div>
+</div>
+<button class="w-10 h-10 flex items-center justify-center text-outline hover:text-primary transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+<button class="w-full mt-sm py-sm border-2 border-dashed border-outline-variant rounded-xl text-primary font-label-lg flex items-center justify-center gap-sm hover:bg-primary/5 transition-all">
+<span class="material-symbols-outlined text-md">add_circle</span>
+                        Agregar ejercicio
+                    </button>
+</div>
+</div>
+<!-- Day Card 2 (Collapsed) -->
+<div class="bg-surface-container-low rounded-xl overflow-hidden border border-outline-variant/10 opacity-70">
+<div class="p-md flex justify-between items-center">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-outline">calendar_today</span>
+<h3 class="font-label-lg text-on-surface">Día 2: Pull Day</h3>
+<span class="font-label-md text-on-surface-variant ml-sm">(4 ejercicios)</span>
+</div>
+<div class="flex items-center gap-md">
+<button class="text-outline">
+<span class="material-symbols-outlined">delete</span>
+</button>
+<button class="text-outline">
+<span class="material-symbols-outlined">expand_more</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Add Day Button -->
+<button class="w-full py-md bg-surface-container-highest rounded-xl text-on-surface font-label-lg flex items-center justify-center gap-sm transition-all active:scale-95 hover:shadow-lg">
+<span class="material-symbols-outlined">edit_calendar</span>
+                Agregar día
+            </button>
+<p class="text-error font-label-md text-center mt-lg hidden">
+                Agrega al menos un ejercicio para poder guardar la rutina.
+            </p>
+</section>
+</main>
+<!-- Floating Action Button -->
+<button class="fixed bottom-24 right-margin-mobile w-14 h-14 bg-secondary text-on-secondary rounded-full flex items-center justify-center shadow-2xl transition-transform duration-200 active:scale-90 z-50">
+<span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">check</span>
+</button>
+<!-- Bottom Navigation Bar (App Shell) -->
+<nav class="fixed bottom-0 left-0 w-full z-40 flex justify-around items-center px-gutter py-sm bg-surface rounded-t-xl md:hidden">
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 transition-transform duration-200 active:scale-90" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-md text-label-md">Inicio</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 transition-transform duration-200 active:scale-90" href="#">
+<span class="material-symbols-outlined">fitness_center</span>
+<span class="font-label-md text-label-md">Ejercicios</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-full px-4 py-1 transition-transform duration-200 active:scale-90" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">list_alt</span>
+<span class="font-label-md text-label-md">Rutinas</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 transition-transform duration-200 active:scale-90" href="#">
+<span class="material-symbols-outlined">play_circle</span>
+<span class="font-label-md text-label-md">Entrenar</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 transition-transform duration-200 active:scale-90" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-md text-label-md">Perfil</span>
+</a>
+</nav>
+<!-- Subtle Background Shader Overlay -->
+<div class="fixed inset-0 -z-10 opacity-30 pointer-events-none">
+
+</div>
+<script>
+        // Micro-interactions and Lightweight effects
+        document.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                // Simple feedback for demonstration
+                console.log('Action performed:', this.innerText.trim() || 'Icon action');
+            });
+        });
+
+        // Input error toggler (demonstration purpose)
+        const nameInput = document.querySelector('input[type="text"]');
+        const errorMessage = document.querySelector('.text-error');
+        
+        nameInput.addEventListener('input', (e) => {
+            if (e.target.value.length > 0) {
+                errorMessage.style.opacity = '0';
+                errorMessage.style.transform = 'translateY(-10px)';
+                setTimeout(() => errorMessage.classList.add('hidden'), 200);
+            } else {
+                errorMessage.classList.remove('hidden');
+                errorMessage.style.opacity = '1';
+                errorMessage.style.transform = 'translateY(0)';
+            }
+        });
+    </script>
+</body></html>
