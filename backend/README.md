@@ -1,6 +1,9 @@
 # AppGym API — Backend
 
-API REST para la app de entrenamiento (Fase 1): auth, biblioteca de ejercicios, rutinas, registro de entrenamientos e historial con detección automática de récords personales.
+API REST para la app de entrenamiento. Fases 1-4 implementadas: auth, biblioteca de ejercicios,
+rutinas, registro de entrenamientos con detección automática de récords, historial, estadísticas,
+calculadoras, estándares de fuerza, predicción de récords, nutrición, recuperación, objetivos,
+calendario inteligente, chat con IA ("Gemelo Digital") y sistema de niveles/logros.
 
 ## Stack
 
@@ -58,12 +61,16 @@ Ver `.env.example`:
 ```
 app/
   core/       -- config, DB session, seguridad/JWT
-  models/     -- entidades SQLAlchemy (User, Exercise, Routine, WorkoutSession, WorkoutSet, PersonalRecord)
+  models/     -- entidades SQLAlchemy (User, Exercise, Routine, WorkoutSession, WorkoutSet,
+                 PersonalRecord, NutritionLog, DailyCheckIn, Goal)
   schemas/    -- Pydantic request/response
-  routes/v1/  -- endpoints (auth, users, exercises, routines, workouts, stats, calculators, health)
-  services/   -- lógica de negocio (detección de récords, stats, calculadoras)
+  routes/v1/  -- endpoints (auth, users, exercises, routines, workouts, stats, calculators,
+                 nutrition, recovery, goals, calendar, coach, gamification, health)
+  services/   -- lógica de negocio (récords, stats, calculadoras, estándares de fuerza,
+                 predicciones, recuperación, objetivos, calendario, Gemelo Digital, gamificación)
+  data/       -- tablas de referencia estáticas (estándares de fuerza)
   seed/       -- datos iniciales de ejercicios
-tests/        -- pytest (auth, exercises, routines, workouts, stats, calculators)
+tests/        -- pytest (61+ tests cubriendo todos los módulos de arriba)
 alembic/      -- migraciones
 ```
 
@@ -84,12 +91,21 @@ alembic/      -- migraciones
 - `GET /api/v1/stats/tonnage` (filtros `period=week|month`, `periods`, default 12 semanas) — tonelaje histórico por período
 - `GET /api/v1/stats/streak` — racha actual y récord de días consecutivos entrenando
 - `POST /api/v1/calculators/{one-rep-max,bmi,lean-body-mass,ideal-weight,nutrition,water-intake,fat-loss-rate}` — calculadoras stateless, no requieren autenticación
+- `GET /api/v1/stats/strength-standards/{exercise_id}` — percentil aproximado vs. estándares de fuerza (press banca/sentadilla/peso muerto), requiere perfil completo (peso, sexo)
+- `GET /api/v1/stats/record-prediction/{exercise_id}` (filtro `weeks_ahead`, default 8) — proyección lineal del próximo récord, requiere ≥3 PRs históricos
+- `PUT /api/v1/nutrition/logs` (upsert por fecha) / `GET /api/v1/nutrition/logs` / `GET|DELETE /api/v1/nutrition/logs/{fecha}` — registro diario de calorías/macros/agua
+- `PUT /api/v1/recovery/checkins` (sueño + fatiga percibida) / `GET /api/v1/recovery/index` — índice de recuperación 🟢/🟡/🔴 autorreportado (sin wearables)
+- `POST /api/v1/goals` / `GET /api/v1/goals` / `DELETE /api/v1/goals/{id}` — objetivos con progreso calculado automáticamente
+- `GET /api/v1/calendar/overview` — objetivos próximos, recomendación de semana de descarga, predicciones de récords próximos
+- `POST /api/v1/coach/chat` — chat con el "Gemelo Digital" (arma contexto real del usuario y llama a un LLM); responde 503 si no hay `LLM_API_KEY` configurada
+- `GET /api/v1/coach/context-preview` — ver el contexto que se le pasaría al LLM, sin necesitar API key
+- `GET /api/v1/gamification/profile` — nivel, XP, progreso al siguiente nivel y logros desbloqueados
 
-## Pendiente explícito (fuera de Fase 1-2 actual)
+## Pendiente explícito
 
 - Imágenes/GIFs/animación 3D de ejercicios — el modelo tiene `image_url`/`animation_url` pero no hay pipeline de assets todavía.
-- Comparación histórica y con percentiles poblacionales → Fase 3.
-- "Potencia" y "resistencia muscular" del perfil de fuerza → no implementados: requieren datos que no existen (velocidad de barra, definición validada de resistencia). `strength-profile` solo cubre fuerza máxima, volumen semanal y frecuencia por músculo.
-- Fatiga/recuperación (necesita sueño/HR), calendario inteligente, módulo de nutrición (registro diario), IA conversacional/Gemelo Digital, predicción de récords, wearables, niveles/gamificación → Fases 3-5, ver `.ai/CONTEXT.md`.
-- Generación de rutinas por IA y entrenador inteligente → Fase 4.
+- "Potencia" y "resistencia muscular" del perfil de fuerza → no implementados: requieren datos que no existen (velocidad de barra, definición validada de resistencia).
+- Estándares de fuerza y percentiles: **valores de referencia aproximados**, no un dataset poblacional real (ver `app/data/strength_standards.py`) — solo cubren press banca/sentadilla/peso muerto.
+- Chat con IA: requiere que el operador configure `LLM_API_KEY` (y opcionalmente `LLM_BASE_URL`/`LLM_MODEL`) en `.env` — sin eso el endpoint responde 503 explícitamente, no falla en silencio.
+- Wearables (HealthKit/Google Fit/Garmin), funciones sociales/retos, análisis de técnica por video → Fase 5, necesitan credenciales/infra externa que no están disponibles en este entorno.
 - Migraciones Alembic no generadas aún (requiere Postgres corriendo — ver comando arriba).

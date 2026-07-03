@@ -8,6 +8,7 @@ from app.routes.v1 import (
     calendar,
     coach,
     exercises,
+    gamification,
     goals,
     health,
     nutrition,
@@ -47,3 +48,4 @@ app.include_router(recovery.router)
 app.include_router(goals.router)
 app.include_router(calendar.router)
 app.include_router(coach.router)
+app.include_router(gamification.router)
