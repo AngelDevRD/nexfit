@@ -1,0 +1,75 @@
+# enforcement/ruff-core.toml — Configuración Ruff para AG-CORE
+# Políticas aplicadas: AG-CORE-001 (bare except), AG-CORE-006 (print)
+#
+# USO — standalone:
+#   Copiar como ruff.toml en la raíz del proyecto Python.
+#
+# USO — dentro de pyproject.toml:
+#   Copiar la sección [tool.ruff] y sus subsecciones.
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+exclude = [
+    ".git", ".venv", "venv", "__pycache__",
+    "migrations", "alembic/versions",
+    "node_modules", "dist", "build",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "T20",  # flake8-print — AG-CORE-006: print() prohibido en producción
+    "S",    # flake8-bandit (seguridad básica)
+    "UP",   # pyupgrade
+    "RUF",  # reglas propias de Ruff
+]
+
+ignore = [
+    "E501",   # línea muy larga — controlado por line-length
+    "S101",   # uso de assert — aceptable en tests
+    "S104",   # binding a 0.0.0.0 — necesario en dev
+    "B008",   # do not perform function calls in default arguments — FastAPI lo necesita
+]
+
+[tool.ruff.lint.per-file-ignores]
+# En tests: print() y assert son aceptables
+"tests/**/*.py"    = ["T201", "S101"]
+"**/test_*.py"     = ["T201", "S101"]
+"**/*_test.py"     = ["T201", "S101"]
+"scripts/**/*.py"  = ["T201"]  # scripts CLI pueden usar print()
+
+[tool.ruff.lint.flake8-bugbear]
+# AG-CORE-001: bare except (E722) y except demasiado amplio
+extend-immutable-calls = []
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "src"]
+
+# ─── Notas de enforcement AG-CORE ────────────────────────────────────────────
+#
+# AG-CORE-001 (catch vacío / bare except):
+#   E722 — bare except sin tipo específico
+#   B001 — do not use bare `except:`, use `except Exception:`
+#   Ruff levanta esto automáticamente con los selectors E y B.
+#
+# AG-CORE-006 (print en producción):
+#   T201 — print() detectado
+#   T203 — pprint() detectado
+#   Usar structlog o logging estándar en su lugar.
+#
+# AG-CORE-004 (credenciales hardcodeadas):
+#   S105 — posible password hardcodeado en string
+#   S106 — posible password como argumento de función
+#   S107 — posible password en nombre de variable con valor hardcodeado
+#   Incluido en el selector S (bandit).
+#
+# Para verificar sin error de salida (útil en CI):
+#   ruff check . --output-format=github
+#
+# Para corregir automáticamente lo que sea auto-fixable:
+#   ruff check . --fix

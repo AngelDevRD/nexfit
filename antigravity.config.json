@@ -1,0 +1,14 @@
+{
+  "version": "3.0",
+  "projectName": "AppGym",
+  "projectType": "backend",
+  "stack": "auto",
+  "operationalMode": "MODE_FAST",
+  "developmentMode": "build",
+  "antigravityRoot": "C:/Users/je416/Desktop/AI_IDE_Agents",
+  "features": {
+    "softDelete": true,
+    "monitoring": false,
+    "i18n": false
+  }
+}

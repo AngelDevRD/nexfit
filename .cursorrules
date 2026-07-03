@@ -1,0 +1,974 @@
+﻿# Antigravity AI v3 -- Reglas para AI assistants
+# Proyecto: AppGym | Tipo: backend
+
+Leer siempre .ai/STATE.md antes de responder.
+Seguir politicas AG-CORE del proyecto.
+Maximo 3 archivos por sesion de cambios.
+No agregar console.log ni print() en codigo de produccion.
+No dejar catch vacios -- siempre loguear el error.
+
+<!-- Los packs instalados agregan sus reglas a continuacion -->
+## Pack: fastapi (instalado: 2026-07-02)
+
+# Pack: fastapi â€” Reglas Especificas
+
+---
+
+## FP-RULE-01: Estructura
+
+Routers separados por dominio en routers/. No todo en main.py.
+Modelos Pydantic para request y response. Sin dicts como tipo de retorno.
+Dependencias via Depends() â€” nunca imports directos de singletons en endpoints.
+Settings via BaseSettings de pydantic. Variables de entorno, nunca hardcodeadas.
+
+## FP-RULE-02: Async
+
+Endpoints async cuando hay I/O (DB, HTTP, files). Sync solo para CPU-bound.
+No blocking calls dentro de async endpoints (requests.get, time.sleep).
+Usar httpx.AsyncClient para HTTP en lugar de requests (bloqueante).
+Tasks lentas: BackgroundTasks o Celery. No bloquear el request.
+
+## FP-RULE-03: Validacion
+
+Pydantic valida inputs. No validar manualmente lo que Pydantic ya cubre.
+Validaciones de negocio: en la capa de servicio, no en el endpoint.
+HTTPException con codigos correctos: 400 validacion, 404 not found, 422 schema.
+Nunca exponer stack traces en respuestas de produccion.
+
+## FP-RULE-04: Base de Datos
+
+Sesiones de DB como dependencias (Depends(get_db)).
+No commit manual: usar context managers o middleware de sesion.
+Migraciones via Alembic â€” nunca create_all() en produccion.
+Queries parametrizadas â€” nunca concatenacion de strings SQL.
+
+## FP-RULE-05: Seguridad
+
+CORS configurado explicitamente. allow_origins=["*"] prohibido en produccion.
+Autenticacion via OAuth2/JWT en endpoints protegidos.
+Rate limiting en endpoints publicos.
+Secrets via variables de entorno. Nunca en codigo.
+
+## FP-RULE-06: Logging y Errores
+
+Usar logging de Python â€” nunca print() en produccion.
+Exception handlers globales con @app.exception_handler.
+Logs estructurados (JSON) para produccion.
+No loguear datos de usuarios o credenciales.
+
+## FP-RULE-07: Arquitectura Hexagonal (Puertos y Adaptadores)
+# Fuente: Gentleman Programming Book, Cap 3
+
+El hexagono = nucleo de la aplicacion. Los actores externos se conectan via puertos.
+
+### Tres tipos de logica en un servicio:
+  Domain Logic   â† reglas de negocio puras, sin dependencias externas
+  Application Logic â† orquesta casos de uso, coordina entre dominio e infraestructura
+  Infrastructure Logic â† DB, APIs externas, email, colas â€” adaptadores intercambiables
+
+### Estructura de proyecto hexagonal con FastAPI:
+  app/
+    domain/            â† Pure Python, sin imports de FastAPI/SQLAlchemy
+      models.py        â† Entidades y Value Objects
+      services.py      â† Logica de negocio pura
+      ports.py         â† Interfaces (ABCs) â€” lo que el dominio necesita del exterior
+    application/       â† Casos de uso
+      use_cases.py     â† Coordina dominio + puertos
+    adapters/          â† Implementaciones concretas de los puertos
+      primary/         â† Adaptadores de entrada (FastAPI routers)
+        routers/
+      secondary/       â† Adaptadores de salida (DB, APIs externas)
+        repositories.py  â† SQLAlchemy implementations
+        email.py
+    infrastructure/    â† Configuracion, DI, settings
+
+### Reglas:
+  La logica de dominio NO importa FastAPI, SQLAlchemy ni ninguna libreria externa.
+  Los endpoints (primary adapters) solo delegan â€” no tienen logica de negocio.
+  Las dependencias apuntan hacia adentro: infrastructure â†’ application â†’ domain.
+  Un puerto (interface) define lo que el dominio necesita. Un adaptador lo implementa.
+  Cambiar la DB = cambiar el adaptador secundario, no el dominio.
+
+### Pasos recomendados para implementar:
+  1. Definir el dominio (models.py, services.py sin deps externas)
+  2. Definir puertos (ABCs para repositorios, notificaciones, etc.)
+  3. Implementar adaptadores primarios (FastAPI routers)
+  4. Implementar adaptadores secundarios (SQLAlchemy, SMTP, etc.)
+  5. Conectar via Depends() en main.py
+
+
+## Pack: quality (instalado: 2026-07-02)
+
+# Pack: quality â€” Reglas de Calidad de Codigo
+
+## Relacion con Antigravity
+
+ESLint/Prettier = enforcement automatico de reglas (AG-CORE/AG-QL) en cada save/commit.
+ReviewAgent = razonamiento sobre el contexto.
+ReviewAgent verifica codigos AG-CORE y AG-stack (lint del stack).
+La cadena correcta: Prettier formatea, ESLint detecta, ReviewAgent valida en contexto.
+
+---
+
+## QL-RULE-01: Prettier â€” Fuente Unica de Formato
+
+Prettier formatea. Las IAs NO deben cambiar indentacion, comillas ni punto y coma manualmente.
+Si hay conflicto entre lo que una IA escribe y Prettier: Prettier gana siempre.
+Configuracion en proyecto: prettier.config.js o .prettierrc.json (ver configs/).
+No usar reglas de ESLint que conflicten con Prettier â€” usar eslint-config-prettier.
+
+## QL-RULE-02: ESLint â€” Solo Errores que Prettier No Cubre
+
+ESLint para logica, no para formato.
+Reglas de formato en ESLint: desactivar con eslint-config-prettier.
+Reglas de logica a mantener:
+  - no-unused-vars / @typescript-eslint/no-unused-vars
+  - no-console (produccion)
+  - react-hooks/exhaustive-deps (React)
+  - @typescript-eslint/no-explicit-any
+  - security/* (eslint-plugin-security)
+
+## QL-RULE-03: EditorConfig â€” Base Unificada
+
+.editorconfig en la raiz del proyecto.
+Aplica a: VS Code, Cursor, Rider, Notepad++, cualquier editor.
+Define: indent_style, indent_size, end_of_line, charset, trim_trailing_whitespace.
+Es la base que todos los editores y todas las IAs deben respetar.
+
+## QL-RULE-04: Python â€” Ruff en lugar de Black + Flake8
+
+Para Python: usar Ruff (reemplaza Black + Flake8 + isort en un solo tool).
+Ruff es 100x mas rapido que sus equivalentes separados.
+Configurar en pyproject.toml:
+  [tool.ruff]
+  line-length = 88
+  select = ["E", "F", "I", "N", "S", "UP"]
+
+## QL-RULE-05: Integracion con Antigravity
+
+Al correr los linters del stack (eslint / ruff â€” instalados por Set-Enforcement):
+  - Si hay errores ESLint: registrar en STATE.md como MEDIUM si son warnings, HIGH si son errors.
+  - Si hay violaciones Prettier: las IAs NO deben arreglarlas manualmente â€” correr prettier --write.
+  - Violaciones de no-console: registrar como TODO_AI: AG-CORE-006 en el codigo.
+
+Antes de Close-Session (parte del Quality Gate AG-QA-STD-01 si el pack quality esta instalado):
+  - Correr lint del stack; si hay errores HIGH sin resolver, no marcar la tarea "Completado".
+  - (Nota: un wrapper unificado `Run-QualityCheck` esta en commands.json -> plannedCommands.)
+
+## QL-RULE-06: /simplify Skill + Quality Pack
+
+Cuando usas /simplify (Claude Code skill):
+  1. /simplify revisa el codigo cambiado.
+  2. Despues de aceptar sugerencias: correr prettier --write.
+  3. Despues de prettier: correr eslint --fix (solo reglas auto-corregibles).
+  4. Lo que ESLint no puede auto-corregir: agregar TODO_AI: en el codigo.
+Orden obligatorio: /simplify â†’ prettier â†’ eslint --fix â†’ revisar manualmente lo restante.
+
+
+## Pack: monitoring (instalado: 2026-07-02)
+
+# Pack: monitoring â€” Reglas de Monitoreo para Produccion
+# Aplica a: cualquier proyecto con usuarios reales
+# Herramientas: Sentry | Logtail | Better Stack | Grafana | Uptime Robot
+
+---
+
+## MON-RULE-01: Error tracking desde el primer deploy
+
+Sentry (o equivalente) obligatorio antes del primer deploy con usuarios reales.
+Sin error tracking = bugs silenciosos que el usuario ve pero tu no sabes.
+
+### Next.js
+```bash
+npm install @sentry/nextjs
+npx @sentry/wizard@latest -i nextjs
+```
+
+```typescript
+// sentry.client.config.ts
+import * as Sentry from "@sentry/nextjs"
+Sentry.init({
+  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  tracesSampleRate: 0.1,   // 10% de requests â€” no saturar
+  environment: process.env.NODE_ENV,
+})
+```
+
+### FastAPI / Python
+```bash
+pip install sentry-sdk[fastapi]
+```
+
+```python
+import sentry_sdk
+sentry_sdk.init(
+    dsn=settings.SENTRY_DSN,
+    traces_sample_rate=0.1,
+    profiles_sample_rate=0.1,
+)
+```
+
+Nunca loguear PII en Sentry. Usar `beforeSend` para filtrar datos sensibles.
+
+## MON-RULE-02: Logging estructurado â€” no strings concatenados
+
+Logs como JSON â€” parseables por cualquier herramienta.
+
+```python
+# FastAPI â€” structlog
+import structlog
+logger = structlog.get_logger()
+
+# BIEN â€” campos separados y buscables
+logger.info("order.created", order_id=str(order.id), user_id=str(user.id), total=order.total)
+
+# MAL â€” string que no se puede filtrar
+print(f"Order created: {order.id} for user {user.id}")
+```
+
+```typescript
+// Next.js â€” pino o winston
+import pino from 'pino'
+const logger = pino({ level: process.env.LOG_LEVEL || 'info' })
+
+logger.info({ orderId, userId, total }, 'order.created')
+```
+
+Niveles correctos:
+- DEBUG: detalle de desarrollo (no en produccion)
+- INFO: operaciones normales (orden creada, usuario registrado)
+- WARN: algo inesperado pero recuperable (retry exitoso, rate limit alcanzado)
+- ERROR: falla que requiere atencion (pago fallido, DB timeout)
+
+NUNCA loguear: passwords, tokens, cookies, tarjetas, datos personales completos.
+
+## MON-RULE-03: Health check endpoint â€” obligatorio
+
+Cada servicio expone `GET /health` para que el proveedor detecte instancias caidas.
+
+```python
+# FastAPI
+@app.get("/health")
+async def health_check(db: AsyncSession = Depends(get_db)):
+    try:
+        await db.execute(text("SELECT 1"))
+        db_status = "ok"
+    except Exception:
+        db_status = "error"
+    return {
+        "status": "ok" if db_status == "ok" else "degraded",
+        "version": settings.VERSION,
+        "db": db_status,
+    }
+```
+
+```typescript
+// Next.js â€” app/api/health/route.ts
+export async function GET() {
+  return Response.json({ status: 'ok', version: process.env.npm_package_version })
+}
+```
+
+Configurar en el proveedor para que haga ping cada 30 segundos.
+
+## MON-RULE-04: Alertas que importan (no spam)
+
+Alertar solo en condiciones que requieren accion inmediata:
+- Error rate > 1% en los ultimos 5 minutos
+- P95 response time > 2 segundos
+- Health check fallando por > 1 minuto
+- Pago fallido por error del servidor (no del usuario)
+
+No alertar por:
+- Errores de validacion de usuario (400s â€” son normales)
+- 404s â€” son normales
+- Picos de trafico normales
+
+Sentry: configurar en Project Settings â†’ Alerts.
+
+## MON-RULE-05: Performance Web Vitals (proyectos Next.js)
+
+Targets antes de entregar al cliente:
+- LCP (Largest Contentful Paint): < 2.5 segundos
+- FID (First Input Delay): < 100ms
+- CLS (Cumulative Layout Shift): < 0.1
+- Lighthouse Performance: > 90
+
+Verificar con Lighthouse CI en el pipeline:
+```yaml
+- name: Lighthouse CI
+  run: npx lhci autorun
+```
+
+## MON-RULE-06: Uptime monitoring
+
+Servicio gratuito que verifica que el sitio esta activo cada minuto.
+Opciones: Better Stack (gratis), UptimeRobot (gratis), Freshping (gratis).
+Configurar alerta a email/Slack si el sitio cae por > 2 minutos.
+Coste: 0. No hay excusa para no tenerlo.
+
+
+## Pack: ci-cd (instalado: 2026-07-02)
+
+# Pack: ci-cd â€” Reglas de CI/CD para Software Comercial
+# Aplica a: cualquier proyecto que va a produccion
+# Herramientas: GitHub Actions | Vercel | Railway | Fly.io | Docker
+
+---
+
+## CI-RULE-01: Pipeline minimo para cualquier proyecto
+
+Todo proyecto que va a produccion tiene:
+1. Tests en cada push (unit + integration)
+2. Lint y type check en cada PR
+3. Security scan antes de merge
+4. Deploy automatico desde main (no manual)
+
+Sin estas 4 cosas, el proyecto esta en estado de prototipo, no de produccion.
+
+## CI-RULE-02: GitHub Actions por stack
+
+### Next.js + Vercel (el mas comun)
+
+```yaml
+# .github/workflows/ci.yml
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run type-check
+      - run: npm test -- --coverage
+      - run: npm run build
+```
+
+Vercel hace el deploy automaticamente desde main.
+PRs obtienen preview deployment con URL unica.
+
+### FastAPI + Railway / Fly.io
+
+```yaml
+# .github/workflows/ci.yml
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install -r requirements.txt
+      - run: ruff check .
+      - run: pytest --cov=app --cov-fail-under=70
+        env:
+          DATABASE_URL: postgresql://postgres:test@localhost/testdb
+```
+
+### WinForms / .NET
+
+```yaml
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '8.0.x' }
+      - run: dotnet restore
+      - run: dotnet build --no-restore
+      - run: dotnet test --no-build --verbosity normal
+```
+
+## CI-RULE-03: Environments y secrets
+
+Minimo 3 environments: development, staging, production.
+Variables de entorno en el panel del proveedor â€” nunca en el repo.
+Staging con datos de produccion anonimizados.
+
+```
+GitHub Secrets (no en .env commiteado):
+  DATABASE_URL_PROD
+  SECRET_KEY
+  STRIPE_SECRET_KEY
+  SENTRY_DSN
+```
+
+## CI-RULE-04: Database migrations en CD
+
+Migrations corren ANTES del swap de instancias â€” nunca despues.
+Si la migration falla: el deploy falla, no hay downtime parcial.
+
+```yaml
+# Railway / Render: en el Dockerfile o start command
+CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0"]
+
+# Fly.io: en fly.toml
+[deploy]
+  release_command = "alembic upgrade head"
+```
+
+Migrations backward-compatible en produccion:
+- Agregar columnas: siempre nullable o con default
+- Renombrar columnas: agregar nueva, migrar datos, eliminar vieja (3 deploys)
+- Eliminar columnas: deprecar en codigo primero, luego eliminar en migration
+
+## CI-RULE-05: Rollback en < 5 minutos
+
+Vercel: revert automatico desde el dashboard (1 click).
+Railway: redeploy de imagen anterior desde el dashboard.
+Fly.io: `fly deploy --image [imagen-anterior]`
+Sin rollback disponible = sin CD maduro.
+
+## CI-RULE-06: Secrets management
+
+GitHub Actions: `${{ secrets.MI_SECRET }}`
+Nunca imprimir secrets en logs: `echo $SECRET` genera warning en GitHub.
+Rotar secrets cuando cambia un miembro del equipo con acceso.
+
+## CI-RULE-07: Templates listos para usar
+
+### .env.example (siempre en el repo)
+```bash
+# Copiar a .env y completar
+DATABASE_URL=postgresql://user:password@localhost:5432/dbname
+SECRET_KEY=change-this-in-production
+NEXT_PUBLIC_API_URL=http://localhost:8000
+SENTRY_DSN=
+STRIPE_SECRET_KEY=
+```
+
+### vercel.json (si hay configuracion especial)
+```json
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "installCommand": "npm ci",
+  "env": {
+    "NEXT_PUBLIC_API_URL": "@api-url-prod"
+  }
+}
+```
+
+
+## Pack: testing (instalado: 2026-07-02)
+
+# Pack: testing â€” Reglas de Testing para Software Comercial
+# Aplica a: cualquier proyecto que va a produccion
+# Herramientas: Vitest | Jest | pytest | xUnit | Playwright | Cypress
+
+---
+
+## TEST-RULE-01: Que testear (y que no)
+
+TESTEAR â€” logica que puede fallar sin que sea obvio:
+- Calculos de negocio (precios, descuentos, impuestos, fechas)
+- Validaciones de entrada (que acepta, que rechaza)
+- Transformaciones de datos (que entra, que sale)
+- Edge cases documentados como bugs anteriores
+- Integraciones criticas (pagos, emails, auth)
+
+NO TESTEAR â€” infraestructura y framework:
+- Que React renderiza un div con cierto texto
+- Que el ORM guarda en la DB (confiar en el ORM)
+- Que Next.js hace routing (confiar en el framework)
+- Que un endpoint devuelve 200 (eso es el minimo esperado)
+
+Ratio objetivo: 70% unit + 20% integration + 10% e2e.
+
+## TEST-RULE-02: Unit tests â€” estructura y calidad
+
+Un test = un comportamiento, no una implementacion.
+Arrange / Act / Assert sin excepcion.
+Nombre: `should_[comportamiento]_when_[condicion]`
+
+```typescript
+// BIEN â€” testea comportamiento
+it('should apply 10% discount when order total exceeds 100', () => {
+  const order = createOrder({ items: [{ price: 120, qty: 1 }] })
+  const discounted = applyDiscounts(order)
+  expect(discounted.total).toBe(108)
+})
+
+// MAL â€” testea implementacion interna (fragil)
+it('should call calculateDiscount with 0.1', () => {
+  const spy = jest.spyOn(discountModule, 'calculateDiscount')
+  applyDiscounts(order)
+  expect(spy).toHaveBeenCalledWith(0.1)
+})
+```
+
+Mocks solo en la frontera del sistema (HTTP externo, DB, filesystem, tiempo).
+Nunca mockear codigo propio â€” si necesitas mockearlo, el diseno esta acoplado.
+
+## TEST-RULE-03: Integration tests â€” la capa mas valiosa
+
+Testear el contrato entre capas: API â†’ Service â†’ DB.
+Usar DB real (test container o SQLite en memoria) â€” nunca mockear la DB.
+Limpiar datos entre tests â€” no compartir estado entre pruebas.
+
+```python
+# FastAPI + pytest
+@pytest.fixture(autouse=True)
+async def clean_db(db: AsyncSession):
+    yield
+    await db.rollback()
+
+async def test_create_order_reduces_stock(client, db):
+    product = await create_product(db, stock=10)
+    response = await client.post("/orders", json={"product_id": str(product.id), "qty": 3})
+    assert response.status_code == 201
+    updated = await db.get(Product, product.id)
+    assert updated.stock == 7
+```
+
+## TEST-RULE-04: Coverage â€” targets reales
+
+Logica de negocio (services/, lib/): > 80%
+API endpoints: > 60%
+UI components: > 40% (solo los con logica)
+Coverage < 60% en modulo nuevo: WARNING en PR.
+No perseguir 100% â€” el ultimo 20% cuesta mas que lo que aporta.
+
+## TEST-RULE-05: E2E â€” solo flujos criticos
+
+E2E son caros de mantener. Solo para:
+- El flujo de compra completo (si hay pagos)
+- El flujo de registro y primer login
+- El flujo del feature mas importante del producto
+- Flujos que se rompieron en produccion antes
+
+```typescript
+// Playwright â€” flujo critico
+test('user can complete checkout', async ({ page }) => {
+  await page.goto('/productos')
+  await page.click('[data-testid="producto-camisa"]')
+  await page.click('[data-testid="agregar-al-carrito"]')
+  await page.goto('/carrito')
+  await expect(page.locator('[data-testid="item-count"]')).toHaveText('1')
+})
+```
+
+## TEST-RULE-06: Por stack
+
+### React / Next.js
+```bash
+npm install -D vitest @testing-library/react @testing-library/user-event @playwright/test
+```
+No testear CSS, no testear que un elemento existe. Testear comportamiento.
+
+### FastAPI / Python
+```bash
+pip install pytest pytest-asyncio httpx
+```
+`conftest.py` para fixtures compartidas. DB real en tests de integracion.
+
+### WinForms / .NET
+Separar logica de negocio de Forms antes de testear.
+Testear los servicios con xUnit, no los Forms directamente.
+
+## TEST-RULE-07: Tests en CI (no opcionales)
+
+Tests corren en cada push. Sin CI = tests que nadie corre.
+Si los tests fallan: el PR no se puede mergear.
+
+```yaml
+# .github/workflows/ci.yml â€” minimo viable
+- name: Run tests
+  run: npm test -- --coverage
+```
+
+
+## Pack: security (instalado: 2026-07-02)
+
+# Pack: security â€” Reglas de Seguridad Universales
+# Herramientas integradas: Semgrep (SAST) + Gitleaks (secrets detection)
+# Scripts: Run-SecurityScan | Hooks: pre-commit con gitleaks
+# Relacion con agentes: SecurityAgent (razonamiento) + ReviewAgent (patrones)
+
+---
+
+## SEC-RULE-01: Credenciales y Secretos
+
+Credenciales, tokens y API keys NUNCA en codigo fuente.
+NUNCA en texto plano en archivos de configuracion sin cifrar.
+Usar variables de entorno (.env) o secret managers del sistema.
+Windows: DPAPI (ProtectedData.Protect) para persistencia local.
+Linux/Mac: libsecret o keyring del sistema.
+Al detectar credencial en codigo: ERROR CRITICO, no continuar.
+
+## SEC-RULE-02: Comunicaciones
+
+HTTPS obligatorio para toda comunicacion con APIs externas.
+Verificar certificados SSL. No ignorar errores de certificado en produccion.
+No usar HTTP para datos sensibles.
+Timeout en todas las llamadas HTTP: nunca indefinido.
+
+## SEC-RULE-03: Inputs y Validacion
+
+Validar TODOS los inputs en la capa de entrada.
+Path traversal: Path.GetFileName() / os.path.basename() antes de usar rutas del usuario.
+SQL: parametros siempre. Nunca concatenacion de strings.
+HTML: sanitizar antes de renderizar si viene de input del usuario.
+Numeros: Math.Clamp() o equivalente. Nunca confiar en rangos del usuario.
+
+## SEC-RULE-04: Logging Seguro
+
+NUNCA loguear: passwords, tokens, cookies, API keys, datos personales (PII).
+Si se logea un error de autenticacion: loguear solo el identificador, no el secreto.
+Logs de produccion: sin stack traces completos expuestos al usuario final.
+
+## SEC-RULE-05: Memoria y Limpieza
+
+Limpiar secretos de memoria cuando ya no se necesiten.
+No depender del GC para limpiar datos sensibles (puede tardar).
+C#: string secret = ""; o SecureString si aplica.
+Python: del variable despues de usar secreto.
+
+## SEC-RULE-06: Dependencias â€” CVE Scanning
+
+No agregar dependencias con vulnerabilidades conocidas.
+Versiones pinned â€” nunca ranges abiertos (^, ~) en produccion critica.
+
+CVE scanning automatico (Run-SecurityScan, parte del scan de seguridad):
+  npm audit    â†’ si existe package-lock.json (Node)
+  pip-audit    â†’ si existe requirements.txt o pyproject.toml (Python)
+  osv-scanner  â†’ fallback multi-ecosistema (Go, Rust, Java, otros lockfiles)
+
+Run-SecurityScan -SkipCve  â†’ omite CVE scanning (usado en el hook pre-commit
+para mantenerlo rapido; el CVE scan completo corre en CI o manualmente).
+
+Vulnerabilidades CRITICAL/ERROR encontradas â†’ AG-CORE-004-equivalente: resolver
+(actualizar version o reemplazar dependencia) antes de continuar.
+
+## SEC-RULE-12: Autenticacion (ASVS V2/V3)
+
+Passwords: hash con bcrypt (cost >= 12) o Argon2. Nunca comparacion directa (`==`).
+JWT access token: TTL maximo 15 min. Refresh token: TTL maximo 7 dias, con rotacion
+(un uso invalida el anterior â€” reuse detection si es posible).
+MFA: ofrecer como opcion en login/operaciones sensibles, aunque no sea obligatorio.
+Rate limiting en login: max 5 intentos/minuto por IP â€” sin esto, brute force trivial.
+Logout: invalidar la sesion en servidor, no solo borrar la cookie/token del cliente.
+
+## SEC-RULE-13: Control de Acceso (ASVS V4)
+
+Toda decision de autorizacion se revalida en servidor. Ocultar un boton en el
+cliente (`isAdminButtonVisible`) NO es control de acceso â€” es UX.
+Verificar rol/permiso en el endpoint/middleware antes de ejecutar la accion,
+siempre, incluso si el cliente ya filtro la opcion.
+
+## SEC-RULE-14: Almacenamiento Seguro Movil (MASVS-STORAGE)
+
+Android/iOS/Flutter: tokens, passwords y claves API NUNCA en `SharedPreferences`
+ni en storage plano equivalente â€” son legibles en un APK rooteado/descompilado.
+Usar Android Keystore, iOS Keychain, o `flutter_secure_storage` para datos sensibles.
+Certificate pinning en flujos sensibles (pagos, auth) para apps con riesgo alto.
+Ninguna API key de proveedor (OpenAI, Gemini, Claude, Stripe, etc.) embebida en el
+cliente/APK â€” siempre detras de un backend propio o variable de entorno server-side.
+
+## SEC-RULE-15: Backups y Recuperacion (DSOVS)
+
+Todo sistema con datos del usuario expone: export, import, backup automatico y
+restauracion. Sin restauracion *probada* (no solo backup tomado), el backup no
+cuenta como mitigacion â€” verificar el restore al menos una vez antes de produccion.
+
+## SEC-RULE-16: Actualizaciones y Migraciones de Datos
+
+Toda actualizacion de esquema (app movil o backend) debe: preservar datos existentes,
+ejecutar backup previo, y tener rollback documentado. Flutter/local DB (sqflite,
+isar, hive): migraciones versionadas explicitas, nunca "borrar y recrear" la DB
+del usuario en un update.
+
+## SEC-RULE-17: Docker y Contenedores (DSOVS)
+
+Dockerfile: usuario no-root (`USER appuser`, nunca `USER root` ni el default
+implicito). Imagenes con tag fijo (nunca `latest` sin pin) y minimas (alpine/slim
+cuando aplique). Secrets via variables de entorno o secret manager â€” nunca
+hardcodeados en el Dockerfile ni en la imagen.
+
+## SEC-RULE-18: APIs y Base de Datos en Produccion
+
+APIs: rate limiting obligatorio en endpoints publicos, CORS con lista explicita de
+origenes (nunca `allow_origins=["*"]` en produccion), JWT/HTTPS siempre.
+Base de datos: el usuario/rol de la aplicacion nunca tiene `GRANT ALL PRIVILEGES` â€”
+permisos minimos necesarios (CRUD sobre sus tablas, no DDL ni rol de superusuario).
+
+---
+
+## SEC-RULE-07: Semgrep â€” SAST Automatico
+
+Semgrep es el linter de seguridad. SecurityAgent es el razonamiento.
+La cadena: Semgrep detecta patrones â†’ SecurityAgent razona sobre contexto â†’ ReviewAgent registra.
+
+Instalacion (una vez, global):
+  pip install semgrep
+  O descargar binario: https://semgrep.dev/docs/getting-started/
+
+Config del proyecto: packs/security/configs/.semgrep.yml (copiar a raiz).
+
+Ejecutar en sesion:
+  Run-SecurityScan              # Semgrep + Gitleaks
+  Run-SecurityScan -SemgrepOnly # Solo Semgrep
+  Run-SecurityScan -Quick       # Solo reglas rapidas (pre-commit)
+
+Resultados: van a STATE.md seccion [SEC] de CONTEXT.md.
+
+Reglas de Semgrep activas por stack:
+  Core: p/secrets, p/owasp-top-ten
+  .NET: p/csharp (si disponible)
+  Python: p/python, p/flask, p/django
+  JS/TS: p/javascript, p/typescript, p/react
+  Security extra: p/jwt, p/sql-injection
+
+## SEC-RULE-08: Gitleaks â€” Deteccion de Secretos
+
+Gitleaks escanea el historial de git buscando credenciales, API keys, tokens.
+Es el guardian que evita que una IA suba accidentalmente un secret al repo.
+
+Instalacion:
+  winget install gitleaks  # Windows
+  brew install gitleaks    # Mac
+  # O descargar binario: https://github.com/gitleaks/gitleaks
+
+Como hook pre-commit (setup-git-hooks.ps1 lo instala automaticamente):
+  - Bloquea el commit si encuentra un secreto.
+  - No se puede saltear sin -v flag (que queda en el historial).
+
+Como scan manual:
+  Run-SecurityScan -GitleaksOnly  # Escanea todo el historial
+  Run-SecurityScan -GitleaksStaged  # Solo archivos en stage
+
+Config: packs/security/configs/.gitleaks.toml (copiar a raiz).
+
+Si Gitleaks da un falso positivo:
+  1. Verificar que realmente es falso positivo.
+  2. Agregar en .gitleaks.toml bajo [allowlist].
+  3. Documentar el allowlist en AI_DECISIONS.md con razon.
+  NUNCA agregar al allowlist sin documentar por que.
+
+## SEC-RULE-09: Relacion /security-review + Herramientas
+
+Flujo correcto antes de una sesion de seguridad:
+  1. Run-SecurityScan  â†’ detecta problemas automaticos (Semgrep + Gitleaks).
+  2. Registrar issues en STATE.md.
+  3. /security-review  â†’ Claude razona sobre los issues en contexto.
+  4. SecurityAgent     â†’ aplica fixes con las reglas del pack.
+  5. Run-SecurityScan de nuevo â†’ verificar que issues se resolvieron.
+
+/security-review lee el diff de la rama.
+Semgrep lee el codigo actual.
+Son complementarios, no redundantes.
+
+## SEC-RULE-10: shadcn/ui y Magic UI â€” Seguridad
+
+shadcn/ui y Magic UI son librerias de componentes. Sin SSR server actions custom â†’ bajo riesgo.
+Con Server Actions (Next.js): validar inputs con Zod en el server. Nunca confiar en el cliente.
+Con fetch en cliente: verificar que no se expongan secrets en NEXT_PUBLIC_.
+Con formularios shadcn: validar tanto en cliente (UX) como en servidor (seguridad).
+
+## SEC-RULE-11: DAST â€” Pruebas Dinamicas (RedTeamAgent)
+
+Semgrep y Gitleaks son SAST: analizan codigo estatico, sin ejecutar nada.
+DAST complementa atacando un objetivo en ejecucion (localhost/staging) para
+confirmar que las defensas aguantan en runtime. Lo ejecuta RedTeamAgent.
+
+GUARDARRAIL (no negociable, ver agents/active/RedTeamAgent.md):
+  - Solo localhost/staging autorizado explicitamente por el usuario.
+  - NUNCA produccion, dominios de terceros, ni IPs fuera del scope confirmado.
+  - Sin objetivo autorizado â†’ RedTeamAgent cae a modo solo-estatico (no ejecuta nada).
+
+Herramientas y configs (packs/security/configs/):
+  nuclei      â†’ escaneo de vulnerabilidades por plantillas (CVE + misconfig).
+                Config: nuclei.config.yaml
+                Uso:    nuclei -u <target> -config packs/security/configs/nuclei.config.yaml
+  OWASP ZAP   â†’ baseline scan pasivo (proxy de trafico, no activo agresivo).
+                Config: zap-baseline.conf
+                Uso:    zap-baseline.py -t <target> -c packs/security/configs/zap-baseline.conf
+  sqlmap      â†’ deteccion de SQL injection (risk=1, level=1, sin --dump masivo).
+                Config: sqlmap.conf
+                Uso:    sqlmap -c packs/security/configs/sqlmap.conf -u <target-url>
+
+Resultados van a .ai/redteam/ (no se commitean â€” agregar a .gitignore del proyecto).
+
+Flujo blue/red (ver workflows/security-audit.json):
+  1. SecurityAgent corrige (SAST + manual).
+  2. RedTeamAgent ataca el mismo vector con las herramientas de arriba.
+  3. SecurityAgent re-valida con Run-SecurityScan.
+  Repetir hasta que RedTeamAgent no encuentre el vector original.
+
+
+
+## Pack: database (instalado: 2026-07-02)
+
+# Pack: database â€” Reglas de Base de Datos
+# Aplica a: cualquier proyecto con persistencia (SQL, NoSQL, ORMs)
+# Herramientas: Prisma | Alembic | EF Core Migrations | SQLAlchemy | TypeORM
+
+---
+
+## DB-RULE-01: Migrations desde el dia 1
+
+Prisma, Alembic o EF Core â€” nunca crear tablas manualmente en produccion.
+Primera migration: en el mismo commit que el primer modelo.
+Rollback de migration probado antes de aplicar en produccion.
+
+```bash
+# Prisma
+npx prisma migrate dev --name "init"
+
+# Alembic (FastAPI)
+alembic revision --autogenerate -m "init"
+alembic upgrade head
+
+# EF Core
+dotnet ef migrations add Init
+dotnet ef database update
+```
+
+Nunca hacer `DROP COLUMN` directamente. Proceso correcto:
+1. Marcar columna como deprecated en codigo
+2. Migrar datos a nueva columna (si aplica)
+3. Deploy y verificar que nada usa la columna vieja
+4. Crear migration que hace el DROP
+
+## DB-RULE-02: Schema design que no se arrepiente despues
+
+Soft delete por defecto en entidades de negocio: `deleted_at TIMESTAMP NULL`.
+Timestamps en TODAS las tablas: `created_at`, `updated_at` (auto-managed por ORM).
+IDs expuestos al cliente: UUID v4 (no predecibles, no enumerables).
+IDs internos: Serial/autoincrement (performance en JOINs, no exponer al exterior).
+Nunca usar email como primary key â€” cambia, y el cambio arruina toda la DB.
+
+```prisma
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?   // soft delete
+}
+```
+
+## DB-RULE-03: Queries seguros contra injection y N+1
+
+SQL injection: parametros siempre, nunca concatenacion de strings.
+```python
+# MAL - SQL injection posible
+cursor.execute(f"SELECT * FROM users WHERE email = '{email}'")
+
+# BIEN
+cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
+```
+
+N+1 queries: detectar y prevenir con eager loading.
+```typescript
+// MAL â€” N+1: 1 query para posts + N queries para author
+const posts = await Post.findAll()
+for (const post of posts) {
+  const author = await post.getAuthor() // N queries extra
+}
+
+// BIEN â€” 1 query con JOIN
+const posts = await Post.findAll({ include: [{ model: User, as: 'author' }] })
+```
+
+Paginacion obligatoria en cualquier listado: maximo 100 items por pagina por defecto.
+`SELECT *` prohibido en produccion â€” listar campos explicitos.
+
+## DB-RULE-04: Indices que importan
+
+Indice en todo campo que aparece en WHERE o ORDER BY frecuente.
+Foreign keys siempre indexadas (muchos ORMs no lo hacen automaticamente).
+Indices compuestos para queries con multiples condiciones frecuentes.
+No indexar campos con baja cardinalidad (boolean, status con 2-3 valores).
+
+```sql
+-- Indices criticos que suelen olvidarse
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_orders_user_id ON orders(user_id);   -- FK siempre indexada
+CREATE INDEX idx_orders_status_created ON orders(status, created_at);  -- compuesto
+```
+
+## DB-RULE-05: Transacciones para operaciones multi-tabla
+
+Operaciones que modifican > 1 tabla: siempre en transaccion.
+Timeout en transacciones largas (default: 30 segundos).
+
+```python
+# FastAPI + SQLAlchemy
+async with db.begin():
+    await db.execute(update_order_query)
+    await db.execute(update_inventory_query)
+    await db.execute(create_log_query)
+    # Si cualquiera falla, todas hacen rollback automatico
+```
+
+```typescript
+// Prisma
+await prisma.$transaction([
+  prisma.order.update({ where: { id }, data: { status: 'paid' } }),
+  prisma.inventory.decrement({ where: { productId }, data: { stock: 1 } }),
+])
+```
+
+## DB-RULE-06: Connection pooling
+
+Pool size inicial: (CPUs * 2) + 1.
+Timeout de conexion explicito â€” nunca indefinido.
+Configurar en variables de entorno, no hardcodeado.
+
+```python
+# FastAPI + SQLAlchemy
+engine = create_async_engine(
+    DATABASE_URL,
+    pool_size=10,
+    max_overflow=20,
+    pool_timeout=30,
+    pool_pre_ping=True,  # verifica conexion antes de usarla
+)
+```
+
+## DB-RULE-07: Backup y recovery
+
+Backup automatico antes de cualquier migration destructiva en produccion.
+Railway, Supabase, PlanetScale: usar el backup automatico del proveedor.
+Self-hosted: pg_dump / mysqldump en cron diario, verificar que el archivo no esta corrupto.
+Retener: 7 dias diarios + 4 semanas semanales + 12 meses mensuales.
+
+## DB-RULE-08: Multi-tenancy (solo proyectos SaaS)
+
+Decidir el modelo ANTES de la primera migration â€” cambiar despues es costoso.
+
+| Modelo | Cuando usarlo |
+|--------|---------------|
+| Row-level (tenant_id en cada tabla) | Startups, < 1000 tenants, queries simples |
+| Schema-per-tenant | Compliance estricto, queries complejos por tenant |
+| DB-per-tenant | Enterprise, aislamiento total, > $100/mes por tenant |
+
+RLS (Row Level Security) en PostgreSQL para row-level:
+```sql
+ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON orders
+  USING (tenant_id = current_setting('app.tenant_id')::uuid);
+```
+
