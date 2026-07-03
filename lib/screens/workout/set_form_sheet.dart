@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme.dart';
 import '../../models/workout.dart';
 
 class SetFormResult {
@@ -46,25 +47,43 @@ Future<SetFormResult?> showSetFormSheet(
   return showModalBottomSheet<SetFormResult>(
     context: context,
     isScrollControlled: true,
+    backgroundColor: Colors.transparent,
     builder: (context) {
       return StatefulBuilder(
         builder: (context, setModalState) {
-          return Padding(
+          return Container(
+            decoration: const BoxDecoration(
+              color: AppColors.surfaceContainer,
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(AppRadius.lg),
+              ),
+            ),
             padding: EdgeInsets.only(
-              left: 16,
-              right: 16,
-              top: 16,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+              left: AppSpacing.md,
+              right: AppSpacing.md,
+              top: AppSpacing.sm,
+              bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.md,
             ),
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+                      decoration: BoxDecoration(
+                        color: AppColors.outlineVariant,
+                        borderRadius: BorderRadius.circular(AppRadius.full),
+                      ),
+                    ),
+                  ),
                   Text(
                     'Registrar serie',
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.md),
                   Row(
                     children: [
                       Expanded(
@@ -78,7 +97,7 @@ Future<SetFormResult?> showSetFormSheet(
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: AppSpacing.sm),
                       Expanded(
                         child: TextField(
                           controller: repsController,
@@ -90,7 +109,7 @@ Future<SetFormResult?> showSetFormSheet(
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.sm),
                   Row(
                     children: [
                       Expanded(
@@ -104,7 +123,7 @@ Future<SetFormResult?> showSetFormSheet(
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: AppSpacing.sm),
                       Expanded(
                         child: TextField(
                           controller: rirController,
@@ -114,7 +133,7 @@ Future<SetFormResult?> showSetFormSheet(
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.sm),
                   TextField(
                     controller: restController,
                     keyboardType: TextInputType.number,
@@ -122,26 +141,36 @@ Future<SetFormResult?> showSetFormSheet(
                       labelText: 'Descanso (segundos)',
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Serie de calentamiento'),
-                    value: isWarmup,
-                    onChanged: (v) => setModalState(() => isWarmup = v),
+                  const SizedBox(height: AppSpacing.sm),
+                  Material(
+                    color: AppColors.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    child: SwitchListTile(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                      ),
+                      title: const Text('Serie de calentamiento'),
+                      value: isWarmup,
+                      onChanged: (v) => setModalState(() => isWarmup = v),
+                    ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.md),
                   Text(
                     'Técnicas avanzadas',
                     style: Theme.of(context).textTheme.titleSmall,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.sm),
                   Wrap(
-                    spacing: 8,
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.xs,
                     children: availableTechniques.entries.map((entry) {
                       final selected = selectedTechniques.contains(entry.key);
                       return FilterChip(
                         label: Text(entry.value),
                         selected: selected,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.full),
+                        ),
                         onSelected: (v) => setModalState(() {
                           if (v) {
                             selectedTechniques.add(entry.key);
@@ -152,7 +181,7 @@ Future<SetFormResult?> showSetFormSheet(
                       );
                     }).toList(),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.sm),
                   TextField(
                     controller: notesController,
                     decoration: const InputDecoration(
@@ -160,7 +189,7 @@ Future<SetFormResult?> showSetFormSheet(
                     ),
                     maxLines: 2,
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: AppSpacing.lg),
                   FilledButton(
                     onPressed: () {
                       final weight =

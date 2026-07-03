@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
+import '../../core/theme.dart';
 import '../../models/nutrition.dart';
 import '../../services/nutrition_service.dart';
 
@@ -74,29 +75,30 @@ class _NutritionScreenState extends State<NutritionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Nutrición diaria')),
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.md),
           children: [
             Text(
               'Registrar hoy',
-              style: Theme.of(context).textTheme.titleMedium,
+              style: Theme.of(context).textTheme.titleLarge,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.md),
             Row(
               children: [
                 Expanded(
-                  child: TextField(
+                  child: TextFormField(
                     controller: _caloriesController,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(labelText: 'Calorías'),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSpacing.sm),
                 Expanded(
-                  child: TextField(
+                  child: TextFormField(
                     controller: _waterController,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(labelText: 'Agua (ml)'),
@@ -104,11 +106,11 @@ class _NutritionScreenState extends State<NutritionScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
             Row(
               children: [
                 Expanded(
-                  child: TextField(
+                  child: TextFormField(
                     controller: _proteinController,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
@@ -116,17 +118,17 @@ class _NutritionScreenState extends State<NutritionScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.xs),
                 Expanded(
-                  child: TextField(
+                  child: TextFormField(
                     controller: _carbsController,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(labelText: 'Carbos (g)'),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.xs),
                 Expanded(
-                  child: TextField(
+                  child: TextFormField(
                     controller: _fatController,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(labelText: 'Grasas (g)'),
@@ -134,16 +136,20 @@ class _NutritionScreenState extends State<NutritionScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
             FilledButton(
               onPressed: _saving ? null : _save,
               child: _saving
-                  ? const CircularProgressIndicator()
+                  ? const SizedBox(
+                      height: 18,
+                      width: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
                   : const Text('Guardar registro de hoy'),
             ),
-            const SizedBox(height: 24),
-            Text('Historial', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.lg),
+            Text('Historial', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: AppSpacing.md),
             if (_loading)
               const Center(
                 child: Padding(
@@ -152,19 +158,75 @@ class _NutritionScreenState extends State<NutritionScreen> {
                 ),
               ),
             if (!_loading && _logs.isEmpty)
-              const Text('Sin registros todavía.'),
-            for (final log in _logs)
-              Card(
-                child: ListTile(
-                  title: Text(_dateFormat.format(log.logDate)),
-                  subtitle: Text(
-                    '${log.proteinG}g prot · ${log.carbsG}g carb · ${log.fatG}g grasa · ${log.waterMl}ml agua',
-                  ),
-                  trailing: Text('${log.calories.toStringAsFixed(0)} kcal'),
+              Text(
+                'Sin registros todavía.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.onSurfaceVariant,
                 ),
               ),
+            for (final log in _logs)
+              _NutritionLogCard(log: log, dateFormat: _dateFormat),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _NutritionLogCard extends StatelessWidget {
+  final NutritionLog log;
+  final DateFormat dateFormat;
+
+  const _NutritionLogCard({required this.log, required this.dateFormat});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainer,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.tertiaryContainer.withValues(alpha: 0.4),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: const Icon(Icons.restaurant, color: AppColors.tertiary),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  dateFormat.format(log.logDate),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${log.proteinG}g prot · ${log.carbsG}g carb · ${log.fatG}g grasa · ${log.waterMl}ml agua',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            '${log.calories.toStringAsFixed(0)} kcal',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
+        ],
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
+import '../../core/theme.dart';
 import '../../models/user.dart';
 import '../../services/calculator_service.dart';
 
@@ -46,14 +47,17 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Nutrición diaria')),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.md),
         children: [
+          Text('Tus datos', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: AppSpacing.md),
           Row(
             children: [
               Expanded(
-                child: TextField(
+                child: TextFormField(
                   controller: _weightController,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
@@ -61,9 +65,9 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
                   decoration: const InputDecoration(labelText: 'Peso (kg)'),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
-                child: TextField(
+                child: TextFormField(
                   controller: _heightController,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
@@ -73,17 +77,17 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.sm),
           Row(
             children: [
               Expanded(
-                child: TextField(
+                child: TextFormField(
                   controller: _ageController,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(labelText: 'Edad'),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: DropdownButtonFormField<String>(
                   initialValue: _sex,
@@ -101,7 +105,7 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.sm),
           DropdownButtonFormField<String>(
             initialValue: _activityLevel,
             decoration: const InputDecoration(labelText: 'Nivel de actividad'),
@@ -112,7 +116,7 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
                 .toList(),
             onChanged: (v) => setState(() => _activityLevel = v ?? 'moderate'),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.sm),
           DropdownButtonFormField<String>(
             initialValue: _goal,
             decoration: const InputDecoration(labelText: 'Objetivo'),
@@ -123,26 +127,46 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
                 .toList(),
             onChanged: (v) => setState(() => _goal = v ?? 'hypertrophy'),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: AppSpacing.lg),
           FilledButton(
             onPressed: _loading ? null : _calculate,
             child: _loading
-                ? const CircularProgressIndicator()
+                ? const SizedBox(
+                    height: 18,
+                    width: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
                 : const Text('Calcular'),
           ),
           if (_result != null) ...[
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.lg),
+            Text('Resultados', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: AppSpacing.md),
             _ResultRow(
               label: 'Calorías objetivo',
               value: '${_result!['target_calories']} kcal',
+              accent: AppColors.primary,
             ),
-            _ResultRow(label: 'Proteínas', value: '${_result!['protein_g']} g'),
+            _ResultRow(
+              label: 'Proteínas',
+              value: '${_result!['protein_g']} g',
+              accent: AppColors.secondary,
+            ),
             _ResultRow(
               label: 'Carbohidratos',
               value: '${_result!['carbs_g']} g',
+              accent: AppColors.tertiary,
             ),
-            _ResultRow(label: 'Grasas', value: '${_result!['fat_g']} g'),
-            _ResultRow(label: 'Agua', value: '${_result!['water_ml']} ml'),
+            _ResultRow(
+              label: 'Grasas',
+              value: '${_result!['fat_g']} g',
+              accent: AppColors.warning,
+            ),
+            _ResultRow(
+              label: 'Agua',
+              value: '${_result!['water_ml']} ml',
+              accent: AppColors.onSurfaceVariant,
+            ),
           ],
         ],
       ),
@@ -153,16 +177,36 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
 class _ResultRow extends StatelessWidget {
   final String label;
   final String value;
+  final Color accent;
 
-  const _ResultRow({required this.label, required this.value});
+  const _ResultRow({
+    required this.label,
+    required this.value,
+    required this.accent,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        title: Text(label),
-        trailing: Text(value, style: Theme.of(context).textTheme.titleMedium),
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainer,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border(left: BorderSide(color: accent, width: 4)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(label, style: Theme.of(context).textTheme.bodyLarge),
+          ),
+          Text(
+            value,
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
+        ],
       ),
     );
   }

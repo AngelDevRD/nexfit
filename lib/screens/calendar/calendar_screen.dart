@@ -40,6 +40,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget build(BuildContext context) {
     if (_loading) {
       return Scaffold(
+        backgroundColor: AppColors.background,
         appBar: AppBar(title: const Text('Calendario inteligente')),
         body: const Center(child: CircularProgressIndicator()),
       );
@@ -47,71 +48,165 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final overview = _overview!;
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Calendario inteligente')),
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.md),
           children: [
-            Card(
-              color: overview.deload.recommended
-                  ? AppColors.warning.withValues(alpha: 0.15)
-                  : null,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Icon(
-                      overview.deload.recommended
-                          ? Icons.warning_amber
-                          : Icons.check_circle_outline,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(child: Text(overview.deload.reason)),
-                  ],
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainer,
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                border: Border(
+                  left: BorderSide(
+                    color: overview.deload.recommended
+                        ? AppColors.warning
+                        : AppColors.secondary,
+                    width: 4,
+                  ),
                 ),
               ),
+              child: Row(
+                children: [
+                  Icon(
+                    overview.deload.recommended
+                        ? Icons.warning_amber
+                        : Icons.check_circle_outline,
+                    color: overview.deload.recommended
+                        ? AppColors.warning
+                        : AppColors.secondary,
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      overview.deload.reason,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppSpacing.lg),
             Text(
               'Objetivos próximos',
-              style: Theme.of(context).textTheme.titleMedium,
+              style: Theme.of(context).textTheme.titleLarge,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.md),
             if (overview.upcomingGoals.isEmpty)
-              const Text('Sin objetivos pendientes.'),
-            for (final goal in overview.upcomingGoals)
-              Card(
-                child: ListTile(
-                  title: Text(goal.title),
-                  subtitle: Text(
-                    goal.targetDate != null
-                        ? 'Fecha objetivo: ${_dateFormat.format(goal.targetDate!)}'
-                        : 'Sin fecha límite',
-                  ),
-                  trailing: Text('${goal.progressPct.toStringAsFixed(0)}%'),
+              Text(
+                'Sin objetivos pendientes.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.onSurfaceVariant,
                 ),
               ),
-            const SizedBox(height: 20),
+            for (final goal in overview.upcomingGoals)
+              _InfoCard(
+                icon: Icons.flag,
+                iconColor: AppColors.primary,
+                title: goal.title,
+                subtitle: goal.targetDate != null
+                    ? 'Fecha objetivo: ${_dateFormat.format(goal.targetDate!)}'
+                    : 'Sin fecha límite',
+                trailing: '${goal.progressPct.toStringAsFixed(0)}%',
+              ),
+            const SizedBox(height: AppSpacing.lg),
             Text(
               'Predicción de próximos récords',
-              style: Theme.of(context).textTheme.titleMedium,
+              style: Theme.of(context).textTheme.titleLarge,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.md),
             if (overview.upcomingRecordPredictions.isEmpty)
-              const Text('Sin suficiente histórico todavía.'),
-            for (final prediction in overview.upcomingRecordPredictions)
-              Card(
-                child: ListTile(
-                  title: Text(prediction.exerciseName),
-                  subtitle: Text('Actual: ${prediction.currentBestKg} kg'),
-                  trailing: Text(
-                    '${prediction.predictedKg} kg en ${prediction.weeksAhead} sem.',
-                  ),
+              Text(
+                'Sin suficiente histórico todavía.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.onSurfaceVariant,
                 ),
+              ),
+            for (final prediction in overview.upcomingRecordPredictions)
+              _InfoCard(
+                icon: Icons.emoji_events,
+                iconColor: AppColors.secondary,
+                title: prediction.exerciseName,
+                subtitle: 'Actual: ${prediction.currentBestKg} kg',
+                trailing:
+                    '${prediction.predictedKg} kg en ${prediction.weeksAhead} sem.',
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _InfoCard extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final String trailing;
+
+  const _InfoCard({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+    required this.trailing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainer,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: Icon(icon, color: iconColor),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Text(
+            trailing,
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
+        ],
       ),
     );
   }

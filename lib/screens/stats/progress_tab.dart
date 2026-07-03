@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
+import '../../core/theme.dart';
 import '../../models/exercise.dart';
 import '../../models/stats.dart';
 import '../../services/stats_service.dart';
@@ -42,70 +43,136 @@ class _ProgressTabState extends State<ProgressTab> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          OutlinedButton.icon(
-            onPressed: _pickExercise,
-            icon: const Icon(Icons.search),
-            label: Text(_selected?.name ?? 'Elegir ejercicio'),
+          Material(
+            color: AppColors.surfaceContainer,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              onTap: _pickExercise,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.sm,
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.search, color: AppColors.primary),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        _selected?.name ?? 'Elegir ejercicio',
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: AppSpacing.lg),
           if (_loading) const Center(child: CircularProgressIndicator()),
           if (!_loading && _selected != null && _entries.isEmpty)
-            const Text(
+            Text(
               'Sin entrenamientos registrados para este ejercicio todavía.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.onSurfaceVariant,
+              ),
             ),
           if (!_loading && _entries.isNotEmpty)
             Expanded(
-              child: LineChart(
-                LineChartData(
-                  titlesData: FlTitlesData(
-                    rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        getTitlesWidget: (value, meta) {
-                          final index = value.toInt();
-                          if (index < 0 || index >= _entries.length) {
-                            return const SizedBox.shrink();
-                          }
-                          final date = _entries[index].date;
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Text(
-                              '${date.day}/${date.month}',
-                              style: const TextStyle(fontSize: 10),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.sm,
+                  AppSpacing.md,
+                  AppSpacing.md,
+                  AppSpacing.sm,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainer,
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                ),
+                child: LineChart(
+                  LineChartData(
+                    titlesData: FlTitlesData(
+                      rightTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
+                      topTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
+                      leftTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          reservedSize: 36,
+                          getTitlesWidget: (value, meta) => Text(
+                            value.toInt().toString(),
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: AppColors.onSurfaceVariant,
                             ),
-                          );
-                        },
+                          ),
+                        ),
+                      ),
+                      bottomTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          getTitlesWidget: (value, meta) {
+                            final index = value.toInt();
+                            if (index < 0 || index >= _entries.length) {
+                              return const SizedBox.shrink();
+                            }
+                            final date = _entries[index].date;
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Text(
+                                '${date.day}/${date.month}',
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: AppColors.onSurfaceVariant,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       ),
                     ),
-                  ),
-                  gridData: const FlGridData(show: true),
-                  borderData: FlBorderData(show: false),
-                  lineBarsData: [
-                    LineChartBarData(
-                      spots: _entries
-                          .asMap()
-                          .entries
-                          .map(
-                            (e) =>
-                                FlSpot(e.key.toDouble(), e.value.maxWeightKg),
-                          )
-                          .toList(),
-                      isCurved: true,
-                      color: Theme.of(context).colorScheme.primary,
-                      barWidth: 3,
-                      dotData: const FlDotData(show: true),
+                    gridData: FlGridData(
+                      show: true,
+                      getDrawingHorizontalLine: (_) => FlLine(
+                        color: AppColors.outlineVariant,
+                        strokeWidth: 1,
+                      ),
+                      getDrawingVerticalLine: (_) => FlLine(
+                        color: AppColors.outlineVariant,
+                        strokeWidth: 1,
+                      ),
                     ),
-                  ],
+                    borderData: FlBorderData(show: false),
+                    lineBarsData: [
+                      LineChartBarData(
+                        spots: _entries
+                            .asMap()
+                            .entries
+                            .map(
+                              (e) =>
+                                  FlSpot(e.key.toDouble(), e.value.maxWeightKg),
+                            )
+                            .toList(),
+                        isCurved: true,
+                        color: AppColors.secondary,
+                        barWidth: 3,
+                        dotData: const FlDotData(show: true),
+                        belowBarData: BarAreaData(
+                          show: true,
+                          color: AppColors.secondary.withValues(alpha: 0.1),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -59,11 +59,12 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Recuperación')),
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.md),
           children: [
             if (_loading)
               const Center(
@@ -73,58 +74,105 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
                 ),
               ),
             if (!_loading && _index == null)
-              const Text('Todavía no registraste tu check-in de hoy.'),
-            if (_index != null)
-              Card(
-                color: _levelColor(_index!.level).withValues(alpha: 0.15),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        recoveryLevelLabels[_index!.level] ?? _index!.level,
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      const SizedBox(height: 4),
-                      Text('${_index!.recoveryIndex}% de recuperación'),
-                      Text(
-                        'Sueño: ${_index!.sleepHours}h · Fatiga percibida: ${_index!.perceivedFatigue}/10',
-                      ),
-                    ],
-                  ),
+              Text(
+                'Todavía no registraste tu check-in de hoy.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.onSurfaceVariant,
                 ),
               ),
-            const SizedBox(height: 24),
+            if (_index != null)
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainer,
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  border: Border(
+                    left: BorderSide(
+                      color: _levelColor(_index!.level),
+                      width: 4,
+                    ),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.bedtime, color: _levelColor(_index!.level)),
+                        const SizedBox(width: AppSpacing.sm),
+                        Text(
+                          recoveryLevelLabels[_index!.level] ?? _index!.level,
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      '${_index!.recoveryIndex}% de recuperación',
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Sueño: ${_index!.sleepHours}h · Fatiga percibida: ${_index!.perceivedFatigue}/10',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: AppSpacing.lg),
             Text(
               'Check-in de hoy',
-              style: Theme.of(context).textTheme.titleMedium,
+              style: Theme.of(context).textTheme.titleLarge,
             ),
-            const SizedBox(height: 12),
-            Text('Horas de sueño: ${_sleepHours.toStringAsFixed(1)}'),
-            Slider(
-              value: _sleepHours,
-              min: 0,
-              max: 12,
-              divisions: 24,
-              label: _sleepHours.toStringAsFixed(1),
-              onChanged: (v) => setState(() => _sleepHours = v),
+            const SizedBox(height: AppSpacing.md),
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainer,
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Horas de sueño: ${_sleepHours.toStringAsFixed(1)}',
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                  Slider(
+                    value: _sleepHours,
+                    min: 0,
+                    max: 12,
+                    divisions: 24,
+                    label: _sleepHours.toStringAsFixed(1),
+                    onChanged: (v) => setState(() => _sleepHours = v),
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    'Fatiga percibida: $_fatigue/10',
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                  Slider(
+                    value: _fatigue.toDouble(),
+                    min: 1,
+                    max: 10,
+                    divisions: 9,
+                    label: '$_fatigue',
+                    onChanged: (v) => setState(() => _fatigue = v.round()),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
-            Text('Fatiga percibida: $_fatigue/10'),
-            Slider(
-              value: _fatigue.toDouble(),
-              min: 1,
-              max: 10,
-              divisions: 9,
-              label: '$_fatigue',
-              onChanged: (v) => setState(() => _fatigue = v.round()),
-            ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
             FilledButton(
               onPressed: _saving ? null : _submit,
               child: _saving
-                  ? const CircularProgressIndicator()
+                  ? const SizedBox(
+                      height: 18,
+                      width: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
                   : const Text('Guardar check-in'),
             ),
           ],

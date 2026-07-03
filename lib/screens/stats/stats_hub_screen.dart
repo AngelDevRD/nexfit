@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme.dart';
 import 'muscle_analysis_tab.dart';
 import 'progress_tab.dart';
 import 'strength_profile_tab.dart';
@@ -14,11 +15,15 @@ class StatsHubScreen extends StatelessWidget {
     return DefaultTabController(
       length: 5,
       child: Scaffold(
+        backgroundColor: AppColors.background,
         appBar: AppBar(
           title: const Text('Estadísticas'),
-          bottom: const TabBar(
+          bottom: TabBar(
             isScrollable: true,
-            tabs: [
+            labelColor: AppColors.primary,
+            unselectedLabelColor: AppColors.onSurfaceVariant,
+            indicatorColor: AppColors.primary,
+            tabs: const [
               Tab(text: 'Músculos'),
               Tab(text: 'Fuerza'),
               Tab(text: 'Progreso'),

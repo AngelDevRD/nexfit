@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
+import '../../core/theme.dart';
 import '../../services/calculator_service.dart';
 
 class FatLossRateScreen extends StatefulWidget {
@@ -45,53 +46,82 @@ class _FatLossRateScreenState extends State<FatLossRateScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Ritmo de pérdida de grasa')),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.md),
         children: [
-          TextField(
+          Text('Tu objetivo', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: AppSpacing.md),
+          TextFormField(
             controller: _currentController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: const InputDecoration(labelText: 'Peso actual (kg)'),
           ),
-          const SizedBox(height: 12),
-          TextField(
+          const SizedBox(height: AppSpacing.sm),
+          TextFormField(
             controller: _targetController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: const InputDecoration(labelText: 'Peso objetivo (kg)'),
           ),
           if (_error != null) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
             Text(
               _error!,
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ],
-          const SizedBox(height: 20),
+          const SizedBox(height: AppSpacing.lg),
           FilledButton(
             onPressed: _loading ? null : _calculate,
             child: _loading
-                ? const CircularProgressIndicator()
+                ? const SizedBox(
+                    height: 18,
+                    width: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
                 : const Text('Calcular'),
           ),
           if (_result != null) ...[
-            const SizedBox(height: 24),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    Text(
-                      '${_result!['estimated_weeks']} semanas',
-                      style: Theme.of(context).textTheme.headlineMedium,
-                    ),
-                    const Text('estimadas para llegar a tu objetivo'),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Ritmo seguro: ${_result!['min_weekly_loss_kg']}-${_result!['max_weekly_loss_kg']} kg/semana',
-                    ),
-                  ],
+            const SizedBox(height: AppSpacing.lg),
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainer,
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                border: const Border(
+                  left: BorderSide(color: AppColors.secondary, width: 4),
                 ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'TIEMPO ESTIMADO',
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${_result!['estimated_weeks']} semanas',
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      color: AppColors.secondary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'estimadas para llegar a tu objetivo',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    'Ritmo seguro: ${_result!['min_weekly_loss_kg']}-${_result!['max_weekly_loss_kg']} kg/semana',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
               ),
             ),
           ],

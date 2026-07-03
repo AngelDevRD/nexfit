@@ -32,76 +32,123 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   Widget build(BuildContext context) {
     if (_error != null) {
       return Scaffold(
+        backgroundColor: AppColors.background,
         appBar: AppBar(),
         body: Center(child: Text(_error!)),
       );
     }
     if (_exercise == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
     final exercise = _exercise!;
     final color = muscleGroupColors[exercise.muscleGroup] ?? Colors.grey;
+    final difficultyColor = switch (exercise.difficulty) {
+      'beginner' => AppColors.primary,
+      'advanced' => AppColors.danger,
+      _ => AppColors.secondary,
+    };
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(title: Text(exercise.name)),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          AppSpacing.sm,
+          AppSpacing.md,
+          AppSpacing.xl,
+        ),
         children: [
-          Wrap(
-            spacing: 8,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Chip(
-                label: Text(exercise.muscleGroup),
-                backgroundColor: color.withValues(alpha: 0.2),
-              ),
-              Chip(
-                label: Text(
-                  difficultyLabels[exercise.difficulty] ?? exercise.difficulty,
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
+                child: Icon(Icons.fitness_center, color: color),
               ),
-              Chip(
-                label: Text(
-                  exercise.movementType == 'compound'
-                      ? 'Compuesto'
-                      : 'Aislamiento',
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      exercise.name,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: AppSpacing.sm,
+                      runSpacing: 4,
+                      children: [
+                        _Pill(label: exercise.muscleGroup, color: color),
+                        _Pill(
+                          label:
+                              difficultyLabels[exercise.difficulty] ??
+                              exercise.difficulty,
+                          color: difficultyColor,
+                        ),
+                        _Pill(
+                          label: exercise.movementType == 'compound'
+                              ? 'Compuesto'
+                              : 'Aislamiento',
+                          color: AppColors.onSurfaceVariant,
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          Text(
-            exercise.description,
-            style: Theme.of(context).textTheme.bodyLarge,
+          const SizedBox(height: AppSpacing.lg),
+          Material(
+            color: AppColors.surfaceContainer,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Text(
+                exercise.description,
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+            ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: AppSpacing.lg),
           _Section(
             title: 'Músculos trabajados',
             child: Wrap(
-              spacing: 8,
-              runSpacing: 4,
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.xs,
               children: [
                 ...exercise.primaryMuscles.map(
-                  (m) => Chip(
-                    label: Text(m),
-                    backgroundColor: color.withValues(alpha: 0.3),
-                  ),
+                  (m) => _Pill(label: m, color: color, filled: true),
                 ),
-                ...exercise.secondaryMuscles.map((m) => Chip(label: Text(m))),
+                ...exercise.secondaryMuscles.map(
+                  (m) => _Pill(label: m, color: AppColors.onSurfaceVariant),
+                ),
               ],
             ),
           ),
           _Section(
             title: 'Equipo necesario',
             child: Wrap(
-              spacing: 8,
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.xs,
               children: exercise.equipment
-                  .map((e) => Chip(label: Text(e)))
+                  .map((e) => _Pill(label: e, color: AppColors.secondary))
                   .toList(),
             ),
           ),
           _Section(
             title: 'Instrucciones',
-            child: _NumberedList(items: exercise.instructions),
+            child: _NumberedList(items: exercise.instructions, color: color),
           ),
           if (exercise.tips.isNotEmpty)
             _Section(
@@ -109,6 +156,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
               child: _BulletList(
                 items: exercise.tips,
                 icon: Icons.lightbulb_outline,
+                color: AppColors.secondary,
               ),
             ),
           if (exercise.commonMistakes.isNotEmpty)
@@ -117,6 +165,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
               child: _BulletList(
                 items: exercise.commonMistakes,
                 icon: Icons.warning_amber_outlined,
+                color: AppColors.danger,
               ),
             ),
           if (exercise.variants.isNotEmpty)
@@ -125,6 +174,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
               child: _BulletList(
                 items: exercise.variants,
                 icon: Icons.swap_horiz,
+                color: AppColors.tertiary,
               ),
             ),
           if (exercise.benefits.isNotEmpty)
@@ -133,9 +183,40 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
               child: _BulletList(
                 items: exercise.benefits,
                 icon: Icons.check_circle_outline,
+                color: AppColors.primary,
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _Pill extends StatelessWidget {
+  final String label;
+  final Color color;
+  final bool filled;
+
+  const _Pill({required this.label, required this.color, this.filled = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: 6,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: filled ? 0.3 : 0.15),
+        borderRadius: BorderRadius.circular(AppRadius.full),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          color: color,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -150,17 +231,12 @@ class _Section extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.only(bottom: AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
+          Text(title, style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: AppSpacing.sm),
           child,
         ],
       ),
@@ -170,23 +246,59 @@ class _Section extends StatelessWidget {
 
 class _NumberedList extends StatelessWidget {
   final List<String> items;
+  final Color color;
 
-  const _NumberedList({required this.items});
+  const _NumberedList({required this.items, required this.color});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: items
-          .asMap()
-          .entries
-          .map(
-            (e) => Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Text('${e.key + 1}. ${e.value}'),
-            ),
-          )
-          .toList(),
+    return Material(
+      color: AppColors.surfaceContainer,
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: items
+              .asMap()
+              .entries
+              .map(
+                (e) => Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 22,
+                        height: 22,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          '${e.key + 1}',
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: color,
+                                fontWeight: FontWeight.bold,
+                              ),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          e.value,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      ),
     );
   }
 }
@@ -194,28 +306,45 @@ class _NumberedList extends StatelessWidget {
 class _BulletList extends StatelessWidget {
   final List<String> items;
   final IconData icon;
+  final Color color;
 
-  const _BulletList({required this.items, required this.icon});
+  const _BulletList({
+    required this.items,
+    required this.icon,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: items
-          .map(
-            (item) => Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(icon, size: 18),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(item)),
-                ],
-              ),
-            ),
-          )
-          .toList(),
+    return Material(
+      color: AppColors.surfaceContainer,
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: items
+              .map(
+                (item) => Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(icon, size: 18, color: color),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          item,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      ),
     );
   }
 }

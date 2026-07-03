@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
+import '../../core/theme.dart';
 import '../../models/routine.dart';
+import '../../models/user.dart';
 import '../../services/routine_service.dart';
 import '../../services/workout_service.dart';
 import '../workout/active_workout_screen.dart';
@@ -46,16 +48,21 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
   Widget build(BuildContext context) {
     if (_error != null) {
       return Scaffold(
+        backgroundColor: AppColors.background,
         appBar: AppBar(),
         body: Center(child: Text(_error!)),
       );
     }
     if (_routine == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
     final routine = _routine!;
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(routine.name),
         actions: [
@@ -102,39 +109,125 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
         label: const Text('Iniciar con esta rutina'),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          AppSpacing.sm,
+          AppSpacing.md,
+          96,
+        ),
         children: [
-          for (final day in routine.days)
-            Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      day.name,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    if (day.muscleFocus != null)
-                      Text(
-                        day.muscleFocus!,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    const Divider(),
-                    for (final ex in day.exercises)
-                      ListTile(
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(ex.exercise.name),
-                        subtitle: Text(
-                          '${ex.targetSets}x${ex.targetRepsMin}-${ex.targetRepsMax} · descanso ${ex.targetRestSeconds}s',
-                        ),
-                      ),
-                  ],
+          if (routine.goal != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.md),
+              child: Text(
+                (goalOptions[routine.goal!] ?? routine.goal!).toUpperCase(),
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: AppColors.secondary,
+                  letterSpacing: 1,
                 ),
               ),
             ),
+          for (final day in routine.days) _DayCard(day: day),
+        ],
+      ),
+    );
+  }
+}
+
+class _DayCard extends StatelessWidget {
+  final RoutineDay day;
+
+  const _DayCard({required this.day});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: Material(
+        color: AppColors.surfaceContainer,
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(day.name, style: Theme.of(context).textTheme.titleLarge),
+              if (day.muscleFocus != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  day.muscleFocus!,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
+              ],
+              const SizedBox(height: AppSpacing.sm),
+              Container(
+                decoration: const BoxDecoration(
+                  border: Border(
+                    top: BorderSide(color: AppColors.outlineVariant),
+                  ),
+                ),
+                padding: const EdgeInsets.only(top: AppSpacing.sm),
+                child: Column(
+                  children: [
+                    for (final ex in day.exercises) _ExerciseRow(exercise: ex),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ExerciseRow extends StatelessWidget {
+  final RoutineExercise exercise;
+
+  const _ExerciseRow({required this.exercise});
+
+  @override
+  Widget build(BuildContext context) {
+    final color =
+        muscleGroupColors[exercise.exercise.muscleGroup] ?? Colors.grey;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: Icon(Icons.fitness_center, color: color, size: 20),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  exercise.exercise.name,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  '${exercise.targetSets}x${exercise.targetRepsMin}-${exercise.targetRepsMax} '
+                  '· descanso ${exercise.targetRestSeconds}s',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

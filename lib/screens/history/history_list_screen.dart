@@ -41,89 +41,214 @@ class _HistoryListScreenState extends State<HistoryListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Historial')),
-      body: Column(
-        children: [
-          SizedBox(
-            height: 48,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 4,
-                    vertical: 6,
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.sm,
+                AppSpacing.md,
+                AppSpacing.md,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Historial',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
                   ),
-                  child: ChoiceChip(
-                    label: const Text('Todos'),
+                ],
+              ),
+            ),
+            SizedBox(
+              height: 44,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                children: [
+                  _MuscleChip(
+                    label: 'Todos',
+                    color: AppColors.onSurfaceVariant,
                     selected: _muscleGroup == null,
-                    onSelected: (_) {
+                    onTap: () {
                       setState(() => _muscleGroup = null);
                       _load();
                     },
                   ),
-                ),
-                ...muscleGroupColors.keys.map(
-                  (group) => Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 4,
-                      vertical: 6,
-                    ),
-                    child: ChoiceChip(
-                      label: Text(group),
-                      selected: _muscleGroup == group,
-                      onSelected: (_) {
-                        setState(() => _muscleGroup = group);
+                  ...muscleGroupColors.entries.map(
+                    (entry) => _MuscleChip(
+                      label: entry.key,
+                      color: entry.value,
+                      selected: _muscleGroup == entry.key,
+                      onTap: () {
+                        setState(() => _muscleGroup = entry.key);
                         _load();
                       },
                     ),
                   ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Expanded(
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _sessions.isEmpty
+                  ? const Center(
+                      child: Text('Sin entrenamientos registrados todavía.'),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _load,
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.md,
+                          0,
+                          AppSpacing.md,
+                          AppSpacing.lg,
+                        ),
+                        children: [
+                          for (final session in _sessions)
+                            _SessionCard(
+                              session: session,
+                              dateFormat: _dateFormat,
+                            ),
+                        ],
+                      ),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MuscleChip extends StatelessWidget {
+  final String label;
+  final Color color;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _MuscleChip({
+    required this.label,
+    required this.color,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+      child: Material(
+        color: selected
+            ? color.withValues(alpha: 0.15)
+            : AppColors.surfaceContainer,
+        borderRadius: BorderRadius.circular(AppRadius.full),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.full),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: 8,
+            ),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.full),
+              border: Border.all(
+                color: selected
+                    ? color.withValues(alpha: 0.4)
+                    : AppColors.outlineVariant,
+              ),
+            ),
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: selected ? color : AppColors.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SessionCard extends StatelessWidget {
+  final WorkoutSessionSummary session;
+  final DateFormat dateFormat;
+
+  const _SessionCard({required this.session, required this.dateFormat});
+
+  @override
+  Widget build(BuildContext context) {
+    final finished = session.endedAt != null;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: Material(
+        color: AppColors.surfaceContainer,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => SessionDetailScreen(sessionId: session.id),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryContainer.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                  child: const Icon(
+                    Icons.fitness_center,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        dateFormat.format(session.startedAt.toLocal()),
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        finished
+                            ? 'Duración: ${session.endedAt!.difference(session.startedAt).inMinutes} min'
+                            : 'En curso',
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              color: finished
+                                  ? AppColors.onSurfaceVariant
+                                  : AppColors.secondary,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(
+                  Icons.chevron_right,
+                  color: AppColors.onSurfaceVariant,
                 ),
               ],
             ),
           ),
-          const Divider(height: 1),
-          Expanded(
-            child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : _sessions.isEmpty
-                ? const Center(
-                    child: Text('Sin entrenamientos registrados todavía.'),
-                  )
-                : RefreshIndicator(
-                    onRefresh: _load,
-                    child: ListView.separated(
-                      padding: const EdgeInsets.all(12),
-                      itemCount: _sessions.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
-                      itemBuilder: (context, index) {
-                        final session = _sessions[index];
-                        return Card(
-                          child: ListTile(
-                            leading: const Icon(Icons.fitness_center),
-                            title: Text(
-                              _dateFormat.format(session.startedAt.toLocal()),
-                            ),
-                            subtitle: Text(
-                              session.endedAt != null
-                                  ? 'Duración: ${session.endedAt!.difference(session.startedAt).inMinutes} min'
-                                  : 'En curso',
-                            ),
-                            trailing: const Icon(Icons.chevron_right),
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    SessionDetailScreen(sessionId: session.id),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-          ),
-        ],
+        ),
       ),
     );
   }

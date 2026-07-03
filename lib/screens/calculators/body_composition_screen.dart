@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
+import '../../core/theme.dart';
 import '../../models/user.dart';
 import '../../services/calculator_service.dart';
 
@@ -50,14 +51,17 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('IMC y masa magra')),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.md),
         children: [
+          Text('Tus datos', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: AppSpacing.md),
           Row(
             children: [
               Expanded(
-                child: TextField(
+                child: TextFormField(
                   controller: _weightController,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
@@ -65,9 +69,9 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> {
                   decoration: const InputDecoration(labelText: 'Peso (kg)'),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
-                child: TextField(
+                child: TextFormField(
                   controller: _heightController,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
@@ -77,7 +81,7 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.sm),
           DropdownButtonFormField<String>(
             initialValue: _sex,
             decoration: const InputDecoration(labelText: 'Sexo'),
@@ -88,8 +92,8 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> {
                 .toList(),
             onChanged: (v) => setState(() => _sex = v ?? 'male'),
           ),
-          const SizedBox(height: 12),
-          TextField(
+          const SizedBox(height: AppSpacing.sm),
+          TextFormField(
             controller: _bodyFatController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: const InputDecoration(
@@ -97,26 +101,35 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> {
                   '% Grasa corporal (opcional, mejora precisión de masa magra)',
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: AppSpacing.lg),
           FilledButton(
             onPressed: _loading ? null : _calculate,
             child: _loading
-                ? const CircularProgressIndicator()
+                ? const SizedBox(
+                    height: 18,
+                    width: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
                 : const Text('Calcular'),
           ),
           if (_bmi != null) ...[
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.lg),
+            Text('Resultados', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: AppSpacing.md),
             _ResultTile(
               label: 'IMC',
               value: '$_bmi (${_bmiCategoryLabel(_bmiCategory!)})',
+              accent: AppColors.primary,
             ),
             _ResultTile(
               label: 'Masa magra estimada',
               value: '$_leanBodyMass kg',
+              accent: AppColors.secondary,
             ),
             _ResultTile(
               label: 'Peso ideal de referencia',
               value: '$_idealWeight kg',
+              accent: AppColors.tertiary,
             ),
           ],
         ],
@@ -141,16 +154,36 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> {
 class _ResultTile extends StatelessWidget {
   final String label;
   final String value;
+  final Color accent;
 
-  const _ResultTile({required this.label, required this.value});
+  const _ResultTile({
+    required this.label,
+    required this.value,
+    required this.accent,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        title: Text(label),
-        trailing: Text(value, style: Theme.of(context).textTheme.titleMedium),
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainer,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border(left: BorderSide(color: accent, width: 4)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(label, style: Theme.of(context).textTheme.bodyLarge),
+          ),
+          Text(
+            value,
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
+        ],
       ),
     );
   }

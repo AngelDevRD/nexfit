@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
+import '../../core/theme.dart';
 import '../../models/exercise.dart';
 import '../../models/stats.dart';
 import '../../services/stats_service.dart';
@@ -55,19 +56,38 @@ class _StrengthStandardsTabState extends State<StrengthStandardsTab> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          OutlinedButton.icon(
-            onPressed: _pickExercise,
-            icon: const Icon(Icons.search),
-            label: Text(
-              _selected?.name ??
-                  'Elegir ejercicio (press banca, sentadilla o peso muerto)',
+          Material(
+            color: AppColors.surfaceContainer,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              onTap: _pickExercise,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.sm,
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.search, color: AppColors.primary),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        _selected?.name ??
+                            'Elegir ejercicio (press banca, sentadilla o peso muerto)',
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: AppSpacing.lg),
           if (_loading) const Center(child: CircularProgressIndicator()),
           if (_error != null)
             Text(
@@ -78,64 +98,132 @@ class _StrengthStandardsTabState extends State<StrengthStandardsTab> {
               _selected != null &&
               _standard == null &&
               _error == null)
-            const Text(
+            Text(
               'Sin datos suficientes: completá tu perfil (peso, sexo) y registrá un récord en este ejercicio.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.onSurfaceVariant,
+              ),
             ),
           if (_standard != null) ...[
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _standard!.exerciseName,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${_standard!.liftKg} kg (${_standard!.ratio}x tu peso corporal)',
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Percentil ${_standard!.percentile.toStringAsFixed(0)} · Nivel: ${strengthLevelLabels[_standard!.level] ?? _standard!.level}',
-                      style: Theme.of(context).textTheme.bodyLarge,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Referencia aproximada, no basada en un dataset poblacional verificado.',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
+            _StandardCard(standard: _standard!),
+            const SizedBox(height: AppSpacing.md),
           ],
           if (_prediction != null)
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Predicción de récord',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Si mantenés este ritmo, probablemente levantarás ${_prediction!.predictedKg} kg '
-                      'dentro de ${_prediction!.weeksAhead} semanas (actual: ${_prediction!.currentBestKg} kg).',
-                    ),
-                  ],
+            _PredictionCard(prediction: _prediction!)
+          else if (!_loading && _selected != null && _error == null)
+            Text(
+              'Sin suficiente histórico de récords para predecir (se necesitan al menos 3).',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.onSurfaceVariant,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StandardCard extends StatelessWidget {
+  final StrengthStandard standard;
+
+  const _StandardCard({required this.standard});
+
+  @override
+  Widget build(BuildContext context) {
+    final levelColor = colorForLevel(standard.level);
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainer,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border(left: BorderSide(color: levelColor, width: 4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            standard.exerciseName,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            '${standard.liftKg} kg (${standard.ratio}x tu peso corporal)',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: levelColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(AppRadius.full),
+                ),
+                child: Text(
+                  strengthLevelLabels[standard.level] ?? standard.level,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: levelColor,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-            )
-          else if (!_loading && _selected != null && _error == null)
-            const Text(
-              'Sin suficiente histórico de récords para predecir (se necesitan al menos 3).',
-            ),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                'Percentil ${standard.percentile.toStringAsFixed(0)}',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'Referencia aproximada, no basada en un dataset poblacional verificado.',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppColors.onSurfaceVariant),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PredictionCard extends StatelessWidget {
+  final RecordPrediction prediction;
+
+  const _PredictionCard({required this.prediction});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainer,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.trending_up, color: AppColors.secondary),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                'Predicción de récord',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'Si mantenés este ritmo, probablemente levantarás ${prediction.predictedKg} kg '
+            'dentro de ${prediction.weeksAhead} semanas (actual: ${prediction.currentBestKg} kg).',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
         ],
       ),
     );
