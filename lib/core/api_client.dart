@@ -101,6 +101,15 @@ class ApiClient {
     return _decode(response);
   }
 
+  Future<dynamic> put(String path, {Object? body, bool auth = true}) async {
+    final response = await http.put(
+      _uri(path),
+      headers: await _headers(auth: auth),
+      body: jsonEncode(body),
+    );
+    return _decode(response);
+  }
+
   Future<dynamic> patch(String path, {Object? body, bool auth = true}) async {
     final response = await http.patch(
       _uri(path),

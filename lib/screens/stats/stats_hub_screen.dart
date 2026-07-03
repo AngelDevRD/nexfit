@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'muscle_analysis_tab.dart';
 import 'progress_tab.dart';
 import 'strength_profile_tab.dart';
+import 'strength_standards_tab.dart';
 import 'tonnage_tab.dart';
 
 class StatsHubScreen extends StatelessWidget {
@@ -11,7 +12,7 @@ class StatsHubScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Estadísticas'),
@@ -22,6 +23,7 @@ class StatsHubScreen extends StatelessWidget {
               Tab(text: 'Fuerza'),
               Tab(text: 'Progreso'),
               Tab(text: 'Tonelaje'),
+              Tab(text: 'Estándares'),
             ],
           ),
         ),
@@ -31,6 +33,7 @@ class StatsHubScreen extends StatelessWidget {
             StrengthProfileTab(),
             ProgressTab(),
             TonnageTab(),
+            StrengthStandardsTab(),
           ],
         ),
       ),

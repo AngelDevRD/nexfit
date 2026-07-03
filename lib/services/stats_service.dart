@@ -1,4 +1,5 @@
 import '../core/api_client.dart';
+import '../core/api_exception.dart';
 import '../models/stats.dart';
 
 class StatsService {
@@ -40,5 +41,33 @@ class StatsService {
   Future<TrainingStreak> streak() async {
     final data = await client.get('/api/v1/stats/streak');
     return TrainingStreak.fromJson(data);
+  }
+
+  Future<StrengthStandard?> strengthStandards(int exerciseId) async {
+    try {
+      final data = await client.get(
+        '/api/v1/stats/strength-standards/$exerciseId',
+      );
+      return StrengthStandard.fromJson(data);
+    } on ApiException catch (e) {
+      if (e.statusCode == 404) return null;
+      rethrow;
+    }
+  }
+
+  Future<RecordPrediction?> recordPrediction(
+    int exerciseId, {
+    int weeksAhead = 8,
+  }) async {
+    try {
+      final data = await client.get(
+        '/api/v1/stats/record-prediction/$exerciseId',
+        query: {'weeks_ahead': weeksAhead},
+      );
+      return RecordPrediction.fromJson(data);
+    } on ApiException catch (e) {
+      if (e.statusCode == 404) return null;
+      rethrow;
+    }
   }
 }

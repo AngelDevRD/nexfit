@@ -134,3 +134,70 @@ class TrainingStreak {
         : null,
   );
 }
+
+class StrengthStandard {
+  final int exerciseId;
+  final String exerciseName;
+  final double liftKg;
+  final double bodyweightKg;
+  final double ratio;
+  final double percentile;
+  final String level;
+
+  StrengthStandard({
+    required this.exerciseId,
+    required this.exerciseName,
+    required this.liftKg,
+    required this.bodyweightKg,
+    required this.ratio,
+    required this.percentile,
+    required this.level,
+  });
+
+  factory StrengthStandard.fromJson(Map<String, dynamic> json) =>
+      StrengthStandard(
+        exerciseId: json['exercise_id'],
+        exerciseName: json['exercise_name'],
+        liftKg: (json['lift_kg'] as num).toDouble(),
+        bodyweightKg: (json['bodyweight_kg'] as num).toDouble(),
+        ratio: (json['ratio'] as num).toDouble(),
+        percentile: (json['percentile'] as num).toDouble(),
+        level: json['level'],
+      );
+}
+
+class RecordPrediction {
+  final int exerciseId;
+  final String exerciseName;
+  final double currentBestKg;
+  final double predictedKg;
+  final int weeksAhead;
+  final int dataPoints;
+
+  RecordPrediction({
+    required this.exerciseId,
+    required this.exerciseName,
+    required this.currentBestKg,
+    required this.predictedKg,
+    required this.weeksAhead,
+    required this.dataPoints,
+  });
+
+  factory RecordPrediction.fromJson(Map<String, dynamic> json) =>
+      RecordPrediction(
+        exerciseId: json['exercise_id'],
+        exerciseName: json['exercise_name'],
+        currentBestKg: (json['current_best_kg'] as num).toDouble(),
+        predictedKg: (json['predicted_kg'] as num).toDouble(),
+        weeksAhead: json['weeks_ahead'],
+        dataPoints: json['data_points'],
+      );
+}
+
+const strengthLevelLabels = <String, String>{
+  'beginner': 'Principiante',
+  'novice': 'Novato',
+  'intermediate': 'Intermedio',
+  'advanced': 'Avanzado',
+  'elite': 'Élite',
+};

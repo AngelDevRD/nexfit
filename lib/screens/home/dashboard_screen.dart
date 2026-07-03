@@ -6,6 +6,12 @@ import '../../models/stats.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/stats_service.dart';
 import '../calculators/calculators_hub_screen.dart';
+import '../calendar/calendar_screen.dart';
+import '../coach/coach_chat_screen.dart';
+import '../gamification/gamification_screen.dart';
+import '../goals/goals_screen.dart';
+import '../nutrition/nutrition_screen.dart';
+import '../recovery/recovery_screen.dart';
 import '../stats/stats_hub_screen.dart';
 import '../workout/start_workout_screen.dart';
 
@@ -135,6 +141,100 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Más funciones',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 12),
+            GridView.count(
+              crossAxisCount: 3,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+              childAspectRatio: 0.95,
+              children: [
+                _QuickAccessTile(
+                  icon: Icons.restaurant_outlined,
+                  label: 'Nutrición',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const NutritionScreen()),
+                  ),
+                ),
+                _QuickAccessTile(
+                  icon: Icons.bedtime_outlined,
+                  label: 'Recuperación',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const RecoveryScreen()),
+                  ),
+                ),
+                _QuickAccessTile(
+                  icon: Icons.flag_outlined,
+                  label: 'Objetivos',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const GoalsScreen()),
+                  ),
+                ),
+                _QuickAccessTile(
+                  icon: Icons.calendar_month_outlined,
+                  label: 'Calendario',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const CalendarScreen()),
+                  ),
+                ),
+                _QuickAccessTile(
+                  icon: Icons.smart_toy_outlined,
+                  label: 'Gemelo Digital',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const CoachChatScreen()),
+                  ),
+                ),
+                _QuickAccessTile(
+                  icon: Icons.emoji_events_outlined,
+                  label: 'Nivel y logros',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const GamificationScreen(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _QuickAccessTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _QuickAccessTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
         ),
