@@ -14,6 +14,7 @@ from app.routes.v1 import (
     nutrition,
     recovery,
     routines,
+    social,
     stats,
     users,
     workouts,
@@ -49,3 +50,4 @@ app.include_router(goals.router)
 app.include_router(calendar.router)
 app.include_router(coach.router)
 app.include_router(gamification.router)
+app.include_router(social.router)

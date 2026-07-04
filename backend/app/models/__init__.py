@@ -4,6 +4,7 @@ from app.models.nutrition import NutritionLog
 from app.models.record import PersonalRecord
 from app.models.recovery import DailyCheckIn
 from app.models.routine import Routine, RoutineDay, RoutineExercise
+from app.models.social import Challenge, ChallengeParticipant
 from app.models.user import User
 from app.models.workout import WorkoutSession, WorkoutSet
 
@@ -19,4 +20,6 @@ __all__ = [
     "NutritionLog",
     "DailyCheckIn",
     "Goal",
+    "Challenge",
+    "ChallengeParticipant",
 ]
