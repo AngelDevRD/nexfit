@@ -21,6 +21,7 @@ dependencies:
   drift: ^2.34.0
   drift_flutter: ^0.3.0
   flutter_3d_controller: ^2.3.0
+  health: ^13.3.1
 
 dev_dependencies:
   flutter_test:

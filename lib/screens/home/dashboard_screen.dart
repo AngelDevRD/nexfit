@@ -17,6 +17,7 @@ import '../nutrition/nutrition_screen.dart';
 import '../recovery/recovery_screen.dart';
 import '../social/challenges_screen.dart';
 import '../stats/stats_hub_screen.dart';
+import '../wearables/wearables_screen.dart';
 import '../workout/start_workout_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -299,6 +300,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             onTap: () => Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (_) => const ChallengesScreen(),
+                              ),
+                            ),
+                          ),
+                          _FeatureTile(
+                            icon: Icons.watch,
+                            iconBg: AppColors.surfaceContainerHighest,
+                            iconColor: AppColors.tertiary,
+                            label: 'Wearables',
+                            value: 'Pasos, pulso y sueño',
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const WearablesScreen(),
                               ),
                             ),
                           ),

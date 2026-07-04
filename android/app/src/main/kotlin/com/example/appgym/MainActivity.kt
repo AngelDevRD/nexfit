@@ -1,5 +1,7 @@
 package com.example.appgym
 
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 
-class MainActivity : FlutterActivity()
+// FlutterFragmentActivity (no FlutterActivity): el flujo de permisos de
+// Health Connect usa ActivityResultContracts, que requiere una FragmentActivity.
+class MainActivity : FlutterFragmentActivity()
