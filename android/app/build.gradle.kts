@@ -36,6 +36,20 @@ android {
         versionName = flutter.versionName
     }
 
+    // Solo arm64-v8a: es lo que usan los telefonos reales. Excluye las libs
+    // nativas de x86_64/armeabi-v7a (flutter_3d_controller las trae para todas
+    // las ABIs y --target-platform no las filtra), asi el APK baja de ~62MB a
+    // ~46MB y entra en el limite de 50MB de Telegram.
+    packaging {
+        jniLibs {
+            excludes += listOf(
+                "lib/x86_64/**",
+                "lib/x86/**",
+                "lib/armeabi-v7a/**",
+            )
+        }
+    }
+
     signingConfigs {
         create("release") {
             val hasKeystore = keystorePropertiesFile.exists()
