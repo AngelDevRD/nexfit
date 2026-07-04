@@ -1,0 +1,952 @@
+[
+{
+"slug": "press-banca-barra",
+"name": "Press banca con barra",
+"muscle_group": "Pecho",
+"primary_muscles": [
+"Pectoral mayor"
+],
+"secondary_muscles": [
+"Tríceps",
+"Deltoide anterior"
+],
+"equipment": [
+"Barra",
+"Banco plano"
+],
+"difficulty": "intermediate",
+"movement_type": "compound",
+"description": "Ejercicio base de empuje horizontal para desarrollo de pecho.",
+"instructions": [
+"Acuéstate en el banco con los pies firmes en el piso.",
+"Agarra la barra un poco más ancho que el ancho de hombros.",
+"Baja la barra de forma controlada hasta rozar el pecho.",
+"Empuja la barra hacia arriba hasta extender los brazos."
+],
+"tips": [
+"Mantené los omóplatos retraídos",
+"No rebotes la barra en el pecho"
+],
+"common_mistakes": [
+"Arquear demasiado la espalda baja",
+"Codos completamente abiertos a 90°"
+],
+"variants": [
+"Press banca inclinado",
+"Press banca con mancuernas"
+],
+"benefits": [
+"Fuerza de empuje",
+"Hipertrofia de pecho y tríceps"
+],
+"id": 1
+},
+{
+"slug": "press-inclinado-mancuernas",
+"name": "Press inclinado con mancuernas",
+"muscle_group": "Pecho",
+"primary_muscles": [
+"Pectoral superior"
+],
+"secondary_muscles": [
+"Tríceps",
+"Deltoide anterior"
+],
+"equipment": [
+"Mancuernas",
+"Banco inclinado"
+],
+"difficulty": "beginner",
+"movement_type": "compound",
+"description": "Variante de press enfocada en la porción superior del pecho.",
+"instructions": [
+"Ajustá el banco a 30-45 grados.",
+"Sostené las mancuernas a la altura del pecho.",
+"Empujá hacia arriba sin chocar las mancuernas.",
+"Bajá controlado hasta sentir el estiramiento."
+],
+"tips": [
+"Controlá la fase excéntrica",
+"No uses un ángulo mayor a 45°"
+],
+"common_mistakes": [
+"Ángulo del banco demasiado vertical (se vuelve press de hombro)"
+],
+"variants": [
+"Press inclinado con barra",
+"Press con mancuernas a un brazo"
+],
+"benefits": [
+"Desarrollo de pecho superior",
+"Menor estrés en el hombro que el press militar"
+],
+"id": 2
+},
+{
+"slug": "aperturas-mancuernas",
+"name": "Aperturas con mancuernas",
+"muscle_group": "Pecho",
+"primary_muscles": [
+"Pectoral mayor"
+],
+"secondary_muscles": [
+"Deltoide anterior"
+],
+"equipment": [
+"Mancuernas",
+"Banco plano"
+],
+"difficulty": "beginner",
+"movement_type": "isolation",
+"description": "Ejercicio de aislamiento para pecho con énfasis en el estiramiento.",
+"instructions": [
+"Acostado en el banco, sostené las mancuernas sobre el pecho.",
+"Bajá los brazos en arco manteniendo leve flexión de codo.",
+"Volvé a juntar las mancuernas contrayendo el pecho."
+],
+"tips": [
+"Mantené siempre la misma flexión de codo"
+],
+"common_mistakes": [
+"Extender completamente el codo (riesgo de lesión)"
+],
+"variants": [
+"Aperturas en polea",
+"Aperturas inclinadas"
+],
+"benefits": [
+"Estiramiento profundo del pectoral"
+],
+"id": 3
+},
+{
+"slug": "fondos-paralelas",
+"name": "Fondos en paralelas",
+"muscle_group": "Pecho",
+"primary_muscles": [
+"Pectoral inferior",
+"Tríceps"
+],
+"secondary_muscles": [
+"Deltoide anterior"
+],
+"equipment": [
+"Paralelas"
+],
+"difficulty": "advanced",
+"movement_type": "compound",
+"description": "Ejercicio con peso corporal para pecho inferior y tríceps.",
+"instructions": [
+"Sostenete en las paralelas con brazos extendidos.",
+"Inclinate levemente hacia adelante y bajá el cuerpo.",
+"Empujá hacia arriba hasta extender los brazos."
+],
+"tips": [
+"Inclinar el torso adelante enfatiza más pecho"
+],
+"common_mistakes": [
+"Bajar demasiado y sobrecargar el hombro"
+],
+"variants": [
+"Fondos asistidos",
+"Fondos con lastre"
+],
+"benefits": [
+"Fuerza funcional de empuje",
+"Hipertrofia de pecho y tríceps"
+],
+"id": 4
+},
+{
+"slug": "dominadas",
+"name": "Dominadas",
+"muscle_group": "Espalda",
+"primary_muscles": [
+"Dorsal ancho"
+],
+"secondary_muscles": [
+"Bíceps",
+"Romboides"
+],
+"equipment": [
+"Barra de dominadas"
+],
+"difficulty": "advanced",
+"movement_type": "compound",
+"description": "Ejercicio de tracción vertical con peso corporal, referencia de fuerza relativa.",
+"instructions": [
+"Colgate de la barra con agarre prono, un poco más ancho que hombros.",
+"Tirá del cuerpo hacia arriba hasta que el mentón supere la barra.",
+"Bajá controlado hasta extensión completa de brazos."
+],
+"tips": [
+"Iniciá el jalón llevando los codos hacia abajo, no solo flexionando brazos"
+],
+"common_mistakes": [
+"Usar impulso de piernas (kipping) sin buscarlo"
+],
+"variants": [
+"Dominadas supinas",
+"Dominadas asistidas",
+"Dominadas con lastre"
+],
+"benefits": [
+"Fuerza de tracción",
+"Desarrollo de espalda ancha"
+],
+"id": 5
+},
+{
+"slug": "remo-barra",
+"name": "Remo con barra",
+"muscle_group": "Espalda",
+"primary_muscles": [
+"Dorsal ancho",
+"Romboides"
+],
+"secondary_muscles": [
+"Bíceps",
+"Deltoide posterior"
+],
+"equipment": [
+"Barra"
+],
+"difficulty": "intermediate",
+"movement_type": "compound",
+"description": "Ejercicio de tracción horizontal para espesor de espalda.",
+"instructions": [
+"Flexioná caderas manteniendo espalda neutra, torso a ~45°.",
+"Tirá la barra hacia el abdomen bajo.",
+"Bajá controlado sin perder la posición de la espalda."
+],
+"tips": [
+"Apretá los omóplatos al final del recorrido"
+],
+"common_mistakes": [
+"Redondear la espalda baja",
+"Usar impulso excesivo de cadera"
+],
+"variants": [
+"Remo Pendlay",
+"Remo con mancuerna a un brazo"
+],
+"benefits": [
+"Espesor de espalda",
+"Fuerza de tracción horizontal"
+],
+"id": 6
+},
+{
+"slug": "jalon-al-pecho",
+"name": "Jalón al pecho",
+"muscle_group": "Espalda",
+"primary_muscles": [
+"Dorsal ancho"
+],
+"secondary_muscles": [
+"Bíceps"
+],
+"equipment": [
+"Polea alta"
+],
+"difficulty": "beginner",
+"movement_type": "compound",
+"description": "Alternativa a dominadas con carga ajustable, buena para principiantes.",
+"instructions": [
+"Sentate con los muslos fijos bajo el soporte.",
+"Tirá la barra hacia la parte superior del pecho.",
+"Volvé controlado a extensión completa."
+],
+"tips": [
+"Evitá inclinarte demasiado hacia atrás"
+],
+"common_mistakes": [
+"Tirar la barra detrás de la nuca"
+],
+"variants": [
+"Jalón con agarre supino",
+"Jalón con agarre neutro"
+],
+"benefits": [
+"Desarrollo de dorsal ancho con carga progresiva controlada"
+],
+"id": 7
+},
+{
+"slug": "peso-muerto-convencional",
+"name": "Peso muerto convencional",
+"muscle_group": "Espalda",
+"primary_muscles": [
+"Erectores espinales",
+"Glúteos",
+"Isquiotibiales"
+],
+"secondary_muscles": [
+"Dorsal ancho",
+"Trapecio"
+],
+"equipment": [
+"Barra"
+],
+"difficulty": "advanced",
+"movement_type": "compound",
+"description": "Ejercicio fundamental de cadena posterior, uno de los levantamientos de referencia de fuerza.",
+"instructions": [
+"Parate con la barra sobre el medio pie, agarre justo fuera de las piernas.",
+"Bajá caderas manteniendo espalda neutra y pecho arriba.",
+"Empujá el piso con las piernas y extendé caderas hasta quedar de pie."
+],
+"tips": [
+"La barra debe recorrer una línea recta cerca del cuerpo"
+],
+"common_mistakes": [
+"Redondear la espalda baja",
+"Empezar el jalón con la espalda antes que las piernas"
+],
+"variants": [
+"Peso muerto sumo",
+"Peso muerto rumano"
+],
+"benefits": [
+"Fuerza total del cuerpo",
+"Referencia clave para estándares de fuerza"
+],
+"id": 8
+},
+{
+"slug": "press-militar",
+"name": "Press militar",
+"muscle_group": "Hombros",
+"primary_muscles": [
+"Deltoide anterior"
+],
+"secondary_muscles": [
+"Tríceps",
+"Deltoide medio"
+],
+"equipment": [
+"Barra"
+],
+"difficulty": "intermediate",
+"movement_type": "compound",
+"description": "Press de hombro de pie, ejercicio base para fuerza y tamaño del deltoide.",
+"instructions": [
+"Sostené la barra a la altura de los hombros con agarre firme.",
+"Empujá la barra hacia arriba sin arquear excesivamente la espalda.",
+"Bajá controlado hasta la posición inicial."
+],
+"tips": [
+"Apretá glúteos y abdomen para estabilizar el torso"
+],
+"common_mistakes": [
+"Arquear demasiado la zona lumbar"
+],
+"variants": [
+"Press militar sentado",
+"Press con mancuernas"
+],
+"benefits": [
+"Fuerza de empuje vertical",
+"Desarrollo de hombros"
+],
+"id": 9
+},
+{
+"slug": "elevaciones-laterales",
+"name": "Elevaciones laterales",
+"muscle_group": "Hombros",
+"primary_muscles": [
+"Deltoide medio"
+],
+"secondary_muscles": [
+"Trapecio"
+],
+"equipment": [
+"Mancuernas"
+],
+"difficulty": "beginner",
+"movement_type": "isolation",
+"description": "Aislamiento de deltoide medio para anchura de hombros.",
+"instructions": [
+"De pie, sostené una mancuerna en cada mano a los lados.",
+"Elevá los brazos hasta la altura de los hombros.",
+"Bajá controlado sin usar impulso."
+],
+"tips": [
+"Codos con leve flexión durante todo el movimiento"
+],
+"common_mistakes": [
+"Usar impulso del torso para levantar el peso"
+],
+"variants": [
+"Elevaciones laterales en polea",
+"Elevaciones a un brazo"
+],
+"benefits": [
+"Anchura de hombros",
+"Aislamiento del deltoide medio"
+],
+"id": 10
+},
+{
+"slug": "face-pull",
+"name": "Face pull",
+"muscle_group": "Hombros",
+"primary_muscles": [
+"Deltoide posterior"
+],
+"secondary_muscles": [
+"Romboides",
+"Manguito rotador"
+],
+"equipment": [
+"Polea",
+"Cuerda"
+],
+"difficulty": "beginner",
+"movement_type": "isolation",
+"description": "Ejercicio clave para salud de hombro y desarrollo de deltoide posterior.",
+"instructions": [
+"Ajustá la polea a la altura de la cara.",
+"Tirá de la cuerda separando las manos hacia los lados de la cabeza.",
+"Volvé controlado a la posición inicial."
+],
+"tips": [
+"Priorizá rango de movimiento sobre el peso"
+],
+"common_mistakes": [
+"Usar demasiado peso y perder la forma"
+],
+"variants": [
+"Face pull de rodillas",
+"Face pull con banda elástica"
+],
+"benefits": [
+"Salud de hombro",
+"Deltoide posterior poco trabajado en otros ejercicios"
+],
+"id": 11
+},
+{
+"slug": "curl-barra",
+"name": "Curl con barra",
+"muscle_group": "Bíceps",
+"primary_muscles": [
+"Bíceps braquial"
+],
+"secondary_muscles": [
+"Braquial anterior",
+"Antebrazo"
+],
+"equipment": [
+"Barra"
+],
+"difficulty": "beginner",
+"movement_type": "isolation",
+"description": "Ejercicio clásico de aislamiento para bíceps.",
+"instructions": [
+"De pie, sostené la barra con agarre supino.",
+"Flexioná los codos llevando la barra hacia los hombros.",
+"Bajá controlado hasta extensión completa."
+],
+"tips": [
+"Mantené los codos fijos junto al torso"
+],
+"common_mistakes": [
+"Balancear el torso para generar impulso"
+],
+"variants": [
+"Curl con barra Z",
+"Curl con mancuernas"
+],
+"benefits": [
+"Hipertrofia de bíceps"
+],
+"id": 12
+},
+{
+"slug": "curl-martillo",
+"name": "Curl martillo",
+"muscle_group": "Bíceps",
+"primary_muscles": [
+"Braquial anterior",
+"Braquiorradial"
+],
+"secondary_muscles": [
+"Bíceps braquial"
+],
+"equipment": [
+"Mancuernas"
+],
+"difficulty": "beginner",
+"movement_type": "isolation",
+"description": "Variante de curl con agarre neutro, enfatiza braquial y antebrazo.",
+"instructions": [
+"Sostené las mancuernas con agarre neutro (palmas encontradas).",
+"Flexioná los codos manteniendo el agarre neutro todo el recorrido.",
+"Bajá controlado."
+],
+"tips": [
+"Evitá rotar la muñeca durante el movimiento"
+],
+"common_mistakes": [
+"Usar impulso de hombro"
+],
+"variants": [
+"Curl martillo alterno",
+"Curl martillo en polea con cuerda"
+],
+"benefits": [
+"Grosor de antebrazo y braquial"
+],
+"id": 13
+},
+{
+"slug": "press-frances",
+"name": "Press francés",
+"muscle_group": "Tríceps",
+"primary_muscles": [
+"Tríceps braquial"
+],
+"secondary_muscles": [],
+"equipment": [
+"Barra Z",
+"Banco plano"
+],
+"difficulty": "intermediate",
+"movement_type": "isolation",
+"description": "Ejercicio de extensión de codo con énfasis en la cabeza larga del tríceps.",
+"instructions": [
+"Acostado, sostené la barra con brazos extendidos sobre el pecho.",
+"Flexioná solo los codos bajando la barra hacia la frente.",
+"Extendé los codos volviendo a la posición inicial."
+],
+"tips": [
+"Mantené los codos apuntando al techo, sin abrirlos"
+],
+"common_mistakes": [
+"Mover los hombros en vez de solo los codos"
+],
+"variants": [
+"Press francés con mancuerna",
+"Press francés en polea"
+],
+"benefits": [
+"Hipertrofia de tríceps, especialmente cabeza larga"
+],
+"id": 14
+},
+{
+"slug": "extension-triceps-polea",
+"name": "Extensión de tríceps en polea",
+"muscle_group": "Tríceps",
+"primary_muscles": [
+"Tríceps braquial"
+],
+"secondary_muscles": [],
+"equipment": [
+"Polea alta",
+"Barra o cuerda"
+],
+"difficulty": "beginner",
+"movement_type": "isolation",
+"description": "Ejercicio de aislamiento de tríceps con tensión constante de la polea.",
+"instructions": [
+"De pie frente a la polea alta, codos pegados al torso.",
+"Extendé los codos empujando la barra hacia abajo.",
+"Volvé controlado sin mover los codos de posición."
+],
+"tips": [
+"Mantené el torso estable, sin usar impulso"
+],
+"common_mistakes": [
+"Separar los codos del torso durante el movimiento"
+],
+"variants": [
+"Extensión a un brazo",
+"Extensión con cuerda"
+],
+"benefits": [
+"Aislamiento seguro y controlado de tríceps"
+],
+"id": 15
+},
+{
+"slug": "sentadilla-barra",
+"name": "Sentadilla con barra",
+"muscle_group": "Cuádriceps",
+"primary_muscles": [
+"Cuádriceps",
+"Glúteos"
+],
+"secondary_muscles": [
+"Isquiotibiales",
+"Core"
+],
+"equipment": [
+"Barra",
+"Rack"
+],
+"difficulty": "intermediate",
+"movement_type": "compound",
+"description": "Ejercicio fundamental de tren inferior, referencia de fuerza y tamaño de piernas.",
+"instructions": [
+"Colocá la barra sobre los trapecios, pies al ancho de hombros.",
+"Bajá flexionando cadera y rodillas manteniendo el pecho arriba.",
+"Bajá hasta que los muslos superen la paralela y volvé a subir."
+],
+"tips": [
+"Las rodillas siguen la dirección de los pies"
+],
+"common_mistakes": [
+"Colapsar las rodillas hacia adentro",
+"Levantar los talones del piso"
+],
+"variants": [
+"Sentadilla frontal",
+"Sentadilla búlgara"
+],
+"benefits": [
+"Fuerza y tamaño de piernas",
+"Referencia clave para estándares de fuerza"
+],
+"id": 16
+},
+{
+"slug": "prensa-piernas",
+"name": "Prensa de piernas",
+"muscle_group": "Cuádriceps",
+"primary_muscles": [
+"Cuádriceps"
+],
+"secondary_muscles": [
+"Glúteos",
+"Isquiotibiales"
+],
+"equipment": [
+"Máquina de prensa"
+],
+"difficulty": "beginner",
+"movement_type": "compound",
+"description": "Alternativa a la sentadilla con menor demanda de estabilización.",
+"instructions": [
+"Sentate en la máquina con los pies al ancho de hombros en la plataforma.",
+"Bajá el peso flexionando las rodillas hasta 90°.",
+"Empujá la plataforma hasta extender las piernas sin bloquear rodillas."
+],
+"tips": [
+"No bloquear completamente las rodillas al extender"
+],
+"common_mistakes": [
+"Bajar demasiado y despegar la zona lumbar del respaldo"
+],
+"variants": [
+"Prensa a un pie",
+"Prensa con pies altos (más glúteo/isquios)"
+],
+"benefits": [
+"Volumen de pierna con bajo estrés articular"
+],
+"id": 17
+},
+{
+"slug": "zancadas",
+"name": "Zancadas",
+"muscle_group": "Cuádriceps",
+"primary_muscles": [
+"Cuádriceps",
+"Glúteos"
+],
+"secondary_muscles": [
+"Isquiotibiales",
+"Core"
+],
+"equipment": [
+"Mancuernas"
+],
+"difficulty": "intermediate",
+"movement_type": "compound",
+"description": "Ejercicio unilateral de pierna que mejora equilibrio y fuerza funcional.",
+"instructions": [
+"De pie con una mancuerna en cada mano, dá un paso adelante.",
+"Bajá flexionando ambas rodillas hasta que la rodilla trasera casi toque el piso.",
+"Empujá con la pierna delantera para volver a la posición inicial."
+],
+"tips": [
+"Mantené el torso erguido durante todo el movimiento"
+],
+"common_mistakes": [
+"Dar un paso demasiado corto y cargar todo en la rodilla"
+],
+"variants": [
+"Zancadas caminando",
+"Zancadas búlgaras"
+],
+"benefits": [
+"Fuerza unilateral",
+"Mejora de estabilidad y equilibrio"
+],
+"id": 18
+},
+{
+"slug": "peso-muerto-rumano",
+"name": "Peso muerto rumano",
+"muscle_group": "Isquiotibiales",
+"primary_muscles": [
+"Isquiotibiales",
+"Glúteos"
+],
+"secondary_muscles": [
+"Erectores espinales"
+],
+"equipment": [
+"Barra"
+],
+"difficulty": "intermediate",
+"movement_type": "compound",
+"description": "Variante de peso muerto con énfasis en el estiramiento de isquiotibiales.",
+"instructions": [
+"Sostené la barra frente a los muslos con las piernas casi extendidas.",
+"Empujá la cadera hacia atrás bajando la barra pegada a las piernas.",
+"Volvé extendiendo la cadera hasta la posición inicial."
+],
+"tips": [
+"Las rodillas se flexionan muy levemente, el movimiento es de cadera"
+],
+"common_mistakes": [
+"Flexionar demasiado las rodillas (se convierte en sentadilla)"
+],
+"variants": [
+"Peso muerto rumano a una pierna",
+"Peso muerto rumano con mancuernas"
+],
+"benefits": [
+"Fuerza y flexibilidad de isquiotibiales",
+"Fortalecimiento de cadena posterior"
+],
+"id": 19
+},
+{
+"slug": "curl-femoral",
+"name": "Curl femoral",
+"muscle_group": "Isquiotibiales",
+"primary_muscles": [
+"Isquiotibiales"
+],
+"secondary_muscles": [
+"Gemelos"
+],
+"equipment": [
+"Máquina de curl femoral"
+],
+"difficulty": "beginner",
+"movement_type": "isolation",
+"description": "Aislamiento de isquiotibiales en máquina.",
+"instructions": [
+"Acostado boca abajo en la máquina, talones bajo el rodillo.",
+"Flexioná las rodillas llevando los talones hacia los glúteos.",
+"Bajá controlado hasta extensión completa."
+],
+"tips": [
+"Evitá levantar la cadera del banco"
+],
+"common_mistakes": [
+"Usar impulso en vez de control muscular"
+],
+"variants": [
+"Curl femoral sentado",
+"Curl femoral a una pierna"
+],
+"benefits": [
+"Aislamiento directo de isquiotibiales"
+],
+"id": 20
+},
+{
+"slug": "hip-thrust",
+"name": "Hip thrust",
+"muscle_group": "Glúteos",
+"primary_muscles": [
+"Glúteo mayor"
+],
+"secondary_muscles": [
+"Isquiotibiales",
+"Core"
+],
+"equipment": [
+"Barra",
+"Banco"
+],
+"difficulty": "intermediate",
+"movement_type": "compound",
+"description": "Ejercicio de referencia para fuerza e hipertrofia de glúteos.",
+"instructions": [
+"Apoyá la espalda alta en un banco con la barra sobre la cadera.",
+"Empujá la cadera hacia arriba contrayendo los glúteos al máximo.",
+"Bajá controlado sin tocar el piso con la cadera."
+],
+"tips": [
+"Mentón metido y mirada al frente en la fase final"
+],
+"common_mistakes": [
+"Hiperextender la zona lumbar en vez de usar el glúteo"
+],
+"variants": [
+"Hip thrust a una pierna",
+"Puente de glúteo en el piso"
+],
+"benefits": [
+"Fuerza y tamaño de glúteos",
+"Mejora de extensión de cadera"
+],
+"id": 21
+},
+{
+"slug": "elevacion-talones-pie",
+"name": "Elevación de talones de pie",
+"muscle_group": "Pantorrillas",
+"primary_muscles": [
+"Gastrocnemio"
+],
+"secondary_muscles": [
+"Sóleo"
+],
+"equipment": [
+"Máquina de gemelo de pie"
+],
+"difficulty": "beginner",
+"movement_type": "isolation",
+"description": "Ejercicio de aislamiento para desarrollo de pantorrilla.",
+"instructions": [
+"De pie en la máquina, apoyá el metatarso en la plataforma.",
+"Elevá los talones lo más alto posible contrayendo la pantorrilla.",
+"Bajá controlado hasta sentir el estiramiento completo."
+],
+"tips": [
+"Pausa breve en la contracción máxima mejora el estímulo"
+],
+"common_mistakes": [
+"Usar rango de movimiento parcial"
+],
+"variants": [
+"Elevación de talones sentado (más sóleo)",
+"Elevación a una pierna"
+],
+"benefits": [
+"Desarrollo de gastrocnemio"
+],
+"id": 22
+},
+{
+"slug": "plancha",
+"name": "Plancha",
+"muscle_group": "Core",
+"primary_muscles": [
+"Recto abdominal",
+"Transverso abdominal"
+],
+"secondary_muscles": [
+"Glúteos",
+"Hombros"
+],
+"equipment": [
+"Peso corporal"
+],
+"difficulty": "beginner",
+"movement_type": "isolation",
+"description": "Ejercicio isométrico fundamental para estabilidad del core.",
+"instructions": [
+"Apoyate en antebrazos y puntas de los pies, cuerpo en línea recta.",
+"Contraé abdomen y glúteos manteniendo la posición.",
+"Sostené sin dejar caer la cadera."
+],
+"tips": [
+"Respirá de forma controlada durante la pausa isométrica"
+],
+"common_mistakes": [
+"Dejar caer la cadera o elevar demasiado los glúteos"
+],
+"variants": [
+"Plancha lateral",
+"Plancha con elevación de pierna"
+],
+"benefits": [
+"Estabilidad de core",
+"Prevención de lesiones lumbares"
+],
+"id": 23
+},
+{
+"slug": "rueda-abdominal",
+"name": "Rueda abdominal",
+"muscle_group": "Core",
+"primary_muscles": [
+"Recto abdominal"
+],
+"secondary_muscles": [
+"Dorsal ancho",
+"Hombros"
+],
+"equipment": [
+"Rueda abdominal"
+],
+"difficulty": "advanced",
+"movement_type": "compound",
+"description": "Ejercicio avanzado de core con gran demanda de estabilidad.",
+"instructions": [
+"De rodillas, sostené la rueda con ambas manos frente a vos.",
+"Rodá hacia adelante extendiendo el cuerpo lo más posible sin que la cadera caiga.",
+"Volvé a la posición inicial contrayendo el abdomen."
+],
+"tips": [
+"Empezá con rango parcial hasta ganar fuerza"
+],
+"common_mistakes": [
+"Arquear la espalda baja al extender demasiado"
+],
+"variants": [
+"Rueda abdominal de pie (avanzado)"
+],
+"benefits": [
+"Fuerza de core anti-extensión"
+],
+"id": 24
+},
+{
+"slug": "crunch-polea",
+"name": "Crunch en polea",
+"muscle_group": "Core",
+"primary_muscles": [
+"Recto abdominal"
+],
+"secondary_muscles": [
+"Oblicuos"
+],
+"equipment": [
+"Polea alta",
+"Cuerda"
+],
+"difficulty": "beginner",
+"movement_type": "isolation",
+"description": "Ejercicio de aislamiento abdominal con carga progresiva.",
+"instructions": [
+"Arrodillate frente a la polea alta sosteniendo la cuerda a los lados de la cabeza.",
+"Flexioná el torso llevando los codos hacia las rodillas contrayendo el abdomen.",
+"Volvé controlado a la posición inicial."
+],
+"tips": [
+"El movimiento es de flexión de columna, no de cadera"
+],
+"common_mistakes": [
+"Tirar con los brazos en vez de contraer el abdomen"
+],
+"variants": [
+"Crunch en polea con banda",
+"Crunch en máquina"
+],
+"benefits": [
+"Hipertrofia abdominal con sobrecarga progresiva"
+],
+"id": 25
+}
+]
