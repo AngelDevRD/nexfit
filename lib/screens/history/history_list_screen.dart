@@ -97,8 +97,21 @@ class _HistoryListScreenState extends State<HistoryListScreen> {
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
                   : _sessions.isEmpty
-                  ? const Center(
-                      child: Text('Sin entrenamientos registrados todavía.'),
+                  ? RefreshIndicator(
+                      onRefresh: _load,
+                      child: ListView(
+                        // Scrollable siempre para que el pull-to-refresh
+                        // funcione tambien con el historial vacio.
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: const [
+                          SizedBox(height: 240),
+                          Center(
+                            child: Text(
+                              'Sin entrenamientos registrados todavía.',
+                            ),
+                          ),
+                        ],
+                      ),
                     )
                   : RefreshIndicator(
                       onRefresh: _load,

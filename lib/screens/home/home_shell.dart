@@ -16,21 +16,39 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
 
-  static const _screens = [
-    DashboardScreen(),
-    ExerciseListScreen(),
-    RoutineListScreen(),
-    HistoryListScreen(),
-    ProfileScreen(),
-  ];
+  // Dashboard e Historial muestran datos que cambian desde otras pantallas
+  // (un entrenamiento recien finalizado, XP/racha actualizada). Como el
+  // IndexedStack mantiene vivas las pantallas, solo cargan una vez en su
+  // initState; al reseleccionar su pestaña se recrea el widget (cambia la key)
+  // para que vuelva a consultar la API. El resto de pestañas ya recargan por su
+  // cuenta al volver de un push (p. ej. el constructor de rutinas).
+  int _dashboardEpoch = 0;
+  int _historyEpoch = 0;
+
+  void _onDestinationSelected(int i) {
+    setState(() {
+      if (i == 0) _dashboardEpoch++;
+      if (i == 3) _historyEpoch++;
+      _index = i;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _index, children: _screens),
+      body: IndexedStack(
+        index: _index,
+        children: [
+          DashboardScreen(key: ValueKey('dashboard-$_dashboardEpoch')),
+          const ExerciseListScreen(),
+          const RoutineListScreen(),
+          HistoryListScreen(key: ValueKey('history-$_historyEpoch')),
+          const ProfileScreen(),
+        ],
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
+        onDestinationSelected: _onDestinationSelected,
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
