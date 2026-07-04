@@ -6,6 +6,7 @@ import '../../core/theme.dart';
 import '../../features/exercise_3d/exercise_3d_view.dart';
 import '../../models/exercise.dart';
 import '../../services/exercise_service.dart';
+import '../../widgets/exercise_thumb.dart';
 
 class ExerciseDetailScreen extends StatefulWidget {
   final int exerciseId;
@@ -66,15 +67,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                ),
-                child: Icon(Icons.fitness_center, color: color),
-              ),
+              ExerciseThumb(slug: exercise.slug, color: color),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(

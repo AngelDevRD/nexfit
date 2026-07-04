@@ -5,6 +5,7 @@ import '../../core/api_client.dart';
 import '../../core/theme.dart';
 import '../../models/exercise.dart';
 import '../../services/exercise_service.dart';
+import '../../widgets/exercise_thumb.dart';
 import 'exercise_detail_screen.dart';
 
 class ExerciseListScreen extends StatefulWidget {
@@ -267,15 +268,7 @@ class _ExerciseCard extends StatelessWidget {
             padding: const EdgeInsets.all(AppSpacing.md),
             child: Row(
               children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                  ),
-                  child: Icon(Icons.fitness_center, color: color),
-                ),
+                ExerciseThumb(slug: exercise.slug, color: color),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Column(
