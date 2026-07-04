@@ -9,7 +9,7 @@ class WorkoutService {
   Future<WorkoutSession> startSession({int? routineId}) async {
     final data = await client.post(
       '/api/v1/workouts',
-      body: {if (routineId != null) 'routine_id': routineId},
+      body: {'routine_id': ?routineId},
     );
     return WorkoutSession.fromJson(data);
   }
@@ -59,9 +59,9 @@ class WorkoutService {
     DateTime? dateTo,
   }) async {
     final query = <String, dynamic>{
-      if (exerciseId != null) 'exercise_id': exerciseId,
-      if (muscleGroup != null) 'muscle_group': muscleGroup,
-      if (routineId != null) 'routine_id': routineId,
+      'exercise_id': ?exerciseId,
+      'muscle_group': ?muscleGroup,
+      'routine_id': ?routineId,
       if (dateFrom != null)
         'date_from': dateFrom.toIso8601String().split('T').first,
       if (dateTo != null) 'date_to': dateTo.toIso8601String().split('T').first,

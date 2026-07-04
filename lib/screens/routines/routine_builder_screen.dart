@@ -10,18 +10,12 @@ import '../exercises/exercise_picker_screen.dart';
 
 class _ExerciseDraft {
   final ExerciseSummary exercise;
-  int targetSets;
-  int targetRepsMin;
-  int targetRepsMax;
-  int targetRestSeconds;
+  int targetSets = 3;
+  int targetRepsMin = 8;
+  int targetRepsMax = 12;
+  int targetRestSeconds = 90;
 
-  _ExerciseDraft(
-    this.exercise, {
-    this.targetSets = 3,
-    this.targetRepsMin = 8,
-    this.targetRepsMax = 12,
-    this.targetRestSeconds = 90,
-  });
+  _ExerciseDraft(this.exercise);
 }
 
 class _DayDraft {

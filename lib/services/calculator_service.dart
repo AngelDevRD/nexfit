@@ -35,7 +35,7 @@ class CalculatorService {
         'weight_kg': weightKg,
         'height_cm': heightCm,
         'sex': sex,
-        if (bodyFatPct != null) 'body_fat_pct': bodyFatPct,
+        'body_fat_pct': ?bodyFatPct,
       },
       auth: false,
     );
