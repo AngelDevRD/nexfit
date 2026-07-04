@@ -15,6 +15,7 @@ import '../gamification/gamification_screen.dart';
 import '../goals/goals_screen.dart';
 import '../nutrition/nutrition_screen.dart';
 import '../recovery/recovery_screen.dart';
+import '../social/challenges_screen.dart';
 import '../stats/stats_hub_screen.dart';
 import '../workout/start_workout_screen.dart';
 
@@ -286,6 +287,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             onTap: () => Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (_) => const StatsHubScreen(),
+                              ),
+                            ),
+                          ),
+                          _FeatureTile(
+                            icon: Icons.groups,
+                            iconBg: AppColors.surfaceContainerHighest,
+                            iconColor: AppColors.secondaryContainer,
+                            label: 'Retos',
+                            value: 'Competí con amigos',
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const ChallengesScreen(),
                               ),
                             ),
                           ),
