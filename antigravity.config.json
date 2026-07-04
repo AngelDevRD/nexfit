@@ -10,5 +10,8 @@
     "softDelete": true,
     "monitoring": false,
     "i18n": false
+  },
+  "skills": {
+    "ponytail": { "enabled": true, "mode": "full", "autoEnableForCoding": true, "allowOverride": true }
   }
 }
