@@ -15,6 +15,7 @@ import '../gamification/gamification_screen.dart';
 import '../goals/goals_screen.dart';
 import '../nutrition/nutrition_screen.dart';
 import '../recovery/recovery_screen.dart';
+import '../../features/pose/pose_analysis_screen.dart';
 import '../social/challenges_screen.dart';
 import '../stats/stats_hub_screen.dart';
 import '../wearables/wearables_screen.dart';
@@ -312,6 +313,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             onTap: () => Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (_) => const WearablesScreen(),
+                              ),
+                            ),
+                          ),
+                          _FeatureTile(
+                            icon: Icons.videocam,
+                            iconBg: AppColors.surfaceContainerHighest,
+                            iconColor: AppColors.danger,
+                            label: 'Análisis de técnica',
+                            value: 'Cuenta reps con la cámara',
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const PoseAnalysisScreen(),
                               ),
                             ),
                           ),
