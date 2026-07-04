@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
 import '../../core/theme.dart';
+import '../../features/exercise_3d/exercise_3d_view.dart';
 import '../../models/exercise.dart';
 import '../../services/exercise_service.dart';
 
@@ -107,6 +108,19 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          FilledButton.tonalIcon(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => Exercise3DView(
+                  slug: exercise.slug,
+                  exerciseName: exercise.name,
+                ),
+              ),
+            ),
+            icon: const Icon(Icons.view_in_ar_outlined),
+            label: const Text('Ver en 3D'),
           ),
           const SizedBox(height: AppSpacing.lg),
           Material(
