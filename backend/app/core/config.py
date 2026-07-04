@@ -16,8 +16,8 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000"
 
     llm_api_key: str | None = None
-    llm_base_url: str = "https://openrouter.ai/api/v1"
-    llm_model: str = "openai/gpt-4o-mini"
+    llm_base_url: str = "https://api.groq.com/openai/v1"
+    llm_model: str = "llama-3.3-70b-versatile"
 
     @model_validator(mode="after")
     def _reject_default_secret_in_production(self) -> "Settings":

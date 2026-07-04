@@ -47,7 +47,11 @@ def test_context_preview_with_records(client, auth_headers):
     assert "Press banca con barra 100" in resp.json()["context"]
 
 
-def test_chat_returns_503_without_llm_configured(client, auth_headers):
+def test_chat_returns_503_without_llm_configured(client, auth_headers, monkeypatch):
+    # Forzar "sin proveedor IA" independientemente de lo que haya en .env real.
+    from app.core.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "llm_api_key", None)
     resp = client.post(
         "/api/v1/coach/chat",
         json={"message": "¿Por qué no mejoro en press banca?"},
