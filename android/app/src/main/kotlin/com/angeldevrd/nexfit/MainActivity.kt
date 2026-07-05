@@ -1,4 +1,4 @@
-package com.example.appgym
+package com.angeldevrd.nexfit
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 
