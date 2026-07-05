@@ -13,7 +13,7 @@
     <uses-permission android:name="android.permission.health.READ_SLEEP"/>
 
     <application
-        android:label="appgym"
+        android:label="NexFit"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">
