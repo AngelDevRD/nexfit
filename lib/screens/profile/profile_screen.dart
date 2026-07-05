@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../models/user.dart';
 import '../../providers/auth_provider.dart';
+import '../settings/settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -100,6 +101,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             'Perfil',
                             style: Theme.of(context).textTheme.headlineSmall
                                 ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.settings_outlined,
+                            color: AppColors.onSurfaceVariant,
+                          ),
+                          tooltip: 'Ajustes',
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const SettingsScreen(),
+                            ),
                           ),
                         ),
                         IconButton(

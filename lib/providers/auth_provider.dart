@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../core/api_client.dart';
+import '../core/api_exception.dart';
 import '../models/user.dart';
 import '../services/auth_service.dart';
 
@@ -28,9 +29,18 @@ class AuthProvider extends ChangeNotifier {
     try {
       user = await authService.me();
       status = AuthStatus.authenticated;
+    } on ApiException catch (e) {
+      // El servidor rechazo explicitamente el token (401/403) -> invalido.
+      // Cualquier otro error (sin conexion, timeout, DNS) no lo invalida:
+      // se sigue offline con el token cacheado, sin loguear al usuario.
+      if (e.statusCode == 401 || e.statusCode == 403) {
+        await client.clearToken();
+        status = AuthStatus.unauthenticated;
+      } else {
+        status = AuthStatus.authenticated;
+      }
     } catch (_) {
-      await client.clearToken();
-      status = AuthStatus.unauthenticated;
+      status = AuthStatus.authenticated;
     }
     notifyListeners();
   }

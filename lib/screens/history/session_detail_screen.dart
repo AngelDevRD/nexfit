@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/api_client.dart';
 import '../../core/theme.dart';
 import '../../models/workout.dart';
-import '../../services/workout_service.dart';
+import '../../repositories/workout_repository.dart';
 
 class SessionDetailScreen extends StatefulWidget {
   final int sessionId;
@@ -24,10 +23,10 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
   @override
   void initState() {
     super.initState();
-    final service = WorkoutService(context.read<ApiClient>());
+    final repository = context.read<WorkoutRepository>();
     Future.wait([
-      service.get(widget.sessionId),
-      service.sessionRecords(widget.sessionId),
+      repository.get(widget.sessionId),
+      repository.sessionRecords(widget.sessionId),
     ]).then((results) {
       setState(() {
         _session = results[0] as WorkoutSession;

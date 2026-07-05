@@ -64,3 +64,66 @@ def test_chat_returns_503_without_llm_configured(client, auth_headers, monkeypat
 def test_chat_requires_auth(client):
     resp = client.post("/api/v1/coach/chat", json={"message": "hola"})
     assert resp.status_code == 401
+
+
+def _test_user_id():
+    from app.models.user import User
+    from tests.conftest import TestingSessionLocal
+
+    db = TestingSessionLocal()
+    user_id = db.query(User).filter(User.email == "test@appgym.com").first().id
+    db.close()
+    return user_id
+
+
+def test_get_activity_log_groups_by_date(client, auth_headers):
+    from datetime import date
+
+    from app.services.digital_twin import get_activity_log
+    from tests.conftest import TestingSessionLocal
+
+    client.put(
+        "/api/v1/nutrition/logs",
+        json={"log_date": "2026-01-01", "calories": 1800},
+        headers=auth_headers,
+    )
+    client.put(
+        "/api/v1/recovery/checkins",
+        json={"checkin_date": "2026-01-05", "sleep_hours": 8.0, "perceived_fatigue": 2},
+        headers=auth_headers,
+    )
+
+    db = TestingSessionLocal()
+    log = get_activity_log(db, _test_user_id(), date(2026, 1, 1), date(2026, 1, 5))
+    db.close()
+
+    assert "2026-01-01" in log
+    assert "1800 kcal" in log
+    assert "2026-01-05" in log
+    assert "8.0hs de sueno" in log
+
+
+def test_get_activity_log_no_data(client, auth_headers):
+    from datetime import date
+
+    from app.services.digital_twin import get_activity_log
+    from tests.conftest import TestingSessionLocal
+
+    db = TestingSessionLocal()
+    log = get_activity_log(db, _test_user_id(), date(2020, 1, 1), date(2020, 1, 3))
+    db.close()
+
+    assert "No hay datos registrados entre 2020-01-01 y 2020-01-03" in log
+
+
+def test_get_activity_log_caps_long_range(client, auth_headers):
+    from datetime import date
+
+    from app.services.digital_twin import get_activity_log
+    from tests.conftest import TestingSessionLocal
+
+    db = TestingSessionLocal()
+    log = get_activity_log(db, _test_user_id(), date(2020, 1, 1), date(2020, 12, 31))
+    db.close()
+
+    assert "rango acotado a los ultimos 90 dias" in log

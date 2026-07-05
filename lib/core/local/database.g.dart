@@ -2464,6 +2464,17 @@ class $WorkoutSetsTable extends WorkoutSets
       'REFERENCES workout_sessions (id) ON DELETE CASCADE',
     ),
   );
+  static const VerificationMeta _serverIdMeta = const VerificationMeta(
+    'serverId',
+  );
+  @override
+  late final GeneratedColumn<int> serverId = GeneratedColumn<int>(
+    'server_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _exerciseIdMeta = const VerificationMeta(
     'exerciseId',
   );
@@ -2597,6 +2608,7 @@ class $WorkoutSetsTable extends WorkoutSets
   List<GeneratedColumn> get $columns => [
     id,
     sessionId,
+    serverId,
     exerciseId,
     setNumber,
     weightKg,
@@ -2632,6 +2644,12 @@ class $WorkoutSetsTable extends WorkoutSets
       );
     } else if (isInserting) {
       context.missing(_sessionIdMeta);
+    }
+    if (data.containsKey('server_id')) {
+      context.handle(
+        _serverIdMeta,
+        serverId.isAcceptableOrUnknown(data['server_id']!, _serverIdMeta),
+      );
     }
     if (data.containsKey('exercise_id')) {
       context.handle(
@@ -2732,6 +2750,10 @@ class $WorkoutSetsTable extends WorkoutSets
         DriftSqlType.int,
         data['${effectivePrefix}session_id'],
       )!,
+      serverId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}server_id'],
+      ),
       exerciseId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}exercise_id'],
@@ -2792,6 +2814,7 @@ class $WorkoutSetsTable extends WorkoutSets
 class WorkoutSet extends DataClass implements Insertable<WorkoutSet> {
   final int id;
   final int sessionId;
+  final int? serverId;
   final int exerciseId;
   final int setNumber;
   final double weightKg;
@@ -2807,6 +2830,7 @@ class WorkoutSet extends DataClass implements Insertable<WorkoutSet> {
   const WorkoutSet({
     required this.id,
     required this.sessionId,
+    this.serverId,
     required this.exerciseId,
     required this.setNumber,
     required this.weightKg,
@@ -2825,6 +2849,9 @@ class WorkoutSet extends DataClass implements Insertable<WorkoutSet> {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['session_id'] = Variable<int>(sessionId);
+    if (!nullToAbsent || serverId != null) {
+      map['server_id'] = Variable<int>(serverId);
+    }
     map['exercise_id'] = Variable<int>(exerciseId);
     map['set_number'] = Variable<int>(setNumber);
     map['weight_kg'] = Variable<double>(weightKg);
@@ -2856,6 +2883,9 @@ class WorkoutSet extends DataClass implements Insertable<WorkoutSet> {
     return WorkoutSetsCompanion(
       id: Value(id),
       sessionId: Value(sessionId),
+      serverId: serverId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(serverId),
       exerciseId: Value(exerciseId),
       setNumber: Value(setNumber),
       weightKg: Value(weightKg),
@@ -2887,6 +2917,7 @@ class WorkoutSet extends DataClass implements Insertable<WorkoutSet> {
     return WorkoutSet(
       id: serializer.fromJson<int>(json['id']),
       sessionId: serializer.fromJson<int>(json['sessionId']),
+      serverId: serializer.fromJson<int?>(json['serverId']),
       exerciseId: serializer.fromJson<int>(json['exerciseId']),
       setNumber: serializer.fromJson<int>(json['setNumber']),
       weightKg: serializer.fromJson<double>(json['weightKg']),
@@ -2907,6 +2938,7 @@ class WorkoutSet extends DataClass implements Insertable<WorkoutSet> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'sessionId': serializer.toJson<int>(sessionId),
+      'serverId': serializer.toJson<int?>(serverId),
       'exerciseId': serializer.toJson<int>(exerciseId),
       'setNumber': serializer.toJson<int>(setNumber),
       'weightKg': serializer.toJson<double>(weightKg),
@@ -2925,6 +2957,7 @@ class WorkoutSet extends DataClass implements Insertable<WorkoutSet> {
   WorkoutSet copyWith({
     int? id,
     int? sessionId,
+    Value<int?> serverId = const Value.absent(),
     int? exerciseId,
     int? setNumber,
     double? weightKg,
@@ -2940,6 +2973,7 @@ class WorkoutSet extends DataClass implements Insertable<WorkoutSet> {
   }) => WorkoutSet(
     id: id ?? this.id,
     sessionId: sessionId ?? this.sessionId,
+    serverId: serverId.present ? serverId.value : this.serverId,
     exerciseId: exerciseId ?? this.exerciseId,
     setNumber: setNumber ?? this.setNumber,
     weightKg: weightKg ?? this.weightKg,
@@ -2959,6 +2993,7 @@ class WorkoutSet extends DataClass implements Insertable<WorkoutSet> {
     return WorkoutSet(
       id: data.id.present ? data.id.value : this.id,
       sessionId: data.sessionId.present ? data.sessionId.value : this.sessionId,
+      serverId: data.serverId.present ? data.serverId.value : this.serverId,
       exerciseId: data.exerciseId.present
           ? data.exerciseId.value
           : this.exerciseId,
@@ -2987,6 +3022,7 @@ class WorkoutSet extends DataClass implements Insertable<WorkoutSet> {
     return (StringBuffer('WorkoutSet(')
           ..write('id: $id, ')
           ..write('sessionId: $sessionId, ')
+          ..write('serverId: $serverId, ')
           ..write('exerciseId: $exerciseId, ')
           ..write('setNumber: $setNumber, ')
           ..write('weightKg: $weightKg, ')
@@ -3007,6 +3043,7 @@ class WorkoutSet extends DataClass implements Insertable<WorkoutSet> {
   int get hashCode => Object.hash(
     id,
     sessionId,
+    serverId,
     exerciseId,
     setNumber,
     weightKg,
@@ -3026,6 +3063,7 @@ class WorkoutSet extends DataClass implements Insertable<WorkoutSet> {
       (other is WorkoutSet &&
           other.id == this.id &&
           other.sessionId == this.sessionId &&
+          other.serverId == this.serverId &&
           other.exerciseId == this.exerciseId &&
           other.setNumber == this.setNumber &&
           other.weightKg == this.weightKg &&
@@ -3043,6 +3081,7 @@ class WorkoutSet extends DataClass implements Insertable<WorkoutSet> {
 class WorkoutSetsCompanion extends UpdateCompanion<WorkoutSet> {
   final Value<int> id;
   final Value<int> sessionId;
+  final Value<int?> serverId;
   final Value<int> exerciseId;
   final Value<int> setNumber;
   final Value<double> weightKg;
@@ -3058,6 +3097,7 @@ class WorkoutSetsCompanion extends UpdateCompanion<WorkoutSet> {
   const WorkoutSetsCompanion({
     this.id = const Value.absent(),
     this.sessionId = const Value.absent(),
+    this.serverId = const Value.absent(),
     this.exerciseId = const Value.absent(),
     this.setNumber = const Value.absent(),
     this.weightKg = const Value.absent(),
@@ -3074,6 +3114,7 @@ class WorkoutSetsCompanion extends UpdateCompanion<WorkoutSet> {
   WorkoutSetsCompanion.insert({
     this.id = const Value.absent(),
     required int sessionId,
+    this.serverId = const Value.absent(),
     required int exerciseId,
     required int setNumber,
     this.weightKg = const Value.absent(),
@@ -3092,6 +3133,7 @@ class WorkoutSetsCompanion extends UpdateCompanion<WorkoutSet> {
   static Insertable<WorkoutSet> custom({
     Expression<int>? id,
     Expression<int>? sessionId,
+    Expression<int>? serverId,
     Expression<int>? exerciseId,
     Expression<int>? setNumber,
     Expression<double>? weightKg,
@@ -3108,6 +3150,7 @@ class WorkoutSetsCompanion extends UpdateCompanion<WorkoutSet> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (sessionId != null) 'session_id': sessionId,
+      if (serverId != null) 'server_id': serverId,
       if (exerciseId != null) 'exercise_id': exerciseId,
       if (setNumber != null) 'set_number': setNumber,
       if (weightKg != null) 'weight_kg': weightKg,
@@ -3126,6 +3169,7 @@ class WorkoutSetsCompanion extends UpdateCompanion<WorkoutSet> {
   WorkoutSetsCompanion copyWith({
     Value<int>? id,
     Value<int>? sessionId,
+    Value<int?>? serverId,
     Value<int>? exerciseId,
     Value<int>? setNumber,
     Value<double>? weightKg,
@@ -3142,6 +3186,7 @@ class WorkoutSetsCompanion extends UpdateCompanion<WorkoutSet> {
     return WorkoutSetsCompanion(
       id: id ?? this.id,
       sessionId: sessionId ?? this.sessionId,
+      serverId: serverId ?? this.serverId,
       exerciseId: exerciseId ?? this.exerciseId,
       setNumber: setNumber ?? this.setNumber,
       weightKg: weightKg ?? this.weightKg,
@@ -3165,6 +3210,9 @@ class WorkoutSetsCompanion extends UpdateCompanion<WorkoutSet> {
     }
     if (sessionId.present) {
       map['session_id'] = Variable<int>(sessionId.value);
+    }
+    if (serverId.present) {
+      map['server_id'] = Variable<int>(serverId.value);
     }
     if (exerciseId.present) {
       map['exercise_id'] = Variable<int>(exerciseId.value);
@@ -3210,6 +3258,7 @@ class WorkoutSetsCompanion extends UpdateCompanion<WorkoutSet> {
     return (StringBuffer('WorkoutSetsCompanion(')
           ..write('id: $id, ')
           ..write('sessionId: $sessionId, ')
+          ..write('serverId: $serverId, ')
           ..write('exerciseId: $exerciseId, ')
           ..write('setNumber: $setNumber, ')
           ..write('weightKg: $weightKg, ')
@@ -3640,6 +3689,471 @@ class PersonalRecordsCompanion extends UpdateCompanion<PersonalRecord> {
   }
 }
 
+class $PendingSetOpsTable extends PendingSetOps
+    with TableInfo<$PendingSetOpsTable, PendingSetOp> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PendingSetOpsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _sessionIdMeta = const VerificationMeta(
+    'sessionId',
+  );
+  @override
+  late final GeneratedColumn<int> sessionId = GeneratedColumn<int>(
+    'session_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES workout_sessions (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _localSetIdMeta = const VerificationMeta(
+    'localSetId',
+  );
+  @override
+  late final GeneratedColumn<int> localSetId = GeneratedColumn<int>(
+    'local_set_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _serverSetIdMeta = const VerificationMeta(
+    'serverSetId',
+  );
+  @override
+  late final GeneratedColumn<int> serverSetId = GeneratedColumn<int>(
+    'server_set_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _opMeta = const VerificationMeta('op');
+  @override
+  late final GeneratedColumn<String> op = GeneratedColumn<String>(
+    'op',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _payloadJsonMeta = const VerificationMeta(
+    'payloadJson',
+  );
+  @override
+  late final GeneratedColumn<String> payloadJson = GeneratedColumn<String>(
+    'payload_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('{}'),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    sessionId,
+    localSetId,
+    serverSetId,
+    op,
+    payloadJson,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'pending_set_ops';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PendingSetOp> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('session_id')) {
+      context.handle(
+        _sessionIdMeta,
+        sessionId.isAcceptableOrUnknown(data['session_id']!, _sessionIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sessionIdMeta);
+    }
+    if (data.containsKey('local_set_id')) {
+      context.handle(
+        _localSetIdMeta,
+        localSetId.isAcceptableOrUnknown(
+          data['local_set_id']!,
+          _localSetIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('server_set_id')) {
+      context.handle(
+        _serverSetIdMeta,
+        serverSetId.isAcceptableOrUnknown(
+          data['server_set_id']!,
+          _serverSetIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('op')) {
+      context.handle(_opMeta, op.isAcceptableOrUnknown(data['op']!, _opMeta));
+    } else if (isInserting) {
+      context.missing(_opMeta);
+    }
+    if (data.containsKey('payload_json')) {
+      context.handle(
+        _payloadJsonMeta,
+        payloadJson.isAcceptableOrUnknown(
+          data['payload_json']!,
+          _payloadJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PendingSetOp map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PendingSetOp(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      sessionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}session_id'],
+      )!,
+      localSetId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}local_set_id'],
+      ),
+      serverSetId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}server_set_id'],
+      ),
+      op: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}op'],
+      )!,
+      payloadJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload_json'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $PendingSetOpsTable createAlias(String alias) {
+    return $PendingSetOpsTable(attachedDatabase, alias);
+  }
+}
+
+class PendingSetOp extends DataClass implements Insertable<PendingSetOp> {
+  final int id;
+  final int sessionId;
+  final int? localSetId;
+  final int? serverSetId;
+  final String op;
+  final String payloadJson;
+  final DateTime createdAt;
+  const PendingSetOp({
+    required this.id,
+    required this.sessionId,
+    this.localSetId,
+    this.serverSetId,
+    required this.op,
+    required this.payloadJson,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['session_id'] = Variable<int>(sessionId);
+    if (!nullToAbsent || localSetId != null) {
+      map['local_set_id'] = Variable<int>(localSetId);
+    }
+    if (!nullToAbsent || serverSetId != null) {
+      map['server_set_id'] = Variable<int>(serverSetId);
+    }
+    map['op'] = Variable<String>(op);
+    map['payload_json'] = Variable<String>(payloadJson);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  PendingSetOpsCompanion toCompanion(bool nullToAbsent) {
+    return PendingSetOpsCompanion(
+      id: Value(id),
+      sessionId: Value(sessionId),
+      localSetId: localSetId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(localSetId),
+      serverSetId: serverSetId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(serverSetId),
+      op: Value(op),
+      payloadJson: Value(payloadJson),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory PendingSetOp.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PendingSetOp(
+      id: serializer.fromJson<int>(json['id']),
+      sessionId: serializer.fromJson<int>(json['sessionId']),
+      localSetId: serializer.fromJson<int?>(json['localSetId']),
+      serverSetId: serializer.fromJson<int?>(json['serverSetId']),
+      op: serializer.fromJson<String>(json['op']),
+      payloadJson: serializer.fromJson<String>(json['payloadJson']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'sessionId': serializer.toJson<int>(sessionId),
+      'localSetId': serializer.toJson<int?>(localSetId),
+      'serverSetId': serializer.toJson<int?>(serverSetId),
+      'op': serializer.toJson<String>(op),
+      'payloadJson': serializer.toJson<String>(payloadJson),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  PendingSetOp copyWith({
+    int? id,
+    int? sessionId,
+    Value<int?> localSetId = const Value.absent(),
+    Value<int?> serverSetId = const Value.absent(),
+    String? op,
+    String? payloadJson,
+    DateTime? createdAt,
+  }) => PendingSetOp(
+    id: id ?? this.id,
+    sessionId: sessionId ?? this.sessionId,
+    localSetId: localSetId.present ? localSetId.value : this.localSetId,
+    serverSetId: serverSetId.present ? serverSetId.value : this.serverSetId,
+    op: op ?? this.op,
+    payloadJson: payloadJson ?? this.payloadJson,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  PendingSetOp copyWithCompanion(PendingSetOpsCompanion data) {
+    return PendingSetOp(
+      id: data.id.present ? data.id.value : this.id,
+      sessionId: data.sessionId.present ? data.sessionId.value : this.sessionId,
+      localSetId: data.localSetId.present
+          ? data.localSetId.value
+          : this.localSetId,
+      serverSetId: data.serverSetId.present
+          ? data.serverSetId.value
+          : this.serverSetId,
+      op: data.op.present ? data.op.value : this.op,
+      payloadJson: data.payloadJson.present
+          ? data.payloadJson.value
+          : this.payloadJson,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PendingSetOp(')
+          ..write('id: $id, ')
+          ..write('sessionId: $sessionId, ')
+          ..write('localSetId: $localSetId, ')
+          ..write('serverSetId: $serverSetId, ')
+          ..write('op: $op, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    sessionId,
+    localSetId,
+    serverSetId,
+    op,
+    payloadJson,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PendingSetOp &&
+          other.id == this.id &&
+          other.sessionId == this.sessionId &&
+          other.localSetId == this.localSetId &&
+          other.serverSetId == this.serverSetId &&
+          other.op == this.op &&
+          other.payloadJson == this.payloadJson &&
+          other.createdAt == this.createdAt);
+}
+
+class PendingSetOpsCompanion extends UpdateCompanion<PendingSetOp> {
+  final Value<int> id;
+  final Value<int> sessionId;
+  final Value<int?> localSetId;
+  final Value<int?> serverSetId;
+  final Value<String> op;
+  final Value<String> payloadJson;
+  final Value<DateTime> createdAt;
+  const PendingSetOpsCompanion({
+    this.id = const Value.absent(),
+    this.sessionId = const Value.absent(),
+    this.localSetId = const Value.absent(),
+    this.serverSetId = const Value.absent(),
+    this.op = const Value.absent(),
+    this.payloadJson = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  PendingSetOpsCompanion.insert({
+    this.id = const Value.absent(),
+    required int sessionId,
+    this.localSetId = const Value.absent(),
+    this.serverSetId = const Value.absent(),
+    required String op,
+    this.payloadJson = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  }) : sessionId = Value(sessionId),
+       op = Value(op);
+  static Insertable<PendingSetOp> custom({
+    Expression<int>? id,
+    Expression<int>? sessionId,
+    Expression<int>? localSetId,
+    Expression<int>? serverSetId,
+    Expression<String>? op,
+    Expression<String>? payloadJson,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (sessionId != null) 'session_id': sessionId,
+      if (localSetId != null) 'local_set_id': localSetId,
+      if (serverSetId != null) 'server_set_id': serverSetId,
+      if (op != null) 'op': op,
+      if (payloadJson != null) 'payload_json': payloadJson,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  PendingSetOpsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? sessionId,
+    Value<int?>? localSetId,
+    Value<int?>? serverSetId,
+    Value<String>? op,
+    Value<String>? payloadJson,
+    Value<DateTime>? createdAt,
+  }) {
+    return PendingSetOpsCompanion(
+      id: id ?? this.id,
+      sessionId: sessionId ?? this.sessionId,
+      localSetId: localSetId ?? this.localSetId,
+      serverSetId: serverSetId ?? this.serverSetId,
+      op: op ?? this.op,
+      payloadJson: payloadJson ?? this.payloadJson,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (sessionId.present) {
+      map['session_id'] = Variable<int>(sessionId.value);
+    }
+    if (localSetId.present) {
+      map['local_set_id'] = Variable<int>(localSetId.value);
+    }
+    if (serverSetId.present) {
+      map['server_set_id'] = Variable<int>(serverSetId.value);
+    }
+    if (op.present) {
+      map['op'] = Variable<String>(op.value);
+    }
+    if (payloadJson.present) {
+      map['payload_json'] = Variable<String>(payloadJson.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PendingSetOpsCompanion(')
+          ..write('id: $id, ')
+          ..write('sessionId: $sessionId, ')
+          ..write('localSetId: $localSetId, ')
+          ..write('serverSetId: $serverSetId, ')
+          ..write('op: $op, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3656,6 +4170,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $PersonalRecordsTable personalRecords = $PersonalRecordsTable(
     this,
   );
+  late final $PendingSetOpsTable pendingSetOps = $PendingSetOpsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3668,6 +4183,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     workoutSessions,
     workoutSets,
     personalRecords,
+    pendingSetOps,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -3691,6 +4207,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('workout_sets', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'workout_sessions',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('pending_set_ops', kind: UpdateKind.delete)],
     ),
   ]);
 }
@@ -5149,6 +5672,24 @@ final class $$WorkoutSessionsTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<$PendingSetOpsTable, List<PendingSetOp>>
+  _pendingSetOpsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.pendingSetOps,
+    aliasName: 'workout_sessions__id__pending_set_ops__session_id',
+  );
+
+  $$PendingSetOpsTableProcessedTableManager get pendingSetOpsRefs {
+    final manager = $$PendingSetOpsTableTableManager(
+      $_db,
+      $_db.pendingSetOps,
+    ).filter((f) => f.sessionId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_pendingSetOpsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$WorkoutSessionsTableFilterComposer
@@ -5221,6 +5762,31 @@ class $$WorkoutSessionsTableFilterComposer
           }) => $$WorkoutSetsTableFilterComposer(
             $db: $db,
             $table: $db.workoutSets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> pendingSetOpsRefs(
+    Expression<bool> Function($$PendingSetOpsTableFilterComposer f) f,
+  ) {
+    final $$PendingSetOpsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.pendingSetOps,
+      getReferencedColumn: (t) => t.sessionId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PendingSetOpsTableFilterComposer(
+            $db: $db,
+            $table: $db.pendingSetOps,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -5346,6 +5912,31 @@ class $$WorkoutSessionsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> pendingSetOpsRefs<T extends Object>(
+    Expression<T> Function($$PendingSetOpsTableAnnotationComposer a) f,
+  ) {
+    final $$PendingSetOpsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.pendingSetOps,
+      getReferencedColumn: (t) => t.sessionId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PendingSetOpsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.pendingSetOps,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$WorkoutSessionsTableTableManager
@@ -5361,7 +5952,7 @@ class $$WorkoutSessionsTableTableManager
           $$WorkoutSessionsTableUpdateCompanionBuilder,
           (WorkoutSession, $$WorkoutSessionsTableReferences),
           WorkoutSession,
-          PrefetchHooks Function({bool workoutSetsRefs})
+          PrefetchHooks Function({bool workoutSetsRefs, bool pendingSetOpsRefs})
         > {
   $$WorkoutSessionsTableTableManager(
     _$AppDatabase db,
@@ -5428,36 +6019,63 @@ class $$WorkoutSessionsTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({workoutSetsRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [if (workoutSetsRefs) db.workoutSets],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (workoutSetsRefs)
-                    await $_getPrefetchedData<
-                      WorkoutSession,
-                      $WorkoutSessionsTable,
-                      WorkoutSet
-                    >(
-                      currentTable: table,
-                      referencedTable: $$WorkoutSessionsTableReferences
-                          ._workoutSetsRefsTable(db),
-                      managerFromTypedResult: (p0) =>
-                          $$WorkoutSessionsTableReferences(
-                            db,
-                            table,
-                            p0,
-                          ).workoutSetsRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where((e) => e.sessionId == item.id),
-                      typedResults: items,
-                    ),
-                ];
+          prefetchHooksCallback:
+              ({workoutSetsRefs = false, pendingSetOpsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (workoutSetsRefs) db.workoutSets,
+                    if (pendingSetOpsRefs) db.pendingSetOps,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (workoutSetsRefs)
+                        await $_getPrefetchedData<
+                          WorkoutSession,
+                          $WorkoutSessionsTable,
+                          WorkoutSet
+                        >(
+                          currentTable: table,
+                          referencedTable: $$WorkoutSessionsTableReferences
+                              ._workoutSetsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$WorkoutSessionsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).workoutSetsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.sessionId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (pendingSetOpsRefs)
+                        await $_getPrefetchedData<
+                          WorkoutSession,
+                          $WorkoutSessionsTable,
+                          PendingSetOp
+                        >(
+                          currentTable: table,
+                          referencedTable: $$WorkoutSessionsTableReferences
+                              ._pendingSetOpsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$WorkoutSessionsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).pendingSetOpsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.sessionId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -5474,12 +6092,13 @@ typedef $$WorkoutSessionsTableProcessedTableManager =
       $$WorkoutSessionsTableUpdateCompanionBuilder,
       (WorkoutSession, $$WorkoutSessionsTableReferences),
       WorkoutSession,
-      PrefetchHooks Function({bool workoutSetsRefs})
+      PrefetchHooks Function({bool workoutSetsRefs, bool pendingSetOpsRefs})
     >;
 typedef $$WorkoutSetsTableCreateCompanionBuilder =
     WorkoutSetsCompanion Function({
       Value<int> id,
       required int sessionId,
+      Value<int?> serverId,
       required int exerciseId,
       required int setNumber,
       Value<double> weightKg,
@@ -5497,6 +6116,7 @@ typedef $$WorkoutSetsTableUpdateCompanionBuilder =
     WorkoutSetsCompanion Function({
       Value<int> id,
       Value<int> sessionId,
+      Value<int?> serverId,
       Value<int> exerciseId,
       Value<int> setNumber,
       Value<double> weightKg,
@@ -5545,6 +6165,11 @@ class $$WorkoutSetsTableFilterComposer
   });
   ColumnFilters<int> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get serverId => $composableBuilder(
+    column: $table.serverId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5646,6 +6271,11 @@ class $$WorkoutSetsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get serverId => $composableBuilder(
+    column: $table.serverId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get exerciseId => $composableBuilder(
     column: $table.exerciseId,
     builder: (column) => ColumnOrderings(column),
@@ -5741,6 +6371,9 @@ class $$WorkoutSetsTableAnnotationComposer
   });
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get serverId =>
+      $composableBuilder(column: $table.serverId, builder: (column) => column);
 
   GeneratedColumn<int> get exerciseId => $composableBuilder(
     column: $table.exerciseId,
@@ -5840,6 +6473,7 @@ class $$WorkoutSetsTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 Value<int> sessionId = const Value.absent(),
+                Value<int?> serverId = const Value.absent(),
                 Value<int> exerciseId = const Value.absent(),
                 Value<int> setNumber = const Value.absent(),
                 Value<double> weightKg = const Value.absent(),
@@ -5855,6 +6489,7 @@ class $$WorkoutSetsTableTableManager
               }) => WorkoutSetsCompanion(
                 id: id,
                 sessionId: sessionId,
+                serverId: serverId,
                 exerciseId: exerciseId,
                 setNumber: setNumber,
                 weightKg: weightKg,
@@ -5872,6 +6507,7 @@ class $$WorkoutSetsTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 required int sessionId,
+                Value<int?> serverId = const Value.absent(),
                 required int exerciseId,
                 required int setNumber,
                 Value<double> weightKg = const Value.absent(),
@@ -5887,6 +6523,7 @@ class $$WorkoutSetsTableTableManager
               }) => WorkoutSetsCompanion.insert(
                 id: id,
                 sessionId: sessionId,
+                serverId: serverId,
                 exerciseId: exerciseId,
                 setNumber: setNumber,
                 weightKg: weightKg,
@@ -6194,6 +6831,366 @@ typedef $$PersonalRecordsTableProcessedTableManager =
       PersonalRecord,
       PrefetchHooks Function()
     >;
+typedef $$PendingSetOpsTableCreateCompanionBuilder =
+    PendingSetOpsCompanion Function({
+      Value<int> id,
+      required int sessionId,
+      Value<int?> localSetId,
+      Value<int?> serverSetId,
+      required String op,
+      Value<String> payloadJson,
+      Value<DateTime> createdAt,
+    });
+typedef $$PendingSetOpsTableUpdateCompanionBuilder =
+    PendingSetOpsCompanion Function({
+      Value<int> id,
+      Value<int> sessionId,
+      Value<int?> localSetId,
+      Value<int?> serverSetId,
+      Value<String> op,
+      Value<String> payloadJson,
+      Value<DateTime> createdAt,
+    });
+
+final class $$PendingSetOpsTableReferences
+    extends BaseReferences<_$AppDatabase, $PendingSetOpsTable, PendingSetOp> {
+  $$PendingSetOpsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $WorkoutSessionsTable _sessionIdTable(_$AppDatabase db) => db
+      .workoutSessions
+      .createAlias('pending_set_ops__session_id__workout_sessions__id');
+
+  $$WorkoutSessionsTableProcessedTableManager get sessionId {
+    final $_column = $_itemColumn<int>('session_id')!;
+
+    final manager = $$WorkoutSessionsTableTableManager(
+      $_db,
+      $_db.workoutSessions,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_sessionIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$PendingSetOpsTableFilterComposer
+    extends Composer<_$AppDatabase, $PendingSetOpsTable> {
+  $$PendingSetOpsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get localSetId => $composableBuilder(
+    column: $table.localSetId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get serverSetId => $composableBuilder(
+    column: $table.serverSetId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get op => $composableBuilder(
+    column: $table.op,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$WorkoutSessionsTableFilterComposer get sessionId {
+    final $$WorkoutSessionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sessionId,
+      referencedTable: $db.workoutSessions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkoutSessionsTableFilterComposer(
+            $db: $db,
+            $table: $db.workoutSessions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PendingSetOpsTableOrderingComposer
+    extends Composer<_$AppDatabase, $PendingSetOpsTable> {
+  $$PendingSetOpsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get localSetId => $composableBuilder(
+    column: $table.localSetId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get serverSetId => $composableBuilder(
+    column: $table.serverSetId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get op => $composableBuilder(
+    column: $table.op,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$WorkoutSessionsTableOrderingComposer get sessionId {
+    final $$WorkoutSessionsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sessionId,
+      referencedTable: $db.workoutSessions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkoutSessionsTableOrderingComposer(
+            $db: $db,
+            $table: $db.workoutSessions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PendingSetOpsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PendingSetOpsTable> {
+  $$PendingSetOpsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get localSetId => $composableBuilder(
+    column: $table.localSetId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get serverSetId => $composableBuilder(
+    column: $table.serverSetId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get op =>
+      $composableBuilder(column: $table.op, builder: (column) => column);
+
+  GeneratedColumn<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$WorkoutSessionsTableAnnotationComposer get sessionId {
+    final $$WorkoutSessionsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sessionId,
+      referencedTable: $db.workoutSessions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WorkoutSessionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.workoutSessions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PendingSetOpsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PendingSetOpsTable,
+          PendingSetOp,
+          $$PendingSetOpsTableFilterComposer,
+          $$PendingSetOpsTableOrderingComposer,
+          $$PendingSetOpsTableAnnotationComposer,
+          $$PendingSetOpsTableCreateCompanionBuilder,
+          $$PendingSetOpsTableUpdateCompanionBuilder,
+          (PendingSetOp, $$PendingSetOpsTableReferences),
+          PendingSetOp,
+          PrefetchHooks Function({bool sessionId})
+        > {
+  $$PendingSetOpsTableTableManager(_$AppDatabase db, $PendingSetOpsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PendingSetOpsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PendingSetOpsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PendingSetOpsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> sessionId = const Value.absent(),
+                Value<int?> localSetId = const Value.absent(),
+                Value<int?> serverSetId = const Value.absent(),
+                Value<String> op = const Value.absent(),
+                Value<String> payloadJson = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => PendingSetOpsCompanion(
+                id: id,
+                sessionId: sessionId,
+                localSetId: localSetId,
+                serverSetId: serverSetId,
+                op: op,
+                payloadJson: payloadJson,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int sessionId,
+                Value<int?> localSetId = const Value.absent(),
+                Value<int?> serverSetId = const Value.absent(),
+                required String op,
+                Value<String> payloadJson = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => PendingSetOpsCompanion.insert(
+                id: id,
+                sessionId: sessionId,
+                localSetId: localSetId,
+                serverSetId: serverSetId,
+                op: op,
+                payloadJson: payloadJson,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$PendingSetOpsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({sessionId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (sessionId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.sessionId,
+                                referencedTable: $$PendingSetOpsTableReferences
+                                    ._sessionIdTable(db),
+                                referencedColumn: $$PendingSetOpsTableReferences
+                                    ._sessionIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$PendingSetOpsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PendingSetOpsTable,
+      PendingSetOp,
+      $$PendingSetOpsTableFilterComposer,
+      $$PendingSetOpsTableOrderingComposer,
+      $$PendingSetOpsTableAnnotationComposer,
+      $$PendingSetOpsTableCreateCompanionBuilder,
+      $$PendingSetOpsTableUpdateCompanionBuilder,
+      (PendingSetOp, $$PendingSetOpsTableReferences),
+      PendingSetOp,
+      PrefetchHooks Function({bool sessionId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -6212,4 +7209,6 @@ class $AppDatabaseManager {
       $$WorkoutSetsTableTableManager(_db, _db.workoutSets);
   $$PersonalRecordsTableTableManager get personalRecords =>
       $$PersonalRecordsTableTableManager(_db, _db.personalRecords);
+  $$PendingSetOpsTableTableManager get pendingSetOps =>
+      $$PendingSetOpsTableTableManager(_db, _db.pendingSetOps);
 }

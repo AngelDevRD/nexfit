@@ -1,7 +1,10 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.models.recovery import DailyCheckIn
+from app.models.nutrition import NutritionLog
 from app.models.workout import WorkoutSession
 from app.services.stats import (
     get_muscle_volume,
@@ -46,6 +49,100 @@ def _muscle_frequency_trend(db: Session, user_id: int) -> list[str]:
     return notes
 
 
+def _day_block(db: Session, user_id: int, day: date) -> str | None:
+    """Arma el resumen de un dia puntual (entrenamiento/nutricion/check-in). Devuelve
+    None si no hay ningun dato registrado ese dia."""
+    lines = []
+
+    sessions = (
+        db.query(WorkoutSession)
+        .filter(
+            WorkoutSession.user_id == user_id,
+            func.date(WorkoutSession.started_at) == day,
+        )
+        .all()
+    )
+    if sessions:
+        set_lines = []
+        for session in sessions:
+            for workout_set in session.sets:
+                tag = " (calentamiento)" if workout_set.is_warmup else ""
+                set_lines.append(
+                    f"{workout_set.exercise.name} {workout_set.weight_kg}kg x "
+                    f"{workout_set.reps} reps{tag}"
+                )
+        if set_lines:
+            lines.append("Entrenamiento: " + "; ".join(set_lines) + ".")
+        else:
+            lines.append("Se inicio un entrenamiento pero sin series registradas.")
+
+    nutrition = (
+        db.query(NutritionLog)
+        .filter(NutritionLog.user_id == user_id, NutritionLog.log_date == day)
+        .first()
+    )
+    if nutrition:
+        lines.append(
+            f"Nutricion: {nutrition.calories:.0f} kcal, {nutrition.protein_g:.0f}g "
+            f"proteina, {nutrition.carbs_g:.0f}g carbohidratos, {nutrition.fat_g:.0f}g "
+            f"grasa, {nutrition.water_ml:.0f}ml agua."
+        )
+
+    checkin = (
+        db.query(DailyCheckIn)
+        .filter(DailyCheckIn.user_id == user_id, DailyCheckIn.checkin_date == day)
+        .first()
+    )
+    if checkin:
+        lines.append(
+            f"Check-in: {checkin.sleep_hours:.1f}hs de sueno, "
+            f"fatiga percibida {checkin.perceived_fatigue}/10."
+        )
+
+    if not lines:
+        return None
+    return " ".join(lines)
+
+
+MAX_ACTIVITY_LOG_DAYS = 90
+
+
+def get_activity_log(db: Session, user_id: int, start: date, end: date) -> str:
+    """Devuelve el detalle dia por dia (entrenamiento/nutricion/check-in) de un rango
+    de fechas. Pensado para ser invocado por el coach IA via tool calling cuando el
+    usuario pregunta por una fecha o periodo especifico."""
+    if end < start:
+        start, end = end, start
+
+    truncated_note = ""
+    if (end - start).days + 1 > MAX_ACTIVITY_LOG_DAYS:
+        start = end - timedelta(days=MAX_ACTIVITY_LOG_DAYS - 1)
+        truncated_note = f" (rango acotado a los ultimos {MAX_ACTIVITY_LOG_DAYS} dias)"
+
+    lines = []
+    day = start
+    while day <= end:
+        block = _day_block(db, user_id, day)
+        if block:
+            lines.append(f"{day.isoformat()}: {block}")
+        day += timedelta(days=1)
+
+    if not lines:
+        return (
+            f"No hay datos registrados entre {start.isoformat()} y "
+            f"{end.isoformat()}{truncated_note}."
+        )
+    return f"Historial{truncated_note}:\n" + "\n".join(lines)
+
+
+def _today_summary(db: Session, user_id: int) -> str:
+    today = date.today()
+    block = _day_block(db, user_id, today)
+    if block is None:
+        return "Hoy todavia no registraste ningun entrenamiento, nutricion ni check-in."
+    return f"Hoy: {block}"
+
+
 def build_user_context(db: Session, user_id: int, user_name: str) -> str:
     months = _months_training(db, user_id)
     strength = get_strength_profile(db, user_id)
@@ -70,12 +167,18 @@ def build_user_context(db: Session, user_id: int, user_name: str) -> str:
     if trend_notes:
         lines.append("Cambios de tendencia detectados: " + "; ".join(trend_notes) + ".")
 
+    lines.append(_today_summary(db, user_id))
+
     return "\n".join(lines)
 
 
 SYSTEM_PROMPT = """Sos el entrenador personal con IA de AppGym, un "Gemelo Digital" que conoce
 el historial de entrenamiento del usuario. Respondes en espanol, de forma breve, concreta y
-basandote UNICAMENTE en los datos de contexto provistos. Si el contexto no alcanza para responder
-algo con precision, decilo explicitamente en vez de inventar numeros o afirmaciones sobre el
-historial del usuario. No des consejos medicos; ante dolor o lesion, sugerí consultar a un
-profesional de la salud."""
+basandote UNICAMENTE en los datos de contexto provistos o en los que obtengas con la
+herramienta disponible. El contexto ya incluye un resumen agregado (volumen semanal, racha,
+records) y el detalle de hoy. Si te preguntan por un dia o periodo especifico que no este
+cubierto por ese resumen (ayer, el mes pasado, una fecha puntual, etc.), usa la herramienta
+"consultar_historial" para pedir el detalle de ese rango de fechas antes de responder. Si ni
+el contexto ni la herramienta alcanzan para responder algo con precision, decilo
+explicitamente en vez de inventar numeros o afirmaciones sobre el historial del usuario. No
+des consejos medicos; ante dolor o lesion, sugerí consultar a un profesional de la salud."""

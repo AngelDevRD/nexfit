@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/api_client.dart';
 import '../../core/theme.dart';
 import '../../models/routine.dart';
 import '../../models/user.dart';
-import '../../services/routine_service.dart';
-import '../../services/workout_service.dart';
+import '../../repositories/routine_repository.dart';
+import '../../repositories/workout_repository.dart';
 import '../workout/active_workout_screen.dart';
 import 'routine_builder_screen.dart';
 import 'routine_detail_screen.dart';
@@ -19,8 +18,8 @@ class RoutineListScreen extends StatefulWidget {
 }
 
 class _RoutineListScreenState extends State<RoutineListScreen> {
-  late final RoutineService _service;
-  late final WorkoutService _workoutService;
+  late final RoutineRepository _repository;
+  late final WorkoutRepository _workoutRepository;
   List<RoutineSummary> _routines = [];
   final Map<int, int> _exerciseCounts = {};
   bool _loading = true;
@@ -31,8 +30,8 @@ class _RoutineListScreenState extends State<RoutineListScreen> {
   @override
   void initState() {
     super.initState();
-    _service = RoutineService(context.read<ApiClient>());
-    _workoutService = WorkoutService(context.read<ApiClient>());
+    _repository = context.read<RoutineRepository>();
+    _workoutRepository = context.read<WorkoutRepository>();
     _load();
   }
 
@@ -42,9 +41,9 @@ class _RoutineListScreenState extends State<RoutineListScreen> {
       _error = null;
     });
     try {
-      final routines = await _service.list();
+      final routines = await _repository.list();
       final details = await Future.wait(
-        routines.map((r) => _service.get(r.id)),
+        routines.map((r) => _repository.get(r.id)),
       );
       _exerciseCounts.clear();
       for (final routine in details) {
@@ -68,7 +67,9 @@ class _RoutineListScreenState extends State<RoutineListScreen> {
   Future<void> _startTraining(RoutineSummary routine) async {
     setState(() => _startingRoutineId = routine.id);
     try {
-      final session = await _workoutService.startSession(routineId: routine.id);
+      final session = await _workoutRepository.startSession(
+        routineId: routine.id,
+      );
       if (!mounted) return;
       await Navigator.of(context).push(
         MaterialPageRoute(

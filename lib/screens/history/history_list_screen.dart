@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/api_client.dart';
 import '../../core/theme.dart';
 import '../../models/workout.dart';
-import '../../services/workout_service.dart';
+import '../../repositories/workout_repository.dart';
 import 'session_detail_screen.dart';
 
 class HistoryListScreen extends StatefulWidget {
@@ -16,7 +15,7 @@ class HistoryListScreen extends StatefulWidget {
 }
 
 class _HistoryListScreenState extends State<HistoryListScreen> {
-  late final WorkoutService _service;
+  late final WorkoutRepository _repository;
   List<WorkoutSessionSummary> _sessions = [];
   bool _loading = true;
   String? _muscleGroup;
@@ -25,13 +24,13 @@ class _HistoryListScreenState extends State<HistoryListScreen> {
   @override
   void initState() {
     super.initState();
-    _service = WorkoutService(context.read<ApiClient>());
+    _repository = context.read<WorkoutRepository>();
     _load();
   }
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final sessions = await _service.history(muscleGroup: _muscleGroup);
+    final sessions = await _repository.history(muscleGroup: _muscleGroup);
     setState(() {
       _sessions = sessions;
       _loading = false;

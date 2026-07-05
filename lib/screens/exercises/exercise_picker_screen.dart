@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/api_client.dart';
+import '../../core/local/database.dart';
 import '../../core/theme.dart';
 import '../../models/exercise.dart';
-import '../../services/exercise_service.dart';
 
 class ExercisePickerScreen extends StatefulWidget {
   const ExercisePickerScreen({super.key});
@@ -21,12 +20,29 @@ class _ExercisePickerScreenState extends State<ExercisePickerScreen> {
   @override
   void initState() {
     super.initState();
-    ExerciseService(context.read<ApiClient>()).list().then((e) {
-      setState(() {
-        _exercises = e;
-        _loading = false;
-      });
-    });
+    // Catalogo local (sembrado offline desde assets/data/exercises.json) --
+    // no depende de la API, funciona sin conexion.
+    context
+        .read<AppDatabase>()
+        .select(context.read<AppDatabase>().exercises)
+        .get()
+        .then((rows) {
+          setState(() {
+            _exercises = rows
+                .map(
+                  (r) => ExerciseSummary(
+                    id: r.id,
+                    slug: r.slug,
+                    name: r.name,
+                    muscleGroup: r.muscleGroup,
+                    difficulty: r.difficulty,
+                    imageUrl: r.imageUrl,
+                  ),
+                )
+                .toList();
+            _loading = false;
+          });
+        });
   }
 
   List<ExerciseSummary> get _filtered {

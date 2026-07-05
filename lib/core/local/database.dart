@@ -72,6 +72,9 @@ class WorkoutSets extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get sessionId =>
       integer().references(WorkoutSessions, #id, onDelete: KeyAction.cascade)();
+  // Id del set en el backend, una vez sincronizado. Null mientras el set
+  // solo existe local (todavía no viajó al servidor).
+  IntColumn get serverId => integer().nullable()();
   IntColumn get exerciseId => integer()();
   IntColumn get setNumber => integer()();
   RealColumn get weightKg => real().withDefault(const Constant(0))();
@@ -95,6 +98,21 @@ class PersonalRecords extends Table {
   DateTimeColumn get achievedAt => dateTime()();
 }
 
+// Cola de operaciones pendientes sobre sets de una sesión ya sincronizada
+// (serverId != null). Evita re-enviar el árbol completo de la sesión en cada
+// sync: el SyncEngine drena esta cola set por set contra el backend.
+class PendingSetOps extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get sessionId =>
+      integer().references(WorkoutSessions, #id, onDelete: KeyAction.cascade)();
+  IntColumn get localSetId => integer().nullable()();
+  IntColumn get serverSetId => integer().nullable()();
+  // 'insert' | 'update' | 'delete'
+  TextColumn get op => text()();
+  TextColumn get payloadJson => text().withDefault(const Constant('{}'))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
 @DriftDatabase(
   tables: [
     Exercises,
@@ -104,6 +122,7 @@ class PersonalRecords extends Table {
     WorkoutSessions,
     WorkoutSets,
     PersonalRecords,
+    PendingSetOps,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -113,5 +132,18 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 3;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (m) => m.createAll(),
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.createTable(pendingSetOps);
+      }
+      if (from < 3) {
+        await m.addColumn(workoutSets, workoutSets.serverId);
+      }
+    },
+  );
 }

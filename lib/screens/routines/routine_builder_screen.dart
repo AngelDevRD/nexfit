@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/api_client.dart';
 import '../../core/theme.dart';
 import '../../models/exercise.dart';
 import '../../models/user.dart';
-import '../../services/routine_service.dart';
+import '../../repositories/routine_repository.dart';
 import '../exercises/exercise_picker_screen.dart';
 
 class _ExerciseDraft {
@@ -113,7 +112,7 @@ class _RoutineBuilderScreenState extends State<RoutineBuilderScreen> {
     };
 
     try {
-      await RoutineService(context.read<ApiClient>()).create(payload);
+      await context.read<RoutineRepository>().create(payload);
       if (!mounted) return;
       Navigator.of(context).pop(true);
     } catch (e) {

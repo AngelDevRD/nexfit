@@ -3,11 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/api_client.dart';
 import '../../core/theme.dart';
 import '../../models/exercise.dart';
 import '../../models/workout.dart';
-import '../../services/workout_service.dart';
+import '../../repositories/workout_repository.dart';
 import '../exercises/exercise_picker_screen.dart';
 import 'rest_timer_banner.dart';
 import 'set_form_sheet.dart';
@@ -22,7 +21,7 @@ class ActiveWorkoutScreen extends StatefulWidget {
 }
 
 class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
-  late final WorkoutService _service;
+  late final WorkoutRepository _repository;
   WorkoutSession? _session;
   int? _restSeconds;
   bool _finishing = false;
@@ -33,12 +32,12 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
   @override
   void initState() {
     super.initState();
-    _service = WorkoutService(context.read<ApiClient>());
+    _repository = context.read<WorkoutRepository>();
     _load();
   }
 
   Future<void> _load() async {
-    final session = await _service.get(widget.sessionId);
+    final session = await _repository.get(widget.sessionId);
     setState(() => _session = session);
     _elapsedTimer ??= Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
@@ -97,10 +96,10 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
     if (result == null) return;
 
     final previousRecordIds = <int>{
-      for (final r in await _service.sessionRecords(widget.sessionId)) r.id,
+      for (final r in await _repository.sessionRecords(widget.sessionId)) r.id,
     };
 
-    await _service.addSet(widget.sessionId, {
+    await _repository.addSet(widget.sessionId, {
       'exercise_id': exercise.id,
       'set_number': setNumber,
       'weight_kg': result.weightKg,
@@ -116,7 +115,7 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
     await _load();
 
     if (!result.isWarmup) {
-      final newRecords = await _service.sessionRecords(widget.sessionId);
+      final newRecords = await _repository.sessionRecords(widget.sessionId);
       final freshRecords = newRecords
           .where((r) => !previousRecordIds.contains(r.id))
           .toList();
@@ -132,7 +131,7 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
 
   Future<void> _finish() async {
     setState(() => _finishing = true);
-    await _service.finishSession(widget.sessionId);
+    await _repository.finishSession(widget.sessionId);
     if (mounted) {
       Navigator.of(context).popUntil((route) => route.isFirst);
     }
@@ -262,7 +261,7 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
                               initialReps: sets.last.reps,
                             ),
                             onDeleteSet: (set) async {
-                              await _service.deleteSet(set.id);
+                              await _repository.deleteSet(set.id);
                               _load();
                             },
                           );

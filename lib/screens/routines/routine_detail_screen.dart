@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/api_client.dart';
 import '../../core/theme.dart';
 import '../../models/routine.dart';
 import '../../models/user.dart';
-import '../../services/routine_service.dart';
-import '../../services/workout_service.dart';
+import '../../repositories/routine_repository.dart';
+import '../../repositories/workout_repository.dart';
 import '../workout/active_workout_screen.dart';
 
 class RoutineDetailScreen extends StatefulWidget {
@@ -19,20 +18,20 @@ class RoutineDetailScreen extends StatefulWidget {
 }
 
 class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
-  late final RoutineService _service;
+  late final RoutineRepository _repository;
   Routine? _routine;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    _service = RoutineService(context.read<ApiClient>());
+    _repository = context.read<RoutineRepository>();
     _load();
   }
 
   Future<void> _load() async {
     try {
-      final routine = await _service.get(widget.routineId);
+      final routine = await _repository.get(widget.routineId);
       setState(() => _routine = routine);
     } catch (e) {
       setState(() => _error = e.toString());
@@ -40,7 +39,7 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
   }
 
   Future<void> _delete() async {
-    await _service.delete(widget.routineId);
+    await _repository.delete(widget.routineId);
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -95,9 +94,9 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
-          final session = await WorkoutService(
-            context.read<ApiClient>(),
-          ).startSession(routineId: routine.id);
+          final session = await context.read<WorkoutRepository>().startSession(
+            routineId: routine.id,
+          );
           if (!context.mounted) return;
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(

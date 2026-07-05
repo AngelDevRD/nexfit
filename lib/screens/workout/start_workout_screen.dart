@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/api_client.dart';
 import '../../core/theme.dart';
 import '../../models/routine.dart';
-import '../../services/routine_service.dart';
-import '../../services/workout_service.dart';
+import '../../repositories/routine_repository.dart';
+import '../../repositories/workout_repository.dart';
 import 'active_workout_screen.dart';
 
 class StartWorkoutScreen extends StatefulWidget {
@@ -23,7 +22,7 @@ class _StartWorkoutScreenState extends State<StartWorkoutScreen> {
   @override
   void initState() {
     super.initState();
-    RoutineService(context.read<ApiClient>()).list().then((routines) {
+    context.read<RoutineRepository>().list().then((routines) {
       setState(() {
         _routines = routines;
         _loading = false;
@@ -33,9 +32,9 @@ class _StartWorkoutScreenState extends State<StartWorkoutScreen> {
 
   Future<void> _start({int? routineId}) async {
     setState(() => _starting = true);
-    final session = await WorkoutService(
-      context.read<ApiClient>(),
-    ).startSession(routineId: routineId);
+    final session = await context.read<WorkoutRepository>().startSession(
+      routineId: routineId,
+    );
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(

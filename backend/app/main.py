@@ -7,6 +7,7 @@ from app.routes.v1 import (
     calculators,
     calendar,
     coach,
+    data_transfer,
     exercises,
     gamification,
     goals,
@@ -51,3 +52,4 @@ app.include_router(calendar.router)
 app.include_router(coach.router)
 app.include_router(gamification.router)
 app.include_router(social.router)
+app.include_router(data_transfer.router)
