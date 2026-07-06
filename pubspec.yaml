@@ -36,9 +36,18 @@ dev_dependencies:
   drift_dev: ^2.34.1+1
   build_runner: ^2.15.0
 
+  # Ícono de la app
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: false
+  image_path: "assets/icon/icon.png"
+
 flutter:
   uses-material-design: true
   assets:
     - assets/data/exercises.json
     - assets/models_3d/
     - assets/images/exercises/
+    - assets/icon/icon.png
