@@ -74,7 +74,7 @@ class _AppGymAppState extends State<AppGymApp> {
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) => MaterialApp(
-          title: 'AppGym',
+          title: 'NexFit',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
