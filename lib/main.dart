@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'core/api_client.dart';
+import 'core/app_updater.dart';
 import 'core/local/database.dart';
 import 'core/local/local_bootstrap.dart';
 import 'core/sync/entities/routine_syncable.dart';
@@ -27,6 +28,7 @@ class AppGymApp extends StatefulWidget {
 }
 
 class _AppGymAppState extends State<AppGymApp> {
+  bool _updateCheckStarted = false;
   late final ApiClient _client;
   late final AuthProvider _authProvider;
   late final AppDatabase _db;
@@ -79,6 +81,17 @@ class _AppGymAppState extends State<AppGymApp> {
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
           themeMode: themeProvider.mode,
+          builder: (context, child) {
+            if (!_updateCheckStarted) {
+              _updateCheckStarted = true;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (context.mounted) {
+                  AppUpdater.checkForUpdate(context, slug: 'nexfit');
+                }
+              });
+            }
+            return child!;
+          },
           home: Consumer<AuthProvider>(
             builder: (context, auth, _) {
               switch (auth.status) {

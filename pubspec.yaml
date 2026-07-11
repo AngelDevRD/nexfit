@@ -29,6 +29,10 @@ dependencies:
   share_plus: ^10.1.4
   path_provider: ^2.1.5
 
+  # Actualizador in-app
+  package_info_plus: ^8.1.2
+  url_launcher: ^6.3.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
