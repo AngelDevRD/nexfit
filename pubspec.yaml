@@ -39,12 +39,6 @@ dev_dependencies:
   # Ícono de la app
   flutter_launcher_icons: ^0.14.3
 
-flutter_launcher_icons:
-  android: "ic_launcher"
-  ios: true
-  image_path: "assets/icon/icon.png"
-  min_sdk_android: 21
-
 flutter:
   uses-material-design: true
   assets:
@@ -52,3 +46,11 @@ flutter:
     - assets/models_3d/
     - assets/images/exercises/
     - assets/icon/icon.png
+
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: false
+  image_path: "assets/icon/icon.png"
+  adaptive_icon_background: "#0C0475"
+  adaptive_icon_foreground: "assets/icon/icon.png"
+  min_sdk_android: 21
