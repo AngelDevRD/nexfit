@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:appgym/main.dart';
+import 'package:nexfit/main.dart';
 
 void main() {
   testWidgets(
@@ -9,9 +9,9 @@ void main() {
     (WidgetTester tester) async {
       SharedPreferences.setMockInitialValues({});
 
-      await tester.pumpWidget(const AppGymApp());
+      await tester.pumpWidget(const NexFitApp());
       await tester.pumpAndSettle();
-      expect(find.text('AppGym'), findsOneWidget);
+      expect(find.text('NexFit'), findsOneWidget);
       expect(find.text('Iniciar sesión'), findsOneWidget);
     },
   );

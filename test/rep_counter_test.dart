@@ -1,4 +1,4 @@
-import 'package:appgym/features/pose/rep_counter.dart';
+import 'package:nexfit/features/pose/rep_counter.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

@@ -21,11 +21,11 @@ class DataTransferService {
     final data = await client.get('/api/v1/users/me/export');
     final dir = await getTemporaryDirectory();
     final date = DateTime.now().toIso8601String().split('T').first;
-    final file = File('${dir.path}/appgym_backup_$date.json');
+    final file = File('${dir.path}/nexfit_backup_$date.json');
     await file.writeAsString(jsonEncode(data));
     await Share.shareXFiles([
       XFile(file.path),
-    ], text: 'Backup de datos de AppGym');
+    ], text: 'Backup de datos de NexFit');
   }
 
   /// Abre el selector de archivos, lee el .json elegido y lo manda al

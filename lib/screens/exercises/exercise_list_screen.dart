@@ -89,7 +89,7 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
-                      'AppGym',
+                      'NexFit',
                       style: Theme.of(context).textTheme.headlineSmall
                           ?.copyWith(
                             color: AppColors.primary,

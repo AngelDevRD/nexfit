@@ -1,6 +1,6 @@
-# appgym
+# NexFit
 
-A new Flutter project.
+NexFit -- entrenador personal inteligente para gimnasio.
 
 ## Getting Started
 

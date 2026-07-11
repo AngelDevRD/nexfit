@@ -99,7 +99,7 @@ class _WearablesScreenState extends State<WearablesScreen> {
           icon: Icons.watch_outlined,
           title: 'Conectá tu wearable',
           body:
-              'AppGym puede leer tus pasos, frecuencia cardíaca, calorías activas '
+              'NexFit puede leer tus pasos, frecuencia cardíaca, calorías activas '
               'y sueño desde Health Connect. Solo lectura: nunca escribe tus datos.',
           actionLabel: 'Conectar con Health Connect',
           onAction: _connect,

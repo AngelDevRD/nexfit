@@ -16,17 +16,17 @@ import 'screens/auth/login_screen.dart';
 import 'screens/home/home_shell.dart';
 
 void main() {
-  runApp(const AppGymApp());
+  runApp(const NexFitApp());
 }
 
-class AppGymApp extends StatefulWidget {
-  const AppGymApp({super.key});
+class NexFitApp extends StatefulWidget {
+  const NexFitApp({super.key});
 
   @override
-  State<AppGymApp> createState() => _AppGymAppState();
+  State<NexFitApp> createState() => _NexFitAppState();
 }
 
-class _AppGymAppState extends State<AppGymApp> {
+class _NexFitAppState extends State<NexFitApp> {
   late final ApiClient _client;
   late final AuthProvider _authProvider;
   late final AppDatabase _db;

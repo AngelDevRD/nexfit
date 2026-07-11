@@ -1,6 +1,6 @@
-import 'package:appgym/core/local/database.dart';
-import 'package:appgym/core/sync/sync_engine.dart';
-import 'package:appgym/core/sync/syncable.dart';
+import 'package:nexfit/core/local/database.dart';
+import 'package:nexfit/core/sync/sync_engine.dart';
+import 'package:nexfit/core/sync/syncable.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 

@@ -126,7 +126,7 @@ class PendingSetOps extends Table {
   ],
 )
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(driftDatabase(name: 'appgym'));
+  AppDatabase() : super(driftDatabase(name: 'nexfit'));
 
   // Para tests: base en memoria u otra conexión.
   AppDatabase.forTesting(super.executor);

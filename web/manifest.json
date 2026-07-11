@@ -1,11 +1,11 @@
 {
-    "name": "appgym",
-    "short_name": "appgym",
+    "name": "NexFit",
+    "short_name": "NexFit",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "NexFit -- entrenador personal inteligente para gimnasio.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
