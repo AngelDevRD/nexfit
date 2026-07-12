@@ -1,9 +1,9 @@
-# Fase 4 — Diseño del backend inteligente (propuesta, sin implementar)
+# Fase 4 — Diseño del backend inteligente
 
-Estado: **diseño aprobado por el usuario el 2026-07-12, incluido el contrato
-`CoachContext` v1** (`docs/COACH_CONTEXT.md`). No hay código nuevo en este documento —
-la implementación empieza recién cuando el usuario dé la orden explícita de comenzar la
-Fase 4 (ver sección 10).
+Estado: **diseño aprobado 2026-07-12** (contratos `CoachContext`, `COACH_API`,
+`COACH_SYSTEM_PROMPT` congelados) y **backend implementado y verificado el mismo día**
+en `backend_ia/` (pasos 1-8 del orden acordado — ver sección 10 y
+`backend_ia/README.md`). Pendiente: integración con Flutter (pasos 9-10).
 
 Contexto que motiva este diseño: la auditoría de la sección 7 de
 `docs/ARQUITECTURA_BACKEND.md` encontró que el Coach IA está roto hoy (401, porque nadie
@@ -301,14 +301,31 @@ Solo las estrictamente necesarias — ninguna relacionada a Postgres/Alembic/aut
 5. ✅ Formalizar la interfaz `LLMProvider` (sección 7) — el backend nunca depende de un
    SDK de proveedor específico, solo de esa interfaz; `GroqProvider` es la primera
    implementación.
-6. **Implementar el backend inteligente mínimo y completamente stateless** (este
-   documento + los 3 contratos aprobados) — pendiente de la orden explícita del usuario
-   para empezar.
-7. Conectar Flutter mediante `CoachContextBuilder` → `CoachRepository` →
-   `CoachProvider`/`CoachGateway`.
+6. ✅ **Implementado el backend inteligente mínimo y completamente stateless** —
+   `backend_ia/` (2026-07-12), siguiendo el orden de capas pedido por el usuario:
+   1. Estructura base (`backend_ia/app/`, `requirements.txt`, `pytest.ini`, `ruff.toml`).
+   2. Interfaz `LLMProvider` (`app/llm/base.py`).
+   3. `GroqProvider` (`app/llm/groq_provider.py`) — sin tool-calling, solo
+      `chat/completions`.
+   4. Validación de JWT de Supabase (`app/auth.py`, variante simple contra
+      `GET /auth/v1/user`).
+   5. Rate limiter en memoria por usuario (`app/rate_limiter.py`).
+   6. Carga de `COACH_SYSTEM_PROMPT` como recurso versionado
+      (`app/prompt.py` + `prompts/coach_system_v1.txt`).
+   7. `POST /api/v1/coach/chat` (`app/routes/coach.py`).
+   8. `GET /api/v1/coach/status` (mismo archivo).
 
-Con `docs/COACH_CONTEXT.md`, `docs/COACH_API.md` y `docs/COACH_SYSTEM_PROMPT.md`
-aprobados, el diseño de la Fase 4 queda **completo y cerrado** — el usuario indicó
-explícitamente que no ve necesarios más cambios de arquitectura antes de empezar a
-desarrollar. No se implementa nada de esto hasta recibir la orden explícita del usuario
-de empezar la Fase 4.
+   **Verificado en cada paso** (regla 4 de la orden de implementación): 37 tests
+   (`pytest`) + `ruff check .` en verde tras cada componente. Incidencia encontrada y
+   corregida durante las pruebas del rate limiter: `InMemoryRateLimiter` reventaba con
+   `IndexError` cuando `max_requests_per_window=0` (caso límite sin ningún hit previo del
+   que calcular el `Retry-After`) — corregido y cubierto con un test específico antes de
+   seguir. Detalle completo en `backend_ia/README.md`.
+
+7. **Conectar Flutter** mediante `CoachContextBuilder` → `CoachRepository` →
+   `CoachProvider`/`CoachGateway` — pendiente, es la siguiente sub-fase (toca código de
+   la app, no del backend nuevo).
+
+El diseño de la Fase 4 (contratos + backend) está **completo, implementado y verificado
+del lado del servidor**. Falta la integración con Flutter (paso 7 de esta lista) antes de
+dar la Fase 4 por terminada.

@@ -54,3 +54,11 @@ backend/*.egg-info/
 backend/venv/
 backend/.venv/
 backend/*.db
+
+# Backend inteligente (Fase 4, docs/FASE_4_DISENO.md)
+backend_ia/.env
+backend_ia/__pycache__/
+backend_ia/**/__pycache__/
+backend_ia/.pytest_cache/
+backend_ia/venv/
+backend_ia/.venv/

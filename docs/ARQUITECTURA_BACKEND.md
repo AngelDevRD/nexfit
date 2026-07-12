@@ -349,7 +349,7 @@ terminar con login en Supabase, perfil en FastAPI y rutinas en Supabase al mismo
 | 3a — Récords personales + progreso de objetivos + factor de carga de recovery | ✅ Completada | 2026-07-12 |
 | 3b — Estadísticas (`stats_service.dart`) | ✅ Completada | 2026-07-12 |
 | 3c — Gamificación + catálogo de ejercicios + calculadoras | ✅ Completada | 2026-07-12 |
-| 4 — Backend inteligente aislado | ⬜ No iniciada | — |
+| 4 — Backend inteligente aislado | 🟡 Backend implementado (`backend_ia/`), falta integrar Flutter | 2026-07-12 |
 | 5 — Cutover de CI y limpieza | ⬜ No iniciada | — |
 
 ### 5.1 Qué ya usa Supabase
@@ -697,7 +697,7 @@ El diseño propuesto para que este flujo funcione de verdad queda en
 | Social (retos) | ✅ Supabase, en vivo sin caché (Fase 2, excepción acordada) |
 | Calendario inteligente | 🔴 Roto (401) — pendiente de portar a on-device, no es Fase 4 |
 | Exportar/importar datos | 🔴 Roto (401) — pendiente de portar a on-device, no es Fase 4 |
-| Coach IA / chat | 🔴 Roto (401) + contexto obsoleto — Fase 4 (diseño en `docs/FASE_4_DISENO.md`) |
+| Coach IA / chat | 🟡 Backend nuevo implementado y testeado (`backend_ia/`), cliente sigue apuntando al `CoachService`/`ApiClient` legado y roto (401) hasta que se conecte `CoachGateway` (Fase 4, pendiente) |
 | Wearables (pasos/pulso/sueño) | ✅ On-device desde su creación (Health Connect/HealthKit, `HealthService` — nunca dependió de ningún backend) |
 | Análisis de técnica (pose) / vista 3D de ejercicios | ✅ On-device desde su creación (cámara + modelo local / assets 3D — nunca dependió de ningún backend) |
 
