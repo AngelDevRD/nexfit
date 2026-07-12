@@ -38,7 +38,7 @@ const activityLevelOptions = <String, String>{
 };
 
 /// Reemplaza a `CalculatorService` (FastAPI) -- port directo de
-/// `backend/app/services/calculators.py`. Estas son funciones puras del
+/// `legacy/backend_fastapi/app/services/calculators.py`. Estas son funciones puras del
 /// input del usuario (sin depender de historial ni de sesión), así que no
 /// tenía sentido que dependieran de una llamada de red -- de hecho el
 /// backend ya las servía con `auth: false` (Fase 3c).

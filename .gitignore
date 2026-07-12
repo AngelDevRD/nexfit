@@ -45,15 +45,15 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Backend (Python/FastAPI)
-backend/.env
-backend/__pycache__/
-backend/**/__pycache__/
-backend/.pytest_cache/
-backend/*.egg-info/
-backend/venv/
-backend/.venv/
-backend/*.db
+# Backend legado (Python/FastAPI, archivado -- ver legacy/backend_fastapi/README.md)
+legacy/backend_fastapi/.env
+legacy/backend_fastapi/__pycache__/
+legacy/backend_fastapi/**/__pycache__/
+legacy/backend_fastapi/.pytest_cache/
+legacy/backend_fastapi/*.egg-info/
+legacy/backend_fastapi/venv/
+legacy/backend_fastapi/.venv/
+legacy/backend_fastapi/*.db
 
 # Backend inteligente (Fase 4, docs/FASE_4_DISENO.md)
 backend_ia/.env

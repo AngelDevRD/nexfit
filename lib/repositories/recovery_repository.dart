@@ -7,7 +7,7 @@ import '../models/recovery.dart';
 /// check-in por día, mismo patrón upsert-por-fecha que Nutrition.
 ///
 /// Fase 3a (ver docs/ARQUITECTURA_BACKEND.md): `compute_recovery_index`
-/// (`backend/app/services/recovery.py`) pondera sueño (40%) + fatiga
+/// (`legacy/backend_fastapi/app/services/recovery.py`) pondera sueño (40%) + fatiga
 /// percibida (30%) + carga de entrenamiento vía tonelaje semanal (30%). Los
 /// tres factores ahora se calculan acá leyendo `DailyCheckins`/`WorkoutSets`/
 /// `WorkoutSessions` locales -- ya no depende de ningún backend.

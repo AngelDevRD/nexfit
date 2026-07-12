@@ -64,7 +64,7 @@ class GoalRepository {
     );
   }
 
-  /// Espejo de `get_current_value` en `backend/app/services/goals.py`.
+  /// Espejo de `get_current_value` en `legacy/backend_fastapi/app/services/goals.py`.
   Future<double?> _currentValueFor(String metric, int? exerciseId) async {
     switch (metric) {
       case 'body_weight_kg':
@@ -93,7 +93,7 @@ class GoalRepository {
     }
   }
 
-  /// Espejo de `compute_goal_progress` en `backend/app/services/goals.py`.
+  /// Espejo de `compute_goal_progress` en `legacy/backend_fastapi/app/services/goals.py`.
   Goal _toGoal(local.Goal row, double? current) {
     final currentValue = current ?? row.startingValue;
     final increasing = row.targetValue >= row.startingValue;

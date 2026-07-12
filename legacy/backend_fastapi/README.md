@@ -1,4 +1,23 @@
-# AppGym API — Backend
+> ## ⚠️ ARCHIVADO — este backend ya no forma parte de NexFit
+>
+> Este código quedó **completamente desconectado de la app** al cierre de la Fase 5
+> (`docs/ARQUITECTURA_BACKEND.md`, sección 8). Ningún cliente Flutter lo importa, ningún
+> workflow de CI lo construye ni lo despliega, y no hay ningún flujo de la app que pueda
+> emitir el JWT que necesitaría para responder.
+>
+> Fue reemplazado en su totalidad por:
+> - **Supabase** — auth, persistencia multi-dispositivo y RLS para todos los dominios de
+>   datos del usuario.
+> - **`backend_ia/`** — Coach IA (chat, tool-calling), un servicio FastAPI propio y sin
+>   relación de código con este.
+> - **On-device (Flutter + Drift)** — estadísticas, gamificación, calculadoras, calendario
+>   inteligente y exportación/importación de datos, todos calculados localmente.
+>
+> Se conserva únicamente **por referencia histórica** (meses de trabajo e historial de
+> implementación de dominios que luego se rediseñaron sobre Supabase/Drift). No se
+> mantiene, no se actualiza y no debe usarse como base para trabajo nuevo.
+
+# AppGym API — Backend (archivado)
 
 API REST para la app de entrenamiento. Fases 1-4 implementadas: auth, biblioteca de ejercicios,
 rutinas, registro de entrenamientos con detección automática de récords, historial, estadísticas,

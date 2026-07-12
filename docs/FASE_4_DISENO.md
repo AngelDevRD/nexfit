@@ -155,7 +155,7 @@ Sin DB, sin Alembic, sin SQLAlchemy, sin tool-calling contra ninguna base — en
 punto de este flujo el backend consulta Supabase ni ninguna otra base de datos.
 
 Puntos clave de aislamiento:
-- **Repo/deploy separado** del resto del backend legado (`backend/` actual queda tal cual,
+- **Repo/deploy separado** del resto del backend legado (`legacy/backend_fastapi/` actual queda tal cual,
   ver Fase 5 para su apagado). Este backend inteligente puede vivir en un directorio nuevo
   (`backend_ia/` o similar) o directamente migrarse a una Supabase Edge Function (Deno) —
   la decisión entre servidor propio vs. Edge Function queda abierta para cuando se
@@ -164,7 +164,7 @@ Puntos clave de aislamiento:
 - **Sin base de datos propia, sin excepción** — a diferencia de la versión anterior de
   este documento, ya no queda ni siquiera la alternativa "B" de reenviar el JWT a
   Supabase. Cero conexión a ninguna base de datos desde este backend.
-- **Sin el JWT propio de FastAPI** (`secret_key`/HS256 de `backend/app/core/security.py`)
+- **Sin el JWT propio de FastAPI** (`secret_key`/HS256 de `legacy/backend_fastapi/app/core/security.py`)
   — se elimina esa dependencia por completo, se verifica el JWT de Supabase.
 
 ## 4. Autenticación — JWT de Supabase
@@ -188,7 +188,7 @@ Verificación en el backend, dos variantes según cómo esté configurado el pro
 
 En ambos casos, el `sub` del JWT (o el `id` que devuelve `/auth/v1/user`) es el mismo uuid
 de Supabase que ya usan `Profiles`/`Routines`/etc. — no hace falta ningún mapeo a un id
-propio como el `int` de `backend/app/models/user.py` (ese modelo queda huérfano, ver
+propio como el `int` de `legacy/backend_fastapi/app/models/user.py` (ese modelo queda huérfano, ver
 sección 7.1 de `ARQUITECTURA_BACKEND.md`). Ese mismo `sub` es la clave que usa el rate
 limiting del punto siguiente (contador en memoria/Redis por uuid, no por IP).
 
@@ -267,7 +267,7 @@ cambios en endpoints, en el contrato con Flutter, ni en `CoachGateway`.
 - `ACTIVITY_LOG_TOOL`/tool-calling completo (`app/services/digital_twin.get_activity_log`,
   el parámetro `tools`/`tool_executor` de `llm_client.ask_llm`) — eliminado, no se lleva
   ninguna forma de que el backend vuelva a pedir datos.
-- Todo lo demás de `backend/app/` (rutinas, objetivos, nutrición, stats, gamificación,
+- Todo lo demás de `legacy/backend_fastapi/app/` (rutinas, objetivos, nutrición, stats, gamificación,
   etc.) — no se toca, no se lleva, queda para apagar en la Fase 5 según el inventario de
   la sección 7.1 de `ARQUITECTURA_BACKEND.md`.
 

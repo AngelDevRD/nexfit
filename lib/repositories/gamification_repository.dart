@@ -16,7 +16,7 @@ const _levelBands = [
 double _round1(double value) => (value * 10).round() / 10;
 
 /// Reemplaza a `GamificationService` (FastAPI) -- port directo de
-/// `backend/app/services/gamification.py`, ahora leyendo
+/// `legacy/backend_fastapi/app/services/gamification.py`, ahora leyendo
 /// `WorkoutSessions`/`WorkoutSets`/`PersonalRecords` locales. La app es
 /// mono-usuario a nivel de Drift, así que no hace falta filtrar por
 /// `user_id` como en el backend (todas las filas locales son del usuario

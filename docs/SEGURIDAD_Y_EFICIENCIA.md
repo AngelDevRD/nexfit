@@ -11,7 +11,7 @@ Lo que ya está hecho se marca con ✅.
   expuesta. Supabase → Settings → Database → Reset database password. Actualizar el
   `DATABASE_URL` del deploy después.
 - [ ] **Rotar la API key de Groq (`LLM_API_KEY`).** También se pegó en el chat. Generar
-  una nueva en console.groq.com y reemplazar en `backend/.env` (ya gitignored).
+  una nueva en console.groq.com y reemplazar en `legacy/backend_fastapi/.env` (ya gitignored).
 - [x] **Activar RLS en Supabase** — ✅ verificado 2026-07-11 (ya estaba activo en las 13
   tablas de entonces) y reconfirmado 2026-07-12 tras la Fase 2 de
   `ARQUITECTURA_BACKEND.md`: las 11 tablas recreadas con esquema uuid (`profiles`,
@@ -23,7 +23,7 @@ Lo que ya está hecho se marca con ✅.
   policies = deniega todo, no expuestas) y `public.alembic_version` (sin RLS, advisory
   `critical` por exposición vía `anon key` — sigue sin aplicarse, a decisión del usuario).
 - [ ] **`SECRET_KEY` real en producción.** El código ya bloquea el arranque con la key
-  placeholder si `ENV=production` (`backend/app/core/config.py`), pero hay que setear una
+  placeholder si `ENV=production` (`legacy/backend_fastapi/app/core/config.py`), pero hay que setear una
   aleatoria de 64+ chars en el entorno del deploy. ✅ gate ya implementado.
 - [ ] **Cambiar el `applicationId`** de `com.example.appgym` a un dominio real
   (`android/app/build.gradle.kts`). `com.example.*` no se puede publicar en Play Store.

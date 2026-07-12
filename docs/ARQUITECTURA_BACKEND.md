@@ -26,7 +26,7 @@ Postgres (hosteado en Supabase, solo como DB gestionada)
 - **Auth**: 100% FastAPI (`lib/services/auth_service.dart` → `/api/v1/auth/register|login`,
   `/api/v1/users/me`). No hay `supabase_flutter` en `pubspec.yaml`, no hay Supabase Auth, no
   hay recuperación de contraseña propia — todo pasa por el JWT que emite FastAPI
-  (`backend/app/core/security.py`).
+  (`legacy/backend_fastapi/app/core/security.py`).
 - **Offline-first parcial**: ya existe una base sólida en `lib/core/local/database.dart`
   (Drift) y `lib/core/sync/` (`SyncEngine` + contrato `SyncableEntity`). Rutinas
   (`RoutineSyncable`) y entrenamientos (`WorkoutSessionSyncable`) ya se guardan localmente
@@ -51,7 +51,7 @@ Postgres (hosteado en Supabase, solo como DB gestionada)
     usuario — no se aplicó automáticamente). Ninguna de las 13 tablas tiene **policies**
     todavía (RLS activo sin policies = deniega todo por defecto), así que escribirlas es
     trabajo real de la Fase 2, no algo ya resuelto.
-- **Coach IA** (`lib/services/coach_service.dart` → `backend/app/routes/v1/coach.py` +
+- **Coach IA** (`lib/services/coach_service.dart` → `legacy/backend_fastapi/app/routes/v1/coach.py` +
   `services/llm_client.py` + `services/digital_twin.py`): el único dominio que
   genuinamente necesita un servidor — sostiene la API key de Groq y orquesta tool-calling
   sobre datos agregados del usuario. No se puede mover al cliente ni a Supabase tal cual.
@@ -233,7 +233,7 @@ terminar con login en Supabase, perfil en FastAPI y rutinas en Supabase al mismo
   hablando directo con Supabase (incluyendo las dos funciones `security definer`), sin
   tabla Drift ni sync offline — es la excepción acordada, la fuente de verdad sigue siendo
   Supabase en vivo.
-- **No se tocó** ningún archivo de `backend/` (FastAPI) ni se borró `lib/services/
+- **No se tocó** ningún archivo de `legacy/backend_fastapi/` (FastAPI) ni se borró `lib/services/
   goal_service.dart`/`nutrition_service.dart`/`recovery_service.dart`/`social_service.dart`
   (quedan sin usar, igual que `auth_service.dart` desde la Fase 1) — solo se restauraron
   sus `fromJson` en los modelos (`Goal`, `NutritionLog`, `RecoveryIndex`, `ChallengeSummary`,
@@ -251,12 +251,12 @@ terminar con login en Supabase, perfil en FastAPI y rutinas en Supabase al mismo
   (`WorkoutRepository._checkPersonalRecords`, escribe en la tabla local `PersonalRecords`
   al agregar un set) — lo que faltaba era leerlos de vuelta, no calcularlos.
 - ✅ **`GoalRepository`**: `_currentValueFor`/`_toGoal` replican `get_current_value`/
-  `compute_goal_progress` de `backend/app/services/goals.py`, leyendo `Profiles` (peso/
+  `compute_goal_progress` de `legacy/backend_fastapi/app/services/goals.py`, leyendo `Profiles` (peso/
   %grasa) o `PersonalRecords` (máximos por ejercicio) locales. Se corrigió de paso un bug
   de la Fase 2: `create()` fijaba `startingValue = 0` siempre; ahora usa el valor actual
   del usuario al crear el objetivo, igual que FastAPI.
 - ✅ **`RecoveryRepository._weeklyLoadScore`**: replica el tercer factor de
-  `compute_recovery_index` (`backend/app/services/recovery.py`) — tonelaje de esta semana
+  `compute_recovery_index` (`legacy/backend_fastapi/app/services/recovery.py`) — tonelaje de esta semana
   vs. promedio de las 4 anteriores, leyendo `WorkoutSessions`/`WorkoutSets` locales.
   Reemplaza el valor neutro fijo (`load_score = 100`) de la Fase 2.
 - ✅ **Tests nuevos** (`test/repositories/goal_repository_test.dart`,
@@ -273,13 +273,13 @@ terminar con login en Supabase, perfil en FastAPI y rutinas en Supabase al mismo
 
 #### Fase 3b — Estadísticas (`stats_service.dart`) ✅ completada 2026-07-12
 - ✅ **`StatsRepository`** (nuevo, `lib/repositories/stats_repository.dart`): port directo
-  de los 7 cálculos de `backend/app/services/stats.py` +
-  `backend/app/services/strength_standards.py` + `backend/app/services/predictions.py` —
+  de los 7 cálculos de `legacy/backend_fastapi/app/services/stats.py` +
+  `legacy/backend_fastapi/app/services/strength_standards.py` + `legacy/backend_fastapi/app/services/predictions.py` —
   volumen muscular (con el mismo ranking relativo alto/medio/bajo/muy_bajo), perfil de
   fuerza (máximos por ejercicio + volumen/frecuencia semanal), progreso por ejercicio,
   tonelaje histórico (semanal/mensual, con la misma lógica de floor-division para el
   bucketing de meses), racha de entrenamiento, estándares de fuerza (mismos umbrales de
-  `backend/app/data/strength_standards.py`, portados tal cual) y predicción de récords
+  `legacy/backend_fastapi/app/data/strength_standards.py`, portados tal cual) y predicción de récords
   (misma regresión lineal por mínimos cuadrados). Todo lee `WorkoutSessions`/
   `WorkoutSets`/`PersonalRecords`/`Profiles`/`Exercises` locales, sin red.
 - ✅ Las 5 pestañas de `StatsHubScreen` + `DashboardScreen` (racha) migradas de
@@ -291,7 +291,7 @@ terminar con login en Supabase, perfil en FastAPI y rutinas en Supabase al mismo
 
 #### Fase 3c — Gamificación + catálogo de ejercicios + calculadoras ✅ completada 2026-07-12
 - ✅ **`GamificationRepository`** (nuevo): port directo de
-  `backend/app/services/gamification.py` (XP por sesión/serie/récord/racha, niveles,
+  `legacy/backend_fastapi/app/services/gamification.py` (XP por sesión/serie/récord/racha, niveles,
   bandas, los 6 logros) leyendo las mismas tablas locales que `StatsRepository` (reutiliza
   su `streak()`). Como Drift es de un solo usuario, no hace falta filtrar por `user_id`
   como en FastAPI. `GamificationScreen` + `DashboardScreen` migradas.
@@ -306,7 +306,7 @@ terminar con login en Supabase, perfil en FastAPI y rutinas en Supabase al mismo
   `CalculatorService`/`ApiClient` pese a que el propio backend las servía con `auth: false`
   (funciones puras del input del usuario, sin depender de historial ni sesión). Se creó
   `lib/core/calculators.dart` (port directo y sin estado de
-  `backend/app/services/calculators.py`) y se migraron las 4 pantallas.
+  `legacy/backend_fastapi/app/services/calculators.py`) y se migraron las 4 pantallas.
 - ✅ **Tests nuevos** (`test/core/calculators_test.dart`, 6 casos) y
   (`test/repositories/gamification_repository_test.dart`, 2 casos): fórmulas de 1RM/IMC/masa
   magra/nutrición/ritmo de pérdida verificadas con valores concretos; XP/nivel/logros
@@ -350,7 +350,7 @@ terminar con login en Supabase, perfil en FastAPI y rutinas en Supabase al mismo
 | 3b — Estadísticas (`stats_service.dart`) | ✅ Completada | 2026-07-12 |
 | 3c — Gamificación + catálogo de ejercicios + calculadoras | ✅ Completada | 2026-07-12 |
 | 4 — Backend inteligente aislado | ✅ Completada (backend + integración Flutter) | 2026-07-12 |
-| 5 — Cutover de CI y limpieza | 🟡 En progreso — Bloque 1 (migrar calendario + export/import) y Bloque 2 (eliminar `ApiClient`/`*_service.dart`/`AppConfig`) completados; pendiente archivar/eliminar `backend/` y limpieza de CI | Bloque 1: 2026-07-12 · Bloque 2: 2026-07-12 |
+| 5 — Cutover de CI y limpieza | ✅ Completada — Bloque 1 (migrar calendario + export/import), Bloque 2 (eliminar `ApiClient`/`*_service.dart`/`AppConfig`), auditoría de CI (sin hallazgos bloqueantes) y archivado de `backend/` → `legacy/backend_fastapi/` | Bloque 1: 2026-07-12 · Bloque 2: 2026-07-12 · Archivado: 2026-07-12 |
 
 ### 5.1 Qué ya usa Supabase
 
@@ -369,7 +369,7 @@ terminar con login en Supabase, perfil en FastAPI y rutinas en Supabase al mismo
 
 ### 5.2 Qué sigue dependiendo de FastAPI
 
-- **Coach IA** (`coach_service.dart` → `backend/app/routes/v1/coach.py` +
+- **Coach IA** (`coach_service.dart` → `legacy/backend_fastapi/app/routes/v1/coach.py` +
   `services/llm_client.py` + `services/digital_twin.py`): sin tocar, como estaba previsto
   — es el único dominio reservado para la Fase 4.
 - **Calendario, exportación de datos** (`calendar_service.dart`,
@@ -563,7 +563,7 @@ poder entender la arquitectura actual leyendo solo esta sección.
   auditoría (ver 7.1) — su destino nunca fue este backend, eran cálculo derivado y
   transferencia de archivo local respectivamente. Portados a Flutter/Drift en la Fase 5,
   Bloque 1 (2026-07-12) — ver actualización al final de esta sección.
-- El resto de FastAPI legado (`backend/app/`) permanece intacto en el repo, sin borrar
+- El resto de FastAPI legado (`legacy/backend_fastapi/app/`) permanece intacto en el repo, sin borrar
   nada, pero **orbita sin ningún cliente real** — ver el inventario completo en 7.1;
   apagado/limpieza queda para la Fase 5.
 
@@ -587,7 +587,7 @@ el login por Supabase y `AuthProvider`/`SupabaseAuthRepository` nunca llaman a
 ningún importador real). Confirmado con grep: `setToken`/`clearToken` no se llaman desde
 ningún flujo activo. Resultado: `ApiClient.token` es `null` para absolutamente todos los
 usuarios de hoy, así que cada request de las 3 pantallas de abajo sale sin header
-`Authorization`, y `OAuth2PasswordBearer` en `backend/app/deps.py` responde `401` antes de
+`Authorization`, y `OAuth2PasswordBearer` en `legacy/backend_fastapi/app/deps.py` responde `401` antes de
 ejecutar cualquier lógica. Además, aunque se reparara el token, `digital_twin.py` (el
 contexto que arma el Coach IA) consulta `WorkoutSession`/`NutritionLog`/`DailyCheckIn` **de
 la base propia de FastAPI** — tablas que dejaron de recibir escrituras reales desde la
@@ -602,10 +602,10 @@ que se registró o entrenó después de la Fase 1.
 | `lib/screens/settings/settings_screen.dart`, `lib/services/data_transfer_service.dart` → `GET /api/v1/users/me/export`, `POST /api/v1/users/me/import` | Backup/restore de todos los datos del usuario como archivo `.json`. **Roto hoy: 401.** | No — todo el dato ya vive en Drift local (y sincronizado en Supabase). | No aplica (es transferencia de archivo, no un dominio de datos). | **Flutter + Drift.** Leer/escribir directo las tablas Drift (`Routines`, `WorkoutSessions`, `Goals`, `NutritionLogs`, `DailyCheckins`) y armar/parsear el JSON en el cliente — sin red. No es trabajo de Fase 4. |
 | ~~`lib/core/api_client.dart`, `lib/services/auth_service.dart`~~ | **Ya eliminados** (Fase 5, Bloque 2, 2026-07-12). Login/registro/logout contra el JWT propio de FastAPI, reemplazado enteramente por `SupabaseAuthRepository` desde la Fase 1. | No — cero importadores reales (confirmado por grep). | Ya migrado (Fase 1). | — (ya resuelto) |
 | ~~`lib/services/{goal,nutrition,recovery,routine,workout,social,stats,gamification,exercise,calculator}_service.dart`~~ | **Ya eliminados** (Fase 5, Bloque 2, 2026-07-12). Reemplazados por repositorios locales/Supabase en las Fases 2 y 3. | No — cero importadores reales (confirmado por grep en cada fase). | Ya migrado. | — (ya resuelto) |
-| `backend/app/routes/v1/{auth,users,goals,nutrition,recovery,routines,workouts,social,stats,gamification,exercises,calculators}.py` y sus `services/*.py` asociados | Ningún cliente Flutter los llama ya (los de arriba). Siguen desplegados y respondiendo si alguien les pega directo con curl/Postman y un JWT propio válido — pero no hay ningún flujo de la app que hoy pueda emitir ese JWT. | No. | Ya migrado (Supabase) u on-device (Drift). | Apagar/eliminar en la Fase 5 (limpieza del `backend/` — Bloque 3, aún no confirmado). |
-| `backend/app/routes/v1/coach.py`, `services/{llm_client,digital_twin}.py` | Única parte del backend con un propósito futuro real. | Sí. | No aplica. | **Backend inteligente**, con la reescritura de `digital_twin.py` señalada arriba. Ver propuesta de diseño en `docs/FASE_4_DISENO.md`. |
+| `legacy/backend_fastapi/app/routes/v1/{auth,users,goals,nutrition,recovery,routines,workouts,social,stats,gamification,exercises,calculators}.py` y sus `services/*.py` asociados | Ningún cliente Flutter los llama ya (los de arriba). No está desplegado — es código archivado, no un servicio en ejecución. | No. | Ya migrado (Supabase) u on-device (Drift). | Archivado en la Fase 5 (`backend/` → `legacy/backend_fastapi/`). Ver 8.3. |
+| `legacy/backend_fastapi/app/routes/v1/coach.py`, `services/{llm_client,digital_twin}.py` | Única parte del backend con un propósito futuro real. | Sí. | No aplica. | **Backend inteligente**, con la reescritura de `digital_twin.py` señalada arriba. Ver propuesta de diseño en `docs/FASE_4_DISENO.md`. |
 
-### 7.2 Código legado (ya eliminado del lado Flutter; el `backend/` Python sigue en pie)
+### 7.2 Código legado (ya eliminado del lado Flutter; el backend Python quedó archivado, ver 8.3)
 
 | Archivo(s) | Por qué ya no se usa | Estado |
 |---|---|---|
@@ -614,7 +614,7 @@ que se registró o entrenó después de la Fase 1.
 | ~~`lib/core/api_client.dart`, `lib/core/api_exception.dart`~~ | Ya no los importaba ninguna pantalla; solo los 12 `*_service.dart` de arriba y `main.dart` (que lo instanciaba/proveía sin consumirlo). Eliminados en orden: primero los 12 servicios, luego confirmado por grep que `ApiClient` quedó sin importadores, luego el cliente, luego su registro en `main.dart`. | **Ya eliminados** (Fase 5, Bloque 2, 2026-07-12) |
 | ~~`lib/core/app_config.dart`~~ | Único consumidor era `api_client.dart`; ya estaba huérfano incluso antes de esta limpieza. | **Ya eliminado** (Fase 5, Bloque 2, 2026-07-12) |
 | `lib/models/social.dart`: factories `LeaderboardEntry.fromJson`/`ChallengeSummary.fromJson`/`ChallengeDetail.fromJson` | Único consumidor era `social_service.dart`. Las clases en sí siguen vivas (las usa `SocialRepository` contra Supabase) — solo se quitaron los constructores JSON muertos. | **Ya eliminados** (Fase 5, Bloque 2, 2026-07-12) |
-| `backend/app/routes/v1/{auth,users,goals,nutrition,recovery,routines,workouts,social,stats,gamification,exercises,calculators}.py` + `services/*.py` asociados (`goals.py`, `recovery.py`, `social.py`, `stats.py`, `strength_standards.py`, `predictions.py`, `records.py`, `calculators.py`) | Sin ningún cliente que los llame — ver 7.1. No se tocó en Bloque 2 (solo limpieza del lado Flutter). | Pendiente — Fase 5, ítem "archivar/eliminar `backend/`" (aún no confirmado con el usuario) |
+| `legacy/backend_fastapi/app/routes/v1/{auth,users,goals,nutrition,recovery,routines,workouts,social,stats,gamification,exercises,calculators}.py` + `services/*.py` asociados (`goals.py`, `recovery.py`, `social.py`, `stats.py`, `strength_standards.py`, `predictions.py`, `records.py`, `calculators.py`) | Sin ningún cliente que los llame — ver 7.1. | **Archivado** (Fase 5, 2026-07-12) — movido de `backend/` a `legacy/backend_fastapi/`, con `README.md` propio marcándolo como legado. Ver sección 8.3. |
 
 ### 7.3 Flujo de datos
 
@@ -740,7 +740,7 @@ Flutter
                 ComingSoonView si no)
         │
         ▼
-  backend_ia (FastAPI propio, aislado de `backend/`)
+  backend_ia (FastAPI propio, aislado de `legacy/backend_fastapi/`)
         │
         ▼
       Groq (llama-3.3-70b-versatile, tool-calling)
@@ -752,13 +752,19 @@ Flutter
 |---|---|---|
 | Dispositivo | Toda la lógica de dominio: CRUD offline-first, cálculos derivados (estadísticas, gamificación, calculadoras, calendario/deload, export-import), catálogo de ejercicios, wearables, pose/3D | `lib/repositories/`, `lib/core/local/`, `lib/services/data_export_service.dart`/`data_import_service.dart`/`health_service.dart` |
 | Supabase | Identidad de usuario, persistencia multi-dispositivo, RLS por usuario, el único dato "en vivo" (leaderboard de retos) | Proyecto `AppGym` (`vywkyuuuxpovoevwdewh`) |
-| `backend_ia` | Única pieza que sostiene un secreto de servidor (API key de Groq) y orquesta tool-calling sobre contexto ya armado en el cliente | `backend_ia/` (FastAPI propio, sin relación de código con `backend/`) |
+| `backend_ia` | Única pieza que sostiene un secreto de servidor (API key de Groq) y orquesta tool-calling sobre contexto ya armado en el cliente | `backend_ia/` (FastAPI propio, sin relación de código con `legacy/backend_fastapi/`) |
 | Archivado (no ejecuta) | El backend FastAPI original de 12 routers — reemplazado en su totalidad por las tres capas de arriba, conservado solo por referencia histórica | `legacy/backend_fastapi/` (ver 8.3) |
 
 ### 8.3 Código archivado
 
-`backend/` se movió a `legacy/backend_fastapi/` (Fase 5, ver README propio dentro de esa
-carpeta para el detalle). No se borró: contiene meses de trabajo y el historial de
-implementación de dominios que luego se rediseñaron sobre Supabase/Drift. No se despliega,
-no lo importa ningún workflow de CI, y ningún flujo de la app emite el JWT que necesitaría
-para responder.
+`backend/` se movió a `legacy/backend_fastapi/` (Fase 5, 2026-07-12 — ver README propio
+dentro de esa carpeta para el detalle). No se borró: contiene meses de trabajo y el
+historial de implementación de dominios que luego se rediseñaron sobre Supabase/Drift. No
+se despliega, no lo importa ningún workflow de CI, y ningún flujo de la app emite el JWT
+que necesitaría para responder.
+
+Auditoría de CI/despliegue previa al archivado (Fase 5): `release.yml` nunca referenció
+`backend/`; no había `Makefile` ni scripts que lo asumieran; ninguna doc de despliegue lo
+mencionaba. Único hallazgo: `docker-compose.yml` (orquestación local de dev, no usado por
+CI) apuntaba a `./backend` — se movió junto con el backend a
+`legacy/backend_fastapi/docker-compose.yml` y sus rutas se ajustaron a la nueva ubicación.

@@ -5,7 +5,7 @@ import '../models/calendar.dart';
 import '../models/stats.dart';
 
 /// Umbrales de fuerza relativa por ejercicio/sexo -- portado tal cual de
-/// `backend/app/data/strength_standards.py` (ver ese archivo para la nota
+/// `legacy/backend_fastapi/app/data/strength_standards.py` (ver ese archivo para la nota
 /// sobre su origen: referencia aproximada, no un dataset poblacional).
 const _strengthStandards = <String, Map<String, List<double>>>{
   'press-banca-barra': {
@@ -40,7 +40,7 @@ double _round(double value, int decimals) {
 /// locales, sin ninguna llamada de red.
 ///
 /// Fase 3b (ver docs/ARQUITECTURA_BACKEND.md): port directo de
-/// `backend/app/services/stats.py`, `strength_standards.py` y
+/// `legacy/backend_fastapi/app/services/stats.py`, `strength_standards.py` y
 /// `predictions.py` -- mismas fórmulas, mismos umbrales, ahora on-device.
 class StatsRepository {
   final local.AppDatabase db;
@@ -421,7 +421,7 @@ class StatsRepository {
   }
 
   /// Espejo de `get_upcoming_record_predictions` en
-  /// `backend/app/services/calendar.py`: una predicción por cada ejercicio
+  /// `legacy/backend_fastapi/app/services/calendar.py`: una predicción por cada ejercicio
   /// del perfil de fuerza actual, descartando los que no tienen histórico
   /// suficiente.
   Future<List<RecordPrediction>> upcomingRecordPredictions({
@@ -440,7 +440,7 @@ class StatsRepository {
   }
 
   /// Espejo de `get_deload_recommendation` en
-  /// `backend/app/services/calendar.py`: compara el tonelaje promedio de las
+  /// `legacy/backend_fastapi/app/services/calendar.py`: compara el tonelaje promedio de las
   /// últimas 2 semanas contra el de las 3 semanas previas (mismo umbral
   /// x1.3).
   Future<DeloadRecommendation> deloadRecommendation() async {
