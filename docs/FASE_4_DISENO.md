@@ -1,9 +1,9 @@
 # Fase 4 — Diseño del backend inteligente (propuesta, sin implementar)
 
-Estado: **propuesta de diseño únicamente, revisada y ajustada por el usuario el
-2026-07-12**. No hay código nuevo en este documento — se implementa recién cuando el
-usuario apruebe el contrato `CoachContext` (`docs/COACH_CONTEXT.md`) y dé la orden
-explícita de empezar la Fase 4.
+Estado: **diseño aprobado por el usuario el 2026-07-12, incluido el contrato
+`CoachContext` v1** (`docs/COACH_CONTEXT.md`). No hay código nuevo en este documento —
+la implementación empieza recién cuando el usuario dé la orden explícita de comenzar la
+Fase 4 (ver sección 10).
 
 Contexto que motiva este diseño: la auditoría de la sección 7 de
 `docs/ARQUITECTURA_BACKEND.md` encontró que el Coach IA está roto hoy (401, porque nadie
@@ -76,17 +76,32 @@ CoachProvider (estado del chat: mensajes, loading, error — patrón Provider ya
                 por AuthProvider/ThemeProvider en el resto de la app)
       │
       ▼
-CoachRepository (arma el CoachContext combinando StatsRepository/GoalRepository/
-                 RecoveryRepository/GamificationRepository/ProfileRepository +
-                 el mensaje del usuario)
+CoachRepository (orquesta: pide el CoachContext al builder, agrega la pregunta del
+                 usuario, llama a CoachGateway, devuelve la respuesta)
       │
       ▼
-CoachGateway (interfaz abstracta: sendMessage(message, context) -> reply — el único
+CoachContextBuilder (arma el CoachContext v1 combinando ProfileRepository/
+                     GoalRepository/StatsRepository/RecoveryRepository/
+                     GamificationRepository — con la ventana acotada y el
+                     resumen de entrenamientos recientes, ver
+                     docs/COACH_CONTEXT.md)
+      │
+      ▼
+CoachContext v1 (objeto de datos puro, sin lógica — el contrato)
+      │
+      ▼ (vuelve a CoachRepository, que arma el request)
+CoachGateway (interfaz abstracta: sendMessage(question, context) -> reply — el único
               punto que sabe la URL/forma del backend inteligente)
       │
       ▼
 Backend inteligente (HTTP)
 ```
+
+`CoachContextBuilder` es una clase separada de `CoachRepository` a propósito: su única
+responsabilidad es transformar el estado de los repositorios en el objeto `CoachContext`
+(incluyendo el resumen/truncado descrito en `docs/COACH_CONTEXT.md`), sin saber nada de
+HTTP ni del backend — se puede testear con `AppDatabase.forTesting` igual que
+`GoalRepositoryTest`/`RecoveryRepositoryTest`, sin mockear ninguna red.
 
 `CoachGateway` es la interfaz (análoga a `AuthRepository` en la Fase 1): una clase
 abstracta con una implementación real (`HttpCoachGateway`, habla con el backend
@@ -94,7 +109,7 @@ inteligente) y, si hiciera falta, una implementación *unavailable* para cuando
 `SmartBackendAvailability.isConfigured` es `false` (mismo patrón que
 `UnavailableAuthRepository`). Cambiar de proveedor de LLM en el futuro es un cambio
 **solo dentro del backend** (ver sección 7) — `CoachGateway` no necesita saberlo, ya
-manda `CoachContext` + mensaje y recibe una respuesta de texto sin importar qué LLM la
+manda `CoachContext` + pregunta y recibe una respuesta de texto sin importar qué LLM la
 generó.
 
 ### Extremo a extremo
@@ -264,13 +279,18 @@ Solo las estrictamente necesarias — ninguna relacionada a Postgres/Alembic/aut
 
 ## 10. Próximos pasos (orden acordado con el usuario)
 
-1. ✅ Consolidar la auditoría (hecho, `docs/ARQUITECTURA_BACKEND.md` sección 7).
-2. **Definir el contrato `CoachContext`** — `docs/COACH_CONTEXT.md` (siguiente paso).
-3. Revisar y aprobar ese contrato con el usuario.
-4. Implementar el backend inteligente mínimo y completamente stateless (este documento).
-5. Conectar Flutter mediante `CoachRepository`/`CoachProvider`/`CoachGateway`.
+1. ✅ Consolidar la auditoría (`docs/ARQUITECTURA_BACKEND.md` sección 7).
+2. ✅ Definir el contrato `CoachContext` — `docs/COACH_CONTEXT.md`.
+3. ✅ Revisar y aprobar ese contrato con el usuario — **aprobado 2026-07-12 como v1**,
+   con los 10 ajustes de la revisión (versión, `app`, split profile/preferences/settings,
+   `capabilities`, regla de ventana configurable, resumen en vez de volcado completo,
+   presupuesto de tokens, `extensions`, `sessionId`, `generatedAt`).
+4. **Implementar el backend inteligente mínimo y completamente stateless** (este
+   documento) — pendiente de la orden explícita del usuario para empezar.
+5. Conectar Flutter mediante `CoachContextBuilder` → `CoachRepository` →
+   `CoachProvider`/`CoachGateway`.
 6. Dejar Groq como un detalle interno del backend, intercambiable por cualquier otro
    proveedor sin tocar Flutter.
 
-No se implementa nada de esto hasta recibir la aprobación explícita del usuario sobre el
-contrato `CoachContext`.
+El contrato quedó congelado como v1 (`docs/COACH_CONTEXT.md`). No se implementa nada de
+esto hasta recibir la orden explícita del usuario de empezar la Fase 4.
