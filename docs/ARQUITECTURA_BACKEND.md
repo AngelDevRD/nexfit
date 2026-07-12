@@ -349,7 +349,7 @@ terminar con login en Supabase, perfil en FastAPI y rutinas en Supabase al mismo
 | 3a — Récords personales + progreso de objetivos + factor de carga de recovery | ✅ Completada | 2026-07-12 |
 | 3b — Estadísticas (`stats_service.dart`) | ✅ Completada | 2026-07-12 |
 | 3c — Gamificación + catálogo de ejercicios + calculadoras | ✅ Completada | 2026-07-12 |
-| 4 — Backend inteligente aislado | 🟡 Backend implementado (`backend_ia/`), falta integrar Flutter | 2026-07-12 |
+| 4 — Backend inteligente aislado | ✅ Completada (backend + integración Flutter) | 2026-07-12 |
 | 5 — Cutover de CI y limpieza | ⬜ No iniciada | — |
 
 ### 5.1 Qué ya usa Supabase
@@ -550,17 +550,22 @@ poder entender la arquitectura actual leyendo solo esta sección.
   incluyendo dos funciones `security definer` para las operaciones que cruzan datos de
   otros usuarios (unirse por código, leaderboard).
 
-### Backend inteligente (FastAPI hoy, pendiente de aislar y arreglar en la Fase 4)
+### Backend inteligente (`backend_ia/`, Fase 4 — completada 2026-07-12)
 
-- **Coach IA / chat / tool-calling**: el único dominio que seguirá necesitando un servidor
-  propio, porque sostiene la API key del LLM y orquesta llamadas que no pueden exponerse
-  al cliente. **Hoy está roto** (ver 7.1, hallazgo #1) — no es solo "pendiente de migrar".
+- **Coach IA / chat**: único dominio que necesita un servidor propio (sostiene la API key
+  del LLM). Implementado como servicio standalone y **100% stateless** — sin PostgreSQL,
+  SQLAlchemy, Alembic ni tool-calling contra ninguna base (diseño completo en
+  `docs/FASE_4_DISENO.md`, contratos en `docs/COACH_CONTEXT.md`/`docs/COACH_API.md`/
+  `docs/COACH_SYSTEM_PROMPT.md`). El cliente arma todo el `CoachContext` — el backend
+  solo valida el JWT de Supabase, aplica rate limiting, antepone el system prompt y llama
+  al `LLMProvider` activo (`GroqProvider` hoy, intercambiable sin tocar endpoints).
 - **Calendario y exportación/importación de datos** (`calendar_service.dart`,
-  `data_transfer_service.dart`): **hoy están rotos**, no "sin decidir" (ver 7.1). Su
-  destino real no es el backend inteligente — son cálculo derivado y transferencia de
-  archivo local respectivamente, les corresponde el cliente (ver 7.1 para el detalle).
-- El resto de FastAPI (`backend/app/`) permanece intacto en el repo, sin borrar nada, pero
-  **orbita sin ningún cliente real** — ver el inventario completo en 7.1.
+  `data_transfer_service.dart`): siguen **rotos** (ver 7.1) — su destino no es este
+  backend, son cálculo derivado y transferencia de archivo local respectivamente,
+  pendientes de portar al cliente (fuera del alcance de la Fase 4).
+- El resto de FastAPI legado (`backend/app/`) permanece intacto en el repo, sin borrar
+  nada, pero **orbita sin ningún cliente real** — ver el inventario completo en 7.1;
+  apagado/limpieza queda para la Fase 5.
 
 Este documento se creó el 2026-07-11 como resultado del análisis de arquitectura
 solicitado antes de tocar código, se actualizó el 2026-07-12 al completar y consolidar la
@@ -697,7 +702,7 @@ El diseño propuesto para que este flujo funcione de verdad queda en
 | Social (retos) | ✅ Supabase, en vivo sin caché (Fase 2, excepción acordada) |
 | Calendario inteligente | 🔴 Roto (401) — pendiente de portar a on-device, no es Fase 4 |
 | Exportar/importar datos | 🔴 Roto (401) — pendiente de portar a on-device, no es Fase 4 |
-| Coach IA / chat | 🟡 Backend nuevo implementado y testeado (`backend_ia/`), cliente sigue apuntando al `CoachService`/`ApiClient` legado y roto (401) hasta que se conecte `CoachGateway` (Fase 4, pendiente) |
+| Coach IA / chat | ✅ Backend inteligente (`backend_ia/`) + `CoachContextBuilder`/`CoachRepository`/`CoachGateway` en Flutter (Fase 4, completada 2026-07-12) |
 | Wearables (pasos/pulso/sueño) | ✅ On-device desde su creación (Health Connect/HealthKit, `HealthService` — nunca dependió de ningún backend) |
 | Análisis de técnica (pose) / vista 3D de ejercicios | ✅ On-device desde su creación (cámara + modelo local / assets 3D — nunca dependió de ningún backend) |
 

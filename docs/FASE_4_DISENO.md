@@ -322,10 +322,57 @@ Solo las estrictamente necesarias — ninguna relacionada a Postgres/Alembic/aut
    que calcular el `Retry-After`) — corregido y cubierto con un test específico antes de
    seguir. Detalle completo en `backend_ia/README.md`.
 
-7. **Conectar Flutter** mediante `CoachContextBuilder` → `CoachRepository` →
-   `CoachProvider`/`CoachGateway` — pendiente, es la siguiente sub-fase (toca código de
-   la app, no del backend nuevo).
+7. ✅ **Conectada la integración con Flutter** (2026-07-12), con las capas exactas
+   aprobadas por el usuario (incluido el ajuste de último momento:
+   `CoachContextSource` como interfaz de lectura, para que `CoachContextBuilder` no
+   conozca ningún repositorio concreto):
 
-El diseño de la Fase 4 (contratos + backend) está **completo, implementado y verificado
-del lado del servidor**. Falta la integración con Flutter (paso 7 de esta lista) antes de
-dar la Fase 4 por terminada.
+   ```
+   CoachChatScreen → CoachProvider → CoachRepository → CoachContextBuilder
+                                            │                   │
+                                            │             CoachContextSource
+                                            │           (DefaultCoachContextSource)
+                                            ▼
+                                       CoachGateway (HttpCoachGateway)
+   ```
+
+   - `lib/core/coach/coach_context_source.dart` — interfaz `CoachContextSource` +
+     `DefaultCoachContextSource` (combina `ProfileRepository`/`GoalRepository`/
+     `RecoveryRepository`/`StatsRepository`/`GamificationRepository` y una lectura
+     directa de `AppDatabase` para `recentWorkouts`/`personalRecords`, mismo patrón de
+     lectura que ya usa `StatsRepository`).
+   - `lib/core/coach/coach_context_builder.dart` — **puro**: no importa `http`,
+     Supabase, FastAPI, Groq ni ningún widget. Aplica la ventana de 10
+     sesiones/14 días, condensa `exerciseSummaries` (un resumen por ejercicio, no
+     serie por serie) y el orden de recorte de tamaño de `docs/COACH_CONTEXT.md`
+     (15KB) si hiciera falta.
+   - `lib/core/coach/coach_exception.dart` — el único modelo de error que ve la UI
+     (`CoachUnauthorizedException`, `CoachForbiddenException`,
+     `CoachRateLimitedException`, `CoachInvalidContextException`,
+     `CoachUnavailableException`, `CoachTimeoutException`, `CoachUnknownException`).
+   - `lib/core/coach/coach_gateway.dart` + `http_coach_gateway.dart` — interfaz +
+     única implementación HTTP, exactamente `docs/COACH_API.md` (request/response,
+     mapeo de cada `error.code` y de los status HTTP de respaldo a su
+     `CoachException`). Sin lógica de negocio, sin armar contexto.
+   - `lib/repositories/coach_repository.dart` — único punto de entrada de la UI;
+     mantiene un `sessionId` (uuid v4 generado localmente, sin dependencia nueva)
+     estable durante toda la conversación y arma el `CoachContext` **bajo demanda**,
+     solo al mandar un mensaje (nunca de forma continua).
+   - `lib/providers/coach_provider.dart` — estado del chat (`ChangeNotifier`),
+     traduce cada `CoachException` a un mensaje de chat sin que la UI interprete
+     ningún código HTTP.
+   - `lib/screens/coach/coach_chat_screen.dart` — único archivo de pantalla tocado;
+     si `SmartBackendAvailability.isConfigured` es `false` muestra `ComingSoonView`
+     (ya existía desde la Fase 0, nunca se había conectado a una pantalla real).
+
+   **Verificado** (regla 7 de la orden de implementación): 26 tests nuevos de Flutter
+   (`CoachContextBuilder` 8, `HttpCoachGateway` 12, `CoachRepository` 6) +
+   `flutter analyze lib/ test/` sin issues + `flutter test` 59/59 + `flutter build apk
+   --release` exitoso (47.6MB) + `pytest`/`ruff` del backend re-verificados sin cambios
+   (37/37, 0 issues). Solo se tocó `lib/screens/coach/coach_chat_screen.dart` entre los
+   archivos ya existentes — ningún otro archivo de la app fue modificado.
+
+El diseño y la implementación de la Fase 4 (contratos + backend + integración Flutter)
+están **completos**. Pendiente, fuera de esta fase: `RoutineRepository` no tiene
+concepto de "rutina activa", así que `CoachContext.preferences.trainingDaysPerWeek` queda
+`null` por ahora (documentado en el código, no es un bug).

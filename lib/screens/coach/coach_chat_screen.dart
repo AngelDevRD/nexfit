@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
-import '../../core/api_client.dart';
-import '../../core/api_exception.dart';
+import '../../core/coach/coach_context_builder.dart';
+import '../../core/coach/coach_context_source.dart';
+import '../../core/coach/http_coach_gateway.dart';
+import '../../core/local/database.dart';
+import '../../core/smart_backend_availability.dart';
 import '../../core/theme.dart';
-import '../../services/coach_service.dart';
-
-class _ChatMessage {
-  final String text;
-  final bool fromUser;
-
-  _ChatMessage(this.text, this.fromUser);
-}
+import '../../providers/auth_provider.dart';
+import '../../providers/coach_provider.dart';
+import '../../repositories/coach_repository.dart';
+import '../../repositories/gamification_repository.dart';
+import '../../repositories/goal_repository.dart';
+import '../../repositories/profile_repository.dart';
+import '../../repositories/recovery_repository.dart';
+import '../../repositories/social_repository.dart';
+import '../../repositories/stats_repository.dart';
+import '../../widgets/coming_soon_view.dart';
 
 class CoachChatScreen extends StatefulWidget {
   const CoachChatScreen({super.key});
@@ -21,39 +27,76 @@ class CoachChatScreen extends StatefulWidget {
 }
 
 class _CoachChatScreenState extends State<CoachChatScreen> {
+  CoachProvider? _coachProvider;
+
+  @override
+  void initState() {
+    super.initState();
+    if (SmartBackendAvailability.isConfigured) {
+      _coachProvider = CoachProvider(_buildRepository(context));
+    }
+  }
+
+  /// El backend inteligente es completamente stateless (docs/FASE_4_DISENO.md)
+  /// -- esta pantalla solo arma sus dependencias con lo que ya provee
+  /// `main.dart` desde las Fases 2/3, sin ningún wiring nuevo ahí.
+  CoachRepository _buildRepository(BuildContext context) {
+    final userId = context.read<AuthProvider>().user!.id;
+    final source = DefaultCoachContextSource(
+      db: context.read<AppDatabase>(),
+      userId: userId,
+      profileRepository: context.read<ProfileRepository>(),
+      goalRepository: context.read<GoalRepository>(),
+      recoveryRepository: context.read<RecoveryRepository>(),
+      statsRepository: context.read<StatsRepository>(),
+      gamificationRepository: context.read<GamificationRepository>(),
+      socialAvailable: context.read<SocialRepository?>() != null,
+    );
+    return CoachRepository(
+      contextBuilder: CoachContextBuilder(source: source),
+      gateway: HttpCoachGateway(baseUrl: SmartBackendAvailability.baseUrl!),
+      accessTokenProvider: () =>
+          sb.Supabase.instance.client.auth.currentSession?.accessToken,
+    );
+  }
+
+  @override
+  void dispose() {
+    _coachProvider?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = _coachProvider;
+    if (provider == null) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: SafeArea(child: ComingSoonView()),
+      );
+    }
+    return ChangeNotifierProvider<CoachProvider>.value(
+      value: provider,
+      child: const _CoachChatBody(),
+    );
+  }
+}
+
+class _CoachChatBody extends StatefulWidget {
+  const _CoachChatBody();
+
+  @override
+  State<_CoachChatBody> createState() => _CoachChatBodyState();
+}
+
+class _CoachChatBodyState extends State<_CoachChatBody> {
   final _controller = TextEditingController();
-  final List<_ChatMessage> _messages = [
-    _ChatMessage(
-      'Hola, soy tu Gemelo Digital. Te conozco por tu historial de entrenamiento en la app. Preguntame lo que quieras.',
-      false,
-    ),
-  ];
-  bool _sending = false;
-  bool _llmUnavailable = false;
 
   Future<void> _send() async {
-    final text = _controller.text.trim();
-    if (text.isEmpty || _sending) return;
-    setState(() {
-      _messages.add(_ChatMessage(text, true));
-      _controller.clear();
-      _sending = true;
-    });
-    try {
-      final reply = await CoachService(
-        context.read<ApiClient>(),
-      ).sendMessage(text);
-      setState(() {
-        _messages.add(_ChatMessage(reply, false));
-        _sending = false;
-      });
-    } on ApiException catch (e) {
-      setState(() {
-        _llmUnavailable = e.statusCode == 503;
-        _messages.add(_ChatMessage(e.message, false));
-        _sending = false;
-      });
-    }
+    final text = _controller.text;
+    if (text.trim().isEmpty) return;
+    _controller.clear();
+    await context.read<CoachProvider>().sendMessage(text);
   }
 
   @override
@@ -64,6 +107,8 @@ class _CoachChatScreenState extends State<CoachChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final coach = context.watch<CoachProvider>();
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -90,7 +135,7 @@ class _CoachChatScreenState extends State<CoachChatScreen> {
       ),
       body: Column(
         children: [
-          if (_llmUnavailable)
+          if (coach.llmUnavailable)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(AppSpacing.sm),
@@ -117,9 +162,9 @@ class _CoachChatScreenState extends State<CoachChatScreen> {
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(AppSpacing.md),
-              itemCount: _messages.length,
+              itemCount: coach.messages.length,
               itemBuilder: (context, index) {
-                final message = _messages[index];
+                final message = coach.messages[index];
                 return _ChatBubble(message: message);
               },
             ),
@@ -144,10 +189,10 @@ class _CoachChatScreenState extends State<CoachChatScreen> {
                     shape: const CircleBorder(),
                     child: InkWell(
                       customBorder: const CircleBorder(),
-                      onTap: _sending ? null : _send,
+                      onTap: coach.sending ? null : _send,
                       child: Padding(
                         padding: const EdgeInsets.all(AppSpacing.sm),
-                        child: _sending
+                        child: coach.sending
                             ? const SizedBox(
                                 height: 20,
                                 width: 20,
@@ -175,7 +220,7 @@ class _CoachChatScreenState extends State<CoachChatScreen> {
 }
 
 class _ChatBubble extends StatelessWidget {
-  final _ChatMessage message;
+  final CoachChatMessage message;
 
   const _ChatBubble({required this.message});
 
