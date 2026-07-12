@@ -1,9 +1,9 @@
 # Fase 4 — Diseño del backend inteligente (propuesta, sin implementar)
 
-Estado: **propuesta de diseño únicamente**. No hay código nuevo en este documento — se
-implementa recién cuando el usuario apruebe este diseño y dé la orden explícita de
-empezar la Fase 4, según la regla de "mostrar el plan antes de tocar código" que se viene
-siguiendo en todas las fases anteriores.
+Estado: **propuesta de diseño únicamente, revisada y ajustada por el usuario el
+2026-07-12**. No hay código nuevo en este documento — se implementa recién cuando el
+usuario apruebe el contrato `CoachContext` (`docs/COACH_CONTEXT.md`) y dé la orden
+explícita de empezar la Fase 4.
 
 Contexto que motiva este diseño: la auditoría de la sección 7 de
 `docs/ARQUITECTURA_BACKEND.md` encontró que el Coach IA está roto hoy (401, porque nadie
@@ -16,76 +16,105 @@ viejo.
 ## 1. Objetivo y alcance
 
 Único propósito de este backend: sostener lo que **no puede** ejecutarse en el cliente —
-la API key del LLM y la orquestación de tool-calling. Todo lo demás (auth, datos de
+la API key del LLM y la orquestación de la llamada. Todo lo demás (auth, datos de
 usuario, cálculo de negocio) ya quedó resuelto en las Fases 1-3 y **no vuelve a este
-backend bajo ningún diseño**.
+backend bajo ningún diseño**. El usuario confirmó explícitamente esta dirección y pidió
+llevarla más lejos: el backend no solo no debe *calcular* nada de negocio — no debe tener
+ninguna forma de *volver a pedir* esos datos (nada de tool-calling contra una base de
+datos). Todo lo que el Coach puede llegar a necesitar viaja en un único payload que arma
+el cliente.
 
 Fuera de alcance explícito (ver instrucción del usuario, reafirmada en cada fase): nada
 de lo migrado a Supabase o a on-device se toca ni se duplica acá.
 
-## 2. Decisión de diseño central: ¿de dónde saca el contexto del usuario?
+## 2. Decisión de diseño central: el cliente arma TODO el contexto, el backend es stateless
 
-Esta es la pregunta que rompió el diseño anterior (`digital_twin.py` leía de una base que
-ya no se llena). Dos opciones:
+Se descarta por completo la alternativa de que el backend consulte Supabase (con el JWT
+del usuario reenviado) para armar o completar el contexto. El usuario fue explícito:
+*"el backend no debería reconstruir información que el teléfono ya posee"*. Flutter ya
+tiene, on-device y sin red, exactamente los mismos datos que `digital_twin.py` necesitaba
+— `StatsRepository`, `GoalRepository`, `RecoveryRepository`, `GamificationRepository`,
+`ProfileRepository` — así que arma un `CoachContext` compacto (contrato completo en
+`docs/COACH_CONTEXT.md`) y lo manda entero en el request de chat.
 
-### Opción A — el cliente arma el contexto y lo manda (recomendada)
+El backend queda reducido a exactamente 5 responsabilidades, ninguna más:
 
-Flutter ya tiene, on-device y sin red, exactamente los mismos datos que `digital_twin.py`
-necesitaba: `StatsRepository.strengthProfile()`/`.streak()`, `GoalRepository.list()`,
-`GamificationRepository.profile()`. En vez de que el backend vuelva a calcular todo eso
-consultando Supabase (una tercera implementación de la misma lógica de negocio, después de
-FastAPI original y el port a Dart de la Fase 3), el cliente arma un resumen compacto y lo
-manda como parte del request de chat. El backend queda como **proxy de orquestación
-puro**: valida el JWT, arma el prompt con ese contexto + el mensaje, llama al LLM,
-devuelve la respuesta. Cero acceso a datos de usuario, cero credencial de Supabase en este
-backend.
+1. Validar el JWT de Supabase.
+2. Verificar límites de uso (rate limiting — cuántos mensajes por usuario/minuto u hora,
+   para no dejar la key del LLM expuesta a abuso).
+3. Anteponer el system prompt.
+4. Mandar la petición al LLM.
+5. Devolver la respuesta.
 
-- **Ventaja**: aislamiento total (el backend no necesita ninguna credencial de Supabase,
-  ni siquiera la publishable key); no hay tercera copia de la lógica de negocio; menos
-  superficie de ataque (nada que filtrar si este servidor se compromete, más allá de la
-  key del LLM).
-- **Contrapartida**: el tool-calling de rango de fechas libre (`consultar_historial`,
-  hoy hasta 90 días) necesita que el cliente também pueda responder esa herramienta. Se
-  resuelve con un segundo round-trip: si el LLM pide la herramienta, el backend responde
-  al cliente pidiéndole el rango (en vez de resolverlo él mismo con una consulta a
-  Supabase) y el cliente reintenta el mensaje con el detalle de esos días ya adjunto
-  (mismo patrón de "traé vos los datos" que ya usa para el resumen inicial).
+Nada de tool-calling contra una base de datos propia ni contra Supabase. Si el LLM no
+tiene suficiente información en el `CoachContext` para responder algo con precisión (p.
+ej. una fecha muy vieja fuera de la ventana de "entrenamientos recientes" que manda el
+cliente), el `SYSTEM_PROMPT` ya le indica que debe decirlo explícitamente en vez de
+inventar — no que pida una herramienta. Esto elimina por completo el mecanismo de
+segundo round-trip (`needs_tool_data`) que tenía la versión anterior de este documento.
 
-### Opción B — el backend consulta Supabase directo con el JWT del usuario reenviado
-
-El backend recibe el JWT de Supabase del usuario, lo reenvía tal cual a PostgREST/Supabase
-(o arma un cliente Supabase autenticado con ese JWT) para consultar `workout_sessions`,
-`goals`, etc. — las RLS ya auditadas en la Fase 2 garantizan que solo ve sus propias filas,
-sin necesitar ninguna service-role key. El backend reimplementa en Python las agregaciones
-que hoy están en `StatsRepository`/`GoalRepository` (Dart) contra esas tablas.
-
-- **Ventaja**: el tool-calling de rango libre se resuelve en una sola llamada, sin
-  segundo round-trip con el cliente.
-- **Contrapartida**: tercera implementación de la misma lógica de negocio (después de
-  FastAPI original y el port a Dart) — cada cambio futuro a cómo se calcula el progreso de
-  un objetivo o la racha habría que replicarlo en dos lenguajes. Mayor superficie: este
-  backend pasa a necesitar la URL de Supabase y saber armar queries contra esas tablas.
-
-**Recomendación**: empezar con la **Opción A**. Es más simple, más aislada, y coherente
-con la decisión ya tomada en las Fases 1-3 de que el cálculo de negocio vive en un solo
-lugar (el cliente). Si en el uso real el ida-y-vuelta del tool-calling resulta molesto
-para la UX del chat, migrar puntualmente ese caso a la Opción B sin tocar el resto del
-diseño.
+**Backend 100% stateless — sin ninguna persistencia propia:**
+- Sin PostgreSQL, sin SQLAlchemy, sin Alembic, sin modelos.
+- Sin sincronización de ningún tipo (eso ya lo resuelve `SyncEngine`).
+- Sin tablas propias de ninguna clase — ni siquiera para el rate limiting (se puede hacer
+  en memoria de proceso o, si hace falta que sobreviva a reinicios/escale a más de una
+  instancia, con un store externo simple como Redis — pero eso es un detalle de
+  infraestructura, no una tabla de dominio, y no es indispensable para la v1).
 
 ## 3. Arquitectura
 
+### Lado del cliente — capas para desacoplar el proveedor de IA
+
+El usuario pidió una interfaz intermedia para poder cambiar de proveedor de LLM (Groq →
+OpenAI/Gemini/Claude/Ollama) sin tocar la UI:
+
 ```
-┌─────────────────────────┐         ┌──────────────────────────────┐        ┌─────────┐
-│   Flutter (NexFit)       │  HTTPS  │  Backend inteligente          │  HTTPS │  Groq   │
-│                          │ ───────►│  (FastAPI mínimo, standalone)  │───────►│  (LLM)  │
-│ StatsRepository          │         │                                │◄───────│         │
-│ GoalRepository           │         │  - Verifica JWT de Supabase    │        └─────────┘
-│ GamificationRepository   │◄────────│  - Arma prompt (contexto del   │
-│ (arman el contexto)      │         │    cliente + mensaje)          │
-│                          │         │  - Orquesta tool-calling       │
-│ supabase_flutter         │         │  - Sin DB propia, sin Alembic  │
-│ (sesión ya autenticada)  │         │  - Sin SQLAlchemy              │
-└─────────────────────────┘         └──────────────────────────────┘
+CoachChatScreen
+      │
+      ▼
+CoachProvider (estado del chat: mensajes, loading, error — patrón Provider ya usado
+                por AuthProvider/ThemeProvider en el resto de la app)
+      │
+      ▼
+CoachRepository (arma el CoachContext combinando StatsRepository/GoalRepository/
+                 RecoveryRepository/GamificationRepository/ProfileRepository +
+                 el mensaje del usuario)
+      │
+      ▼
+CoachGateway (interfaz abstracta: sendMessage(message, context) -> reply — el único
+              punto que sabe la URL/forma del backend inteligente)
+      │
+      ▼
+Backend inteligente (HTTP)
+```
+
+`CoachGateway` es la interfaz (análoga a `AuthRepository` en la Fase 1): una clase
+abstracta con una implementación real (`HttpCoachGateway`, habla con el backend
+inteligente) y, si hiciera falta, una implementación *unavailable* para cuando
+`SmartBackendAvailability.isConfigured` es `false` (mismo patrón que
+`UnavailableAuthRepository`). Cambiar de proveedor de LLM en el futuro es un cambio
+**solo dentro del backend** (ver sección 7) — `CoachGateway` no necesita saberlo, ya
+manda `CoachContext` + mensaje y recibe una respuesta de texto sin importar qué LLM la
+generó.
+
+### Extremo a extremo
+
+```
+┌──────────────────────────┐        ┌───────────────────────────┐        ┌─────────┐
+│ Flutter (NexFit)          │ HTTPS  │ Backend inteligente        │ HTTPS  │  LLM    │
+│                           │───────►│ (stateless, standalone)    │───────►│ (Groq,  │
+│ StatsRepository           │        │                            │◄───────│ swap-   │
+│ GoalRepository            │        │ 1. Valida JWT de Supabase  │        │ eable)  │
+│ RecoveryRepository        │        │ 2. Rate limit              │        └─────────┘
+│ GamificationRepository    │        │ 3. Antepone system prompt  │
+│ ProfileRepository         │        │ 4. Llama al LLM            │
+│      │                    │        │ 5. Devuelve la respuesta   │
+│      ▼                    │        │                            │
+│ CoachRepository           │        │ Sin DB, sin Alembic, sin   │
+│      │                    │        │ SQLAlchemy, sin tool-      │
+│      ▼                    │        │ calling contra ninguna DB  │
+│ CoachGateway ─────────────┘        └───────────────────────────┘
+└──────────────────────────┘
 ```
 
 Puntos clave de aislamiento:
@@ -95,9 +124,9 @@ Puntos clave de aislamiento:
   la decisión entre servidor propio vs. Edge Function queda abierta para cuando se
   implemente, pero el diseño de este documento (endpoints, auth, contrato) es el mismo en
   cualquiera de los dos.
-- **Sin base de datos propia** (Opción A) — no hay `DATABASE_URL`, no hay Alembic, no hay
-  modelos SQLAlchemy. Si más adelante se adopta la Opción B, la única DB que toca es
-  Supabase (con el JWT del usuario), nunca una base propia de este servicio.
+- **Sin base de datos propia, sin excepción** — a diferencia de la versión anterior de
+  este documento, ya no queda ni siquiera la alternativa "B" de reenviar el JWT a
+  Supabase. Cero conexión a ninguna base de datos desde este backend.
 - **Sin el JWT propio de FastAPI** (`secret_key`/HS256 de `backend/app/core/security.py`)
   — se elimina esa dependencia por completo, se verifica el JWT de Supabase.
 
@@ -123,7 +152,8 @@ Verificación en el backend, dos variantes según cómo esté configurado el pro
 En ambos casos, el `sub` del JWT (o el `id` que devuelve `/auth/v1/user`) es el mismo uuid
 de Supabase que ya usan `Profiles`/`Routines`/etc. — no hace falta ningún mapeo a un id
 propio como el `int` de `backend/app/models/user.py` (ese modelo queda huérfano, ver
-sección 7.1 de `ARQUITECTURA_BACKEND.md`).
+sección 7.1 de `ARQUITECTURA_BACKEND.md`). Ese mismo `sub` es la clave que usa el rate
+limiting del punto siguiente (contador en memoria/Redis por uuid, no por IP).
 
 ## 5. Endpoints propuestos
 
@@ -136,48 +166,25 @@ Reemplaza al endpoint actual. Request:
 
 ```json
 {
-  "message": "¿Cómo viene mi progreso esta semana?",
-  "context": {
-    "months_training": 4,
-    "weekly_volume_kg": 4200,
-    "current_streak_days": 3,
-    "longest_streak_days": 12,
-    "max_strength_by_exercise": [{"exercise_name": "Sentadilla", "max_weight_kg": 100}],
-    "goals": [{"title": "Bajar 5kg", "progress_pct": 40, "achieved": false}],
-    "today_summary": "Entrenamiento: Sentadilla 100kg x 5 reps...",
-    "tool_result": null
-  }
+  "question": "¿Cómo viene mi progreso esta semana?",
+  "context": { "...": "ver docs/COACH_CONTEXT.md para el esquema completo" }
 }
 ```
 
-`context` lo arma el cliente combinando `StatsRepository`/`GoalRepository`/
-`GamificationRepository` — es el equivalente directo a lo que hoy arma
-`digital_twin.build_user_context`, solo que calculado en el dispositivo. `tool_result` va
-`null` en el primer mensaje; se completa en el segundo round-trip si el LLM pidió la
-herramienta `consultar_historial` (ver sección 2, Opción A).
+`context` es exactamente el objeto `CoachContext` definido en `docs/COACH_CONTEXT.md` —
+ese documento es el contrato fuente de verdad entre Flutter y este backend, no se
+redefine acá. Lo arma `CoachRepository` combinando los repositorios ya existentes, sin
+ninguna query nueva.
 
 Response:
 
 ```json
-{
-  "reply": "Vas bien: 3 días de racha y el volumen semanal se mantiene...",
-  "needs_tool_data": null
-}
+{ "reply": "Vas bien: 3 días de racha y el volumen semanal se mantiene..." }
 ```
 
-Si el LLM pidió la herramienta y todavía no hay `tool_result` en el request, la respuesta
-en vez de `reply` trae:
-
-```json
-{
-  "reply": null,
-  "needs_tool_data": {"start_date": "2026-06-01", "end_date": "2026-06-30"}
-}
-```
-
-El cliente arma el detalle día-por-día de ese rango (ya tiene toda esa data en Drift,
-mismo formato que hoy calcula `_day_block`/`get_activity_log` en Python, portado a Dart) y
-reenvía el mismo mensaje con `context.tool_result` completo.
+No hay ningún campo de "necesito más datos" ni segundo round-trip — si el contexto no
+alcanza, el modelo lo dice en `reply` (instrucción explícita del `SYSTEM_PROMPT`, igual
+que hoy).
 
 ### `GET /api/v1/coach/status`
 
@@ -186,53 +193,58 @@ Reemplaza el chequeo que hoy hace `SmartBackendAvailability` mirando si
 el servicio está operativo):
 
 ```json
-{ "available": true, "model": "llama-3.3-70b-versatile" }
+{ "available": true }
 ```
 
-`available: false` si falta `LLM_API_KEY` en el backend — mismo criterio que hoy usa
-`LlmNotConfiguredError`, pero consultable antes de mandar un mensaje (hoy el cliente se
-entera recién al fallar el POST con 503).
+`available: false` si falta la API key del LLM en el backend — consultable antes de
+mandar un mensaje (hoy el cliente se entera recién al fallar el POST con 503). No expone
+qué proveedor/modelo corre detrás — es un detalle interno (sección 7).
 
 ### Sin más endpoints
 
 No hay `/coach/context-preview` (era para debug, no lo usa ninguna pantalla), ni ningún
-endpoint de datos de usuario — ese es exactamente el punto de este rediseño.
+endpoint de datos de usuario, ni ninguna ruta de tool-calling — ese es exactamente el
+punto de este rediseño.
 
 ## 6. Integración con el Coach IA (cliente)
 
-- `CoachChatScreen` deja de usar `CoachService`/`ApiClient` (legado, roto) y pasa a un
-  nuevo `CoachRepository` o similar que:
-  1. Arma el `context` combinando los repositorios ya existentes (sin queries nuevas, solo
-     reutilizar lo que devuelven).
-  2. Llama a `POST /coach/chat` con el JWT de la sesión Supabase activa
-     (`Supabase.instance.client.auth.currentSession?.accessToken`).
-  3. Si la respuesta trae `needs_tool_data`, arma el detalle día-por-día de ese rango
-     desde Drift (mismo patrón que `get_activity_log`, portado a Dart) y reintenta.
+- `CoachChatScreen` deja de usar `CoachService`/`ApiClient` (legado, roto) y pasa a
+  consumir `CoachProvider` (estado del chat) → `CoachRepository` (arma el `CoachContext`
+  + llama a `CoachGateway`) → `CoachGateway` (interfaz, implementación HTTP real) — ver
+  sección 3.
+- `CoachRepository` arma el `CoachContext` leyendo `ProfileRepository`,
+  `GoalRepository.list()`, `StatsRepository` (perfil de fuerza, racha, tonelaje reciente),
+  `RecoveryRepository.index()` y `GamificationRepository.profile()` — sin ninguna query
+  nueva, solo reutilizar lo que esos repositorios ya exponen desde las Fases 2/3.
 - `SmartBackendAvailability`/`ComingSoonView` (ya existen en el cliente desde la Fase 0,
   sin usar todavía) pasan a consultar `GET /coach/status` en vez de solo mirar si
   `SMART_BACKEND_URL` no está vacío — cubre también el caso "el servidor está desplegado
-  pero sin `LLM_API_KEY` configurada".
+  pero sin la key del LLM configurada".
 
-## 7. Integración con el LLM (Groq u otros)
+## 7. Integración con el LLM (Groq, intercambiable)
 
-Se reutiliza el diseño actual de `llm_client.ask_llm` (ya well hecho): cliente HTTP
-genérico contra una API compatible con OpenAI (`chat/completions`), configurable por
-variables de entorno (`LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`) — no queda atado a Groq
-específicamente, cambiar de proveedor es solo cambiar esas tres variables. Se mantiene:
-- Tool-calling en el formato OpenAI (`tools`/`tool_choice`/`tool_calls`) — ya es el
-  estándar que siguen Groq, OpenAI y la mayoría de proveedores compatibles.
+Se reutiliza el diseño actual de `llm_client.ask_llm` (cliente HTTP genérico contra una
+API compatible con OpenAI — `chat/completions`), pero **sin tool-calling** (se elimina esa
+parte por completo, ver sección 2) y detrás de una interfaz interna del backend
+(`LlmProvider`/equivalente) para que cambiar de Groq a OpenAI/Gemini/Claude/Ollama sea
+solo una implementación nueva de esa interfaz + variables de entorno, sin tocar los
+endpoints ni el contrato con Flutter:
+- Configurable por variables de entorno (`LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`).
 - El mismo `SYSTEM_PROMPT` (ajustado para explicitar que el contexto viene ya armado del
-  cliente, no de una consulta propia del backend).
-- El mismo manejo de `LlmNotConfiguredError` → 503, ahora también reflejado en
+  cliente y es todo lo que el modelo va a tener disponible — sin herramientas).
+- El mismo manejo de "LLM no configurado" → 503, ahora también reflejado en
   `GET /coach/status`.
 
 ## 8. Qué se elimina o no se lleva a este backend
 
-- `app/models/`, `app/core/database.py`, Alembic, SQLAlchemy — no hacen falta si se
-  adopta la Opción A. Cero conexión a ninguna base de datos propia.
+- `app/models/`, `app/core/database.py`, Alembic, SQLAlchemy — no hacen falta, el backend
+  es 100% stateless. Cero conexión a ninguna base de datos, propia o de terceros.
 - `app/core/security.py` (JWT/bcrypt propios) — reemplazado por la verificación de JWT de
   Supabase (sección 4).
 - `app/deps.get_current_user` — reemplazado por la verificación de Supabase.
+- `ACTIVITY_LOG_TOOL`/tool-calling completo (`app/services/digital_twin.get_activity_log`,
+  el parámetro `tools`/`tool_executor` de `llm_client.ask_llm`) — eliminado, no se lleva
+  ninguna forma de que el backend vuelva a pedir datos.
 - Todo lo demás de `backend/app/` (rutinas, objetivos, nutrición, stats, gamificación,
   etc.) — no se toca, no se lleva, queda para apagar en la Fase 5 según el inventario de
   la sección 7.1 de `ARQUITECTURA_BACKEND.md`.
@@ -244,19 +256,21 @@ Solo las estrictamente necesarias — ninguna relacionada a Postgres/Alembic/aut
 | Variable | Propósito |
 |---|---|
 | `SUPABASE_URL` | Para verificar el JWT contra `/auth/v1/user` (o el JWKS si se optimiza después). Es la misma URL pública que ya usa el cliente. |
-| `LLM_API_KEY` | Key de Groq (u otro proveedor compatible). |
+| `LLM_API_KEY` | Key del proveedor de LLM activo (Groq por defecto). |
 | `LLM_BASE_URL` | Default `https://api.groq.com/openai/v1`. |
 | `LLM_MODEL` | Default `llama-3.3-70b-versatile`. |
+| `RATE_LIMIT_PER_MINUTE` | Límite de mensajes por usuario (uuid de Supabase) — protege la key del LLM de abuso. Valor por decidir en la implementación. |
 | `CORS_ORIGINS` | Igual que hoy. |
 
-## 10. Próximos pasos (cuando se apruebe este diseño)
+## 10. Próximos pasos (orden acordado con el usuario)
 
-1. Confirmar Opción A vs. B (o el detalle de tool-calling) con el usuario.
-2. Decidir servidor propio vs. Supabase Edge Function para el deploy.
-3. Implementar en una rama/commit propio, con los mismos gates de siempre (analyze/test/
-   build, un commit por sub-paso, sin tocar nada del `backend/` legado ni de los
-   repositorios ya migrados).
-4. Actualizar `docs/ARQUITECTURA_BACKEND.md` marcando la Fase 4 como completada, con el
-   mismo nivel de detalle que las fases anteriores.
+1. ✅ Consolidar la auditoría (hecho, `docs/ARQUITECTURA_BACKEND.md` sección 7).
+2. **Definir el contrato `CoachContext`** — `docs/COACH_CONTEXT.md` (siguiente paso).
+3. Revisar y aprobar ese contrato con el usuario.
+4. Implementar el backend inteligente mínimo y completamente stateless (este documento).
+5. Conectar Flutter mediante `CoachRepository`/`CoachProvider`/`CoachGateway`.
+6. Dejar Groq como un detalle interno del backend, intercambiable por cualquier otro
+   proveedor sin tocar Flutter.
 
-No se implementa nada de esto hasta recibir la aprobación explícita del usuario.
+No se implementa nada de esto hasta recibir la aprobación explícita del usuario sobre el
+contrato `CoachContext`.
