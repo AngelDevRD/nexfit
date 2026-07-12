@@ -5,6 +5,9 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/api_client.dart';
+import 'core/auth/auth_repository.dart';
+import 'core/auth/supabase_auth_repository.dart';
+import 'core/auth/unavailable_auth_repository.dart';
 import 'core/local/database.dart';
 import 'core/local/local_bootstrap.dart';
 import 'core/supabase_config.dart';
@@ -21,28 +24,36 @@ import 'screens/home/home_shell.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Fase 0 (ver docs/ARQUITECTURA_BACKEND.md): solo se inicializa el cliente,
-  // nada del flujo de auth/datos actual lo usa todavía. Si falla (sin red en
-  // el arranque, credenciales de build distintas, etc.) no debe impedir que
-  // la app arranque con el backend FastAPI de siempre.
+  // Fase 1 (ver docs/ARQUITECTURA_BACKEND.md): la sesión/identidad ya
+  // depende de que esta inicialización haya funcionado. Si falla, en vez de
+  // crashear al usar `Supabase.instance` más abajo, se cae a
+  // [UnavailableAuthRepository] -- la app sigue arrancando, solo con las
+  // acciones de auth deshabilitadas hasta el próximo intento.
+  // TODO(fase-posterior): reportar este error a un servicio real (Crashlytics
+  // o similar) en vez de solo loguearlo -- ver observación del usuario.
+  AuthRepository authRepository;
   try {
     await Supabase.initialize(
       url: SupabaseConfig.url,
       publishableKey: SupabaseConfig.publishableKey,
     );
+    authRepository = SupabaseAuthRepository(Supabase.instance.client);
   } catch (e, st) {
     developer.log(
-      'Supabase.initialize fallo -- no bloquea el arranque (Fase 0)',
+      'Supabase.initialize fallo -- auth deshabilitada esta sesión',
       error: e,
       stackTrace: st,
       name: 'main',
     );
+    authRepository = const UnavailableAuthRepository();
   }
-  runApp(const AppGymApp());
+  runApp(AppGymApp(authRepository: authRepository));
 }
 
 class AppGymApp extends StatefulWidget {
-  const AppGymApp({super.key});
+  const AppGymApp({super.key, required this.authRepository});
+
+  final AuthRepository authRepository;
 
   @override
   State<AppGymApp> createState() => _AppGymAppState();
@@ -61,7 +72,8 @@ class _AppGymAppState extends State<AppGymApp> {
   void initState() {
     super.initState();
     _client = ApiClient();
-    _authProvider = AuthProvider(_client)..tryAutoLogin();
+    _authProvider = AuthProvider(widget.authRepository, _client)
+      ..tryAutoLogin();
     _themeProvider = ThemeProvider();
 
     _db = AppDatabase();

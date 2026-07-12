@@ -150,13 +150,48 @@ peor que el anterior.
   auth, sync, y todos los servicios siguen usando exclusivamente `ApiClient`/FastAPI, tal
   como antes de esta fase.
 
-### Fase 1 — Auth a Supabase (desbloquea publicar ya)
-- Reemplazar `AuthService`/`AuthProvider` para usar Supabase Auth (registro, login,
-  recuperar contraseña) en vez de `/api/v1/auth/*`.
-- Retirar la dependencia dura de `ApiClient` en el arranque de sesión.
-- **Criterio de éxito**: registrarse, iniciar sesión y recuperar contraseña funcionan con
-  cero backend FastAPI desplegado. Esto por sí solo ya cumple el bloqueador reportado por
-  el usuario (login roto en producción).
+### Fase 1 — Auth a Supabase (desbloquea publicar ya) ✅ completada 2026-07-11
+- ✅ **Interfaz `AuthRepository`** (`lib/core/auth/auth_repository.dart`): contrato único
+  de sesión/identidad (`restoreSession`, `authStateChanges`, `currentUser`, `register`,
+  `login`, `logout`, `resetPassword`). `AuthProvider` y las pantallas dependen solo de esta
+  interfaz — no importan Supabase en ningún punto.
+- ✅ **`SupabaseAuthRepository`** (`lib/core/auth/supabase_auth_repository.dart`):
+  implementación real sobre `supabase_flutter`. Persistencia de sesión y renovación
+  automática de token las maneja el propio paquete (configurado en Fase 0); esta clase
+  solo traduce la API de Supabase al contrato de la app.
+- ✅ **`UnavailableAuthRepository`** (`lib/core/auth/unavailable_auth_repository.dart`):
+  fallback si `Supabase.initialize` falla en `main()` — todas las acciones fallan con un
+  mensaje claro en vez de crashear el arranque (antes de esta fase, un fallo de Supabase
+  no importaba porque nada lo usaba; ahora sí, así que se cerró ese hueco).
+- ✅ **`AuthProvider` reescrito** (`lib/providers/auth_provider.dart`) para recibir un
+  `AuthRepository` inyectado en vez de construir `AuthService` directamente. Se suscribe a
+  `authStateChanges` para reflejar logout/expiración de sesión disparados por el propio
+  SDK de Supabase, no solo por acciones iniciadas desde la UI.
+- ✅ **`AppUser.id`**: cambiado de `int` a `String` (antes solo servía el id numérico de
+  FastAPI; ahora también puede ser un UUID de Supabase). Sin otros consumidores del campo
+  en el resto del código — cambio de bajo riesgo, confirmado por grep antes de aplicarlo.
+- ✅ **Recuperar contraseña** conectada de verdad: el botón "¿Olvidaste tu contraseña?" en
+  `login_screen.dart` (antes un stub de "próximamente") ahora abre un diálogo y llama a
+  `AuthProvider.resetPassword`, que dispara `supabase.auth.resetPasswordForEmail`.
+- ✅ **`main.dart`**: `Supabase.initialize` ahora decide qué `AuthRepository` se inyecta
+  (`SupabaseAuthRepository` si funcionó, `UnavailableAuthRepository` si falló) y se pasa a
+  `AppGymApp` por constructor en vez de crearlo dentro de `initState`.
+- **Explícitamente NO tocado en esta fase**: `lib/services/auth_service.dart` (register/
+  login/me contra FastAPI) queda intacto en el repo tal cual — ya no lo llama nadie desde
+  `AuthProvider` excepto `updateProfile` (perfil extendido, ver sección 5.1), pero el
+  código no se borró, solo se desacopló.
+- **Verificado**: `flutter analyze lib/ test/` → *No issues found!* · `flutter test` →
+  12/12 ✅ · `flutter build apk --release` → build exitoso (47.4MB). No se probó en un
+  emulador/dispositivo real porque este entorno no tiene uno disponible — falta una
+  verificación manual del flujo completo (registrar, cerrar sesión, recuperar contraseña)
+  en un dispositivo antes de considerar esto probado end-to-end.
+- **Punto abierto, sin decidir todavía**: si el proyecto Supabase tiene activado "Confirm
+  email" (configuración del dashboard, no verificable con las herramientas usadas en esta
+  fase), `register()` crea el usuario pero no deja sesión activa hasta que confirme por
+  correo — el código ya contempla ese caso (`status` queda en `unauthenticated` si
+  `currentUser` es null tras el signUp), pero no se decidió ni se comunicó explícitamente
+  al usuario qué UX se espera en ese caso (hoy simplemente vuelve a la pantalla de login
+  sin ningún mensaje).
 
 ### Fase 2 — Dominios de datos a Supabase
 - Esquema Supabase espejo de las tablas Drift ya existentes (rutinas, días, ejercicios de
@@ -203,32 +238,72 @@ peor que el anterior.
 | Fase | Estado | Fecha |
 |---|---|---|
 | 0 — Fundaciones | ✅ Completada | 2026-07-11 |
-| 1 — Auth a Supabase | ⬜ No iniciada | — |
+| 1 — Auth a Supabase | ✅ Completada | 2026-07-11 |
 | 2 — Dominios de datos a Supabase | ⬜ No iniciada | — |
 | 3 — Dominios on-device | ⬜ No iniciada | — |
 | 4 — Backend inteligente aislado | ⬜ No iniciada | — |
 | 5 — Cutover de CI y limpieza | ⬜ No iniciada | — |
 
-### 5.1 Qué depende todavía del backend FastAPI (sin cambios en esta fase)
+### 5.1 Qué ya usa Supabase
 
-Todo lo funcional: auth completa, rutinas, entrenamientos, objetivos, nutrición, recovery,
-social, calendario, exportación de datos y Coach IA siguen pasando 100% por
-`ApiClient`/`http://10.0.2.2:8000` (o `API_BASE_URL` si se pasa por build), exactamente
-igual que antes de la Fase 0. La Fase 0 no desactiva ni redirige ninguna llamada existente.
+Únicamente identidad/sesión: registro, login, logout, recuperar contraseña, persistencia
+de sesión y renovación automática de token, todo detrás de la interfaz `AuthRepository`
+(`lib/core/auth/`). Nada de datos de la app (rutinas, entrenamientos, etc.) pasa por
+Supabase todavía.
 
-### 5.2 Qué se migra en la Fase 1 (siguiente paso, no iniciado)
+### 5.2 Qué sigue dependiendo de FastAPI
 
-Únicamente `AuthService`/`AuthProvider`/`lib/services/auth_service.dart` → Supabase Auth
-(registro, login, recuperar contraseña). Nada más se toca en la Fase 1.
+- **Rutinas, entrenamientos, objetivos, nutrición, recovery, social, calendario,
+  exportación de datos, Coach IA**: sin cambios, siguen pasando 100% por
+  `ApiClient`/`http://10.0.2.2:8000` (o `API_BASE_URL` si se pasa por build).
+- **Perfil extendido** (edad, sexo, altura, peso, objetivo, experiencia —
+  `PATCH /users/me`, `lib/services/auth_service.dart#updateProfile`, usado desde
+  `profile_screen.dart`): sigue apuntando a FastAPI sin cambios de código, pero con un
+  efecto colateral real de esta fase — al ya no existir ningún login contra FastAPI que
+  emita su JWT propio, `ApiClient.token` nunca se puebla, así que esta llamada **fallará
+  (401/sin token)** hasta que el perfil se migre a algún destino (Supabase u otro). No se
+  decidió todavía si el perfil es parte de la Fase 2 o necesita su propia fase — queda
+  como pregunta abierta para el usuario antes de continuar.
+- **Mismo efecto colateral en `RoutineSyncable`/`WorkoutSessionSyncable`**
+  (`lib/core/sync/entities/`): su `push()` también depende del JWT de FastAPI vía
+  `ApiClient`. Sin login contra FastAPI, esas llamadas fallarán en silencio (el
+  `SyncEngine` ya está diseñado para tolerar fallos de red sin romper la UI — las filas
+  `dirty` simplemente no suben y se reintentan en la próxima pasada, para siempre, hasta
+  la Fase 2). En producción esto no es una regresión nueva: el login a FastAPI ya era
+  inalcanzable por el bug de `10.0.2.2:8000` documentado en la Fase 0, así que routines/
+  workouts nunca llegaron a sincronizar en un build público real. En desarrollo local
+  (emulador contra un backend FastAPI corriendo en la máquina) sí es un cambio de
+  comportamiento observable: antes de esta fase sincronizaban, después no, hasta la
+  Fase 2.
 
-### 5.3 Componentes ya listos para usar en fases siguientes
+### 5.3 Qué se migra en la Fase 2 (siguiente paso, no iniciado)
 
-- `Supabase.instance.client` — cliente global disponible en toda la app desde `main()`.
+Rutinas y entrenamientos (ya offline-first vía `SyncEngine`) más los dominios que hoy no
+tienen fallback local (objetivos, nutrición, recovery, social) — ver detalle en la sección
+4. La pregunta abierta del perfil extendido (5.2) debería resolverse antes o durante esta
+fase, ya que es lo único que quedó en una zona gris entre "auth" y "datos".
+
+### 5.4 Componentes ya listos para usar en fases siguientes
+
+- `AuthRepository` (`lib/core/auth/auth_repository.dart`) — contrato ya probado en
+  producción de código; cualquier fase futura que necesite el usuario autenticado debe
+  leerlo de acá (`currentUser`), nunca de Supabase o FastAPI directamente.
+- `Supabase.instance.client` — cliente global disponible en toda la app desde `main()`,
+  ya usado por `SupabaseAuthRepository` para Auth; disponible para Postgres/Storage en la
+  Fase 2.
 - `SupabaseConfig.url` / `SupabaseConfig.publishableKey` — para cualquier código que
   necesite las credenciales del proyecto.
 - `SmartBackendAvailability.isConfigured` / `.baseUrl` — para gatear Coach IA en la Fase 4.
 - `ComingSoonView` (`lib/widgets/coming_soon_view.dart`) — para reemplazar cualquier
   pantalla que dependa del backend inteligente mientras no esté configurado o falle.
 
+### 5.5 Mejora pendiente, señalada por el usuario (no bloqueante)
+
+El `try/catch` silencioso alrededor de `Supabase.initialize` en `main.dart` está bien para
+esta transición, pero no debe quedar así de forma permanente: en una fase posterior hay
+que registrar ese error en un servicio real (Crashlytics o equivalente) en vez de solo
+`developer.log`, para poder diagnosticar un fallo de Supabase en producción sin dejar de
+arrancar la app. Ya queda marcado con `// TODO(fase-posterior)` en `lib/main.dart`.
+
 Este documento se creó el 2026-07-11 como resultado del análisis de arquitectura
-solicitado antes de tocar código, y se actualizó el mismo día al completar la Fase 0.
+solicitado antes de tocar código, y se actualizó el mismo día al completar las Fases 0 y 1.
