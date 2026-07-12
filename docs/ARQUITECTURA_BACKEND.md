@@ -550,17 +550,156 @@ poder entender la arquitectura actual leyendo solo esta sección.
   incluyendo dos funciones `security definer` para las operaciones que cruzan datos de
   otros usuarios (unirse por código, leaderboard).
 
-### Backend inteligente (FastAPI hoy, pendiente de aislar en la Fase 4)
+### Backend inteligente (FastAPI hoy, pendiente de aislar y arreglar en la Fase 4)
 
-- **Coach IA / chat / tool-calling**: el único dominio que sigue — y seguirá — necesitando
-  un servidor propio, porque sostiene la API key del LLM y orquesta llamadas que no pueden
-  exponerse al cliente.
-- **Sin decidir todavía** (fuera del alcance de la Fase 2, no tocado): calendario y
-  exportación de datos (`calendar_service.dart`, `data_transfer_service.dart`) siguen
-  apuntando a FastAPI sin verificar si de hecho funcionan hoy.
-- El resto de FastAPI (`backend/app/`) permanece intacto en el repo, sin borrar nada,
-  hasta la limpieza final de la Fase 5.
+- **Coach IA / chat / tool-calling**: el único dominio que seguirá necesitando un servidor
+  propio, porque sostiene la API key del LLM y orquesta llamadas que no pueden exponerse
+  al cliente. **Hoy está roto** (ver 7.1, hallazgo #1) — no es solo "pendiente de migrar".
+- **Calendario y exportación/importación de datos** (`calendar_service.dart`,
+  `data_transfer_service.dart`): **hoy están rotos**, no "sin decidir" (ver 7.1). Su
+  destino real no es el backend inteligente — son cálculo derivado y transferencia de
+  archivo local respectivamente, les corresponde el cliente (ver 7.1 para el detalle).
+- El resto de FastAPI (`backend/app/`) permanece intacto en el repo, sin borrar nada, pero
+  **orbita sin ningún cliente real** — ver el inventario completo en 7.1.
 
 Este documento se creó el 2026-07-11 como resultado del análisis de arquitectura
-solicitado antes de tocar código, y se actualizó el 2026-07-12 al completar y consolidar
-la Fase 2.
+solicitado antes de tocar código, se actualizó el 2026-07-12 al completar y consolidar la
+Fase 2, y se amplió el mismo día con la auditoría de consolidación de la sección 7 previa
+a la Fase 4.
+
+## 7. Auditoría de consolidación (Fases 1-3, previa a la Fase 4)
+
+Auditoría solicitada explícitamente por el usuario tras cerrar la Fase 3, antes de tocar
+código de la Fase 4: "congelar el estado, documentarlo y verificar que no quedaron
+dependencias ocultas". Todo lo de esta sección es diagnóstico — **no se cambió código**.
+
+### 7.1 Inventario de dependencias FastAPI restantes
+
+**Hallazgo crítico, no documentado hasta ahora**: las 3 pantallas que todavía llaman a
+FastAPI están **rotas en producción**, no solo "pendientes de migrar". La Fase 1 reemplazó
+el login por Supabase y `AuthProvider`/`SupabaseAuthRepository` nunca llaman a
+`ApiClient.setToken(...)` (ese método solo lo invoca `auth_service.dart`, que no tiene
+ningún importador real). Confirmado con grep: `setToken`/`clearToken` no se llaman desde
+ningún flujo activo. Resultado: `ApiClient.token` es `null` para absolutamente todos los
+usuarios de hoy, así que cada request de las 3 pantallas de abajo sale sin header
+`Authorization`, y `OAuth2PasswordBearer` en `backend/app/deps.py` responde `401` antes de
+ejecutar cualquier lógica. Además, aunque se reparara el token, `digital_twin.py` (el
+contexto que arma el Coach IA) consulta `WorkoutSession`/`NutritionLog`/`DailyCheckIn` **de
+la base propia de FastAPI** — tablas que dejaron de recibir escrituras reales desde la
+Fase 2, porque esos datos ahora viven en Supabase. Es decir: aunque el auth se arreglara
+tal cual está, el Coach seguiría respondiendo con el historial vacío de cualquier usuario
+que se registró o entrenó después de la Fase 1.
+
+| Archivo(s) | Motivo por el que sigue llamando a FastAPI | ¿Imprescindible? | ¿Migrable a Supabase? | Destino correcto |
+|---|---|---|---|---|
+| `lib/screens/coach/coach_chat_screen.dart`, `lib/services/coach_service.dart` → `POST /api/v1/coach/chat` | Chat con LLM (Groq), tool-calling sobre el historial. **Roto hoy: 401** (sin token) y, aunque se arreglara el auth, el contexto que arma `digital_twin.py` lee de tablas de FastAPI vacías desde la Fase 2 (los datos reales están en Supabase). | Sí — el LLM y su API key no pueden vivir en el cliente. | No aplica (no es dato de usuario, es orquestación de IA). | **Backend inteligente** — pero reescribiendo `digital_twin.py` para leer de Supabase (o recibir el contexto ya armado desde Flutter), no de la DB propia. Alcance central de la Fase 4. |
+| `lib/screens/calendar/calendar_screen.dart`, `lib/services/calendar_service.dart` → `GET /api/v1/calendar/overview` | Combina `get_deload_recommendation` (umbral sobre tonelaje semanal) + objetivos próximos + predicción de récords. **Roto hoy: 401.** | No — es 100% cálculo derivado, sin ningún dato que solo exista en el backend. | No aplica (no hay tabla que sincronizar, es agregación). | **Flutter + Drift.** `get_tonnage_history`/`predict_next_record` ya están portados en `StatsRepository` (Fase 3b) y `GoalRepository` ya expone el progreso (Fase 3a) — solo falta un repositorio pequeño que combine esos tres on-device. No es trabajo de Fase 4. |
+| `lib/screens/settings/settings_screen.dart`, `lib/services/data_transfer_service.dart` → `GET /api/v1/users/me/export`, `POST /api/v1/users/me/import` | Backup/restore de todos los datos del usuario como archivo `.json`. **Roto hoy: 401.** | No — todo el dato ya vive en Drift local (y sincronizado en Supabase). | No aplica (es transferencia de archivo, no un dominio de datos). | **Flutter + Drift.** Leer/escribir directo las tablas Drift (`Routines`, `WorkoutSessions`, `Goals`, `NutritionLogs`, `DailyCheckins`) y armar/parsear el JSON en el cliente — sin red. No es trabajo de Fase 4. |
+| `lib/core/api_client.dart`, `lib/services/auth_service.dart` | Login/registro/logout contra el JWT propio de FastAPI (`backend/app/core/security.py`, HS256 con `secret_key` del backend). Reemplazado enteramente por `SupabaseAuthRepository` en la Fase 1. | No — cero importadores reales (confirmado por grep). | Ya migrado (Fase 1). | Ninguno — es legado puro, ver 7.2. |
+| `lib/services/{goal,nutrition,recovery,routine,workout,social,stats,gamification,exercise,calculator}_service.dart` | Reemplazados por repositorios locales/Supabase en las Fases 2 y 3. | No — cero importadores reales (confirmado por grep en cada fase). | Ya migrado. | Ninguno — legado puro, ver 7.2. |
+| `backend/app/routes/v1/{auth,users,goals,nutrition,recovery,routines,workouts,social,stats,gamification,exercises,calculators}.py` y sus `services/*.py` asociados | Ningún cliente Flutter los llama ya (los de arriba). Siguen desplegados y respondiendo si alguien les pega directo con curl/Postman y un JWT propio válido — pero no hay ningún flujo de la app que hoy pueda emitir ese JWT. | No. | Ya migrado (Supabase) u on-device (Drift). | Apagar/eliminar en la Fase 5 (limpieza de CI), no antes — por la regla de "no borrar código todavía". |
+| `backend/app/routes/v1/coach.py`, `services/{llm_client,digital_twin}.py` | Única parte del backend con un propósito futuro real. | Sí. | No aplica. | **Backend inteligente**, con la reescritura de `digital_twin.py` señalada arriba. Ver propuesta de diseño en `docs/FASE_4_DISENO.md`. |
+
+### 7.2 Código legado (no se usa desde ninguna pantalla activa, no se borra todavía)
+
+| Archivo(s) | Por qué ya no se usa | Fase en la que se puede eliminar |
+|---|---|---|
+| `lib/services/auth_service.dart` | Reemplazado por `SupabaseAuthRepository`/`UnavailableAuthRepository` (Fase 1). Cero importadores. | Fase 5 (limpieza de CI) |
+| `lib/services/goal_service.dart`, `nutrition_service.dart`, `recovery_service.dart` | Reemplazados por `GoalRepository`/`NutritionRepository`/`RecoveryRepository` (Fase 2). Cero importadores — sí quedaron con `fromJson` restaurados en los modelos porque estos archivos aún necesitan compilar (ver Fase 2 en la sección 5). | Fase 5 |
+| `lib/services/routine_service.dart`, `workout_service.dart` | Reemplazados por `RoutineRepository`/`WorkoutRepository` (ya offline-first desde antes de esta migración, destino reescrito a Supabase en la Fase 2). Cero importadores. | Fase 5 |
+| `lib/services/social_service.dart` | Reemplazado por `SocialRepository` (Fase 2, contra Supabase directo). Cero importadores — sus modelos (`ChallengeSummary`/`ChallengeDetail`/`LeaderboardEntry`) mantienen `fromJson` solo porque este archivo los sigue usando para compilar. | Fase 5 |
+| `lib/services/stats_service.dart`, `gamification_service.dart`, `exercise_service.dart`, `calculator_service.dart` | Reemplazados por `StatsRepository`/`GamificationRepository`/`ExerciseRepository`/`lib/core/calculators.dart` (Fase 3b/3c). Cero importadores. | Fase 5 |
+| `lib/services/calendar_service.dart`, `data_transfer_service.dart` | Rotos hoy (401, ver 7.1) — no es que "ya no se usen", es que su pantalla los sigue llamando pero fallan. Su reemplazo (repositorio local) todavía no existe. | Se reemplazan (no se eliminan directo) en cuanto se porte su lógica a Drift — trabajo pendiente de Fase 3 tardía o inicio de Fase 5, ver 7.1 |
+| `lib/core/api_client.dart` | Sigue instanciado en `main.dart` y provisto vía `Provider<ApiClient>` porque las 3 pantallas rotas de 7.1 todavía lo piden — no se puede eliminar hasta que esas 3 pantallas se resuelvan. | Fase 5, después de resolver calendario/export/coach |
+| `backend/app/routes/v1/{auth,users,goals,nutrition,recovery,routines,workouts,social,stats,gamification,exercises,calculators}.py` + `services/*.py` asociados (`goals.py`, `recovery.py`, `social.py`, `stats.py`, `strength_standards.py`, `predictions.py`, `records.py`, `calculators.py`) | Sin ningún cliente que los llame — ver 7.1. | Fase 5 (apagar el deploy/eliminar del repo backend) |
+
+### 7.3 Flujo de datos
+
+**Flujo de datos de usuario (todo lo migrado en Fases 1-3):**
+
+```
+Usuario
+  │
+  ▼
+Flutter (pantalla)
+  │
+  ▼
+Repositorio (ProfileRepository / RoutineRepository / WorkoutRepository /
+             GoalRepository / NutritionRepository / RecoveryRepository /
+             StatsRepository / GamificationRepository / ExerciseRepository)
+  │
+  ▼
+Drift (SQLite local) — fuente de verdad inmediata, lectura/escritura offline
+  │
+  ▼ (si hay conexión: listener de conectividad o timer de respaldo cada 3h)
+SyncEngine → SyncableEntity.push(db)
+  │
+  ▼
+Supabase Postgres (RLS: auth.uid() = user_id) — respaldo + fuente para otros dispositivos
+  │
+  ▼
+Sincronización de vuelta: el mismo SyncEngine, al arrancar en otro dispositivo con la
+misma cuenta, trae lo que ya esté en Supabase hacia el Drift local de ese dispositivo.
+```
+
+Nota: `StatsRepository`/`GamificationRepository`/`ExerciseRepository`/`Calculators` no
+tienen flecha hacia Supabase — leen y calculan 100% dentro de Drift/memoria, la
+sincronización nunca participa de ese cálculo (ver sección 6).
+
+**Excepción — Social (retos):** sin paso por Drift, lectura/escritura directa:
+
+```
+Usuario → Flutter → SocialRepository → Supabase (en vivo, sin caché local)
+```
+
+**Flujo de Coach IA (diseño actual del backend, roto — ver 7.1):**
+
+```
+Usuario
+  │
+  ▼
+Flutter (CoachChatScreen)
+  │
+  ▼ (falla acá: sin token válido → 401)
+FastAPI (/api/v1/coach/chat)
+  │
+  ▼
+digital_twin.build_user_context() — lee WorkoutSession/NutritionLog/DailyCheckIn
+                                     de la base PROPIA de FastAPI (vacía/obsoleta
+                                     desde la Fase 2 para cualquier usuario real)
+  │
+  ▼
+llm_client.ask_llm() → Groq (API OpenAI-compatible, modelo llama-3.3-70b-versatile)
+  │
+  ▼
+Respuesta (con tool-calling opcional: consultar_historial)
+```
+
+El diseño propuesto para que este flujo funcione de verdad queda en
+`docs/FASE_4_DISENO.md`.
+
+### 7.4 Estado del proyecto por dominio
+
+| Dominio | Estado |
+|---|---|
+| Auth | ✅ Supabase (Fase 1) |
+| Perfil | ✅ Supabase (Fase 2) |
+| Rutinas | ✅ Supabase (Fase 2) |
+| Entrenamientos | ✅ Supabase (Fase 2) |
+| Nutrición | ✅ Supabase (Fase 2) |
+| Recovery | ✅ Supabase (Fase 2) |
+| Objetivos | ✅ Supabase (Fase 2) + progreso on-device (Fase 3a) |
+| Récords personales | ✅ On-device (ya desde antes de la Fase 2) |
+| Estadísticas | ✅ On-device (Fase 3b) |
+| Gamificación | ✅ On-device (Fase 3c) |
+| Catálogo de ejercicios | ✅ On-device (Fase 3c) |
+| Calculadoras | ✅ On-device (Fase 3c) |
+| Social (retos) | ✅ Supabase, en vivo sin caché (Fase 2, excepción acordada) |
+| Calendario inteligente | 🔴 Roto (401) — pendiente de portar a on-device, no es Fase 4 |
+| Exportar/importar datos | 🔴 Roto (401) — pendiente de portar a on-device, no es Fase 4 |
+| Coach IA / chat | 🔴 Roto (401) + contexto obsoleto — Fase 4 (diseño en `docs/FASE_4_DISENO.md`) |
+| Wearables (pasos/pulso/sueño) | ✅ On-device desde su creación (Health Connect/HealthKit, `HealthService` — nunca dependió de ningún backend) |
+| Análisis de técnica (pose) / vista 3D de ejercicios | ✅ On-device desde su creación (cámara + modelo local / assets 3D — nunca dependió de ningún backend) |
+
+Auditoría de rendimiento correspondiente: ver `docs/SEGURIDAD_Y_EFICIENCIA.md`, sección
+"Auditoría de rendimiento (Fase 3)".

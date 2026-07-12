@@ -82,6 +82,81 @@ Lo que ya está hecho se marca con ✅.
 
 ---
 
+## Auditoría de rendimiento (Fase 3, 2026-07-12)
+
+Solicitada por el usuario al cerrar la Fase 3, antes de la Fase 4. Es un informe de
+diagnóstico — **nada de esto se optimizó todavía**, son oportunidades detectadas.
+
+### Llamadas de red innecesarias
+- **Ninguna en los dominios migrados.** `StatsRepository`, `GamificationRepository`,
+  `ExerciseRepository` y `lib/core/calculators.dart` no hacen ninguna llamada de red — se
+  verificó por grep en la Fase 3c que no importan `ApiClient` ni `SupabaseClient`.
+- **Las únicas llamadas de red que sí sobran hoy** son las 3 pantallas rotas descritas en
+  `ARQUITECTURA_BACKEND.md` sección 7.1 (calendario, coach, exportar/importar) — no porque
+  sean ineficientes, sino porque fallan con 401 en cada intento.
+
+### Consultas repetidas / duplicadas
+- **`DashboardScreen._load()` consulta `workoutSessions` dos veces en la misma carga**:
+  una vez directo vía `_statsRepository.streak()`, y otra indirectamente porque
+  `_gamificationRepository.profile()` internamente vuelve a llamar
+  `StatsRepository(db).streak()` (`lib/repositories/gamification_repository.dart`, para
+  reusar `longestStreakDays` en el cálculo de XP). Ambas llamadas corren en paralelo dentro
+  del mismo `Future.wait`, así que no afecta la latencia percibida, pero sí duplica el
+  trabajo de la base local. Oportunidad: que `DashboardScreen` reciba el `streak` ya
+  calculado por `GamificationRepository.profile()` en vez de pedirlo aparte, o que
+  `StatsRepository`/`GamificationRepository` compartan un resultado memoizado por request.
+- **Cada pestaña de `StatsHubScreen`** (`MuscleAnalysisTab`, `StrengthProfileTab`,
+  `ProgressTab`, `TonnageTab`, `StrengthStandardsTab`) vuelve a leer `workoutSessions`/
+  `workoutSets`/`exercises` completas de forma independiente al construirse o al hacer
+  pull-to-refresh, aunque varias piden datos solapados (p. ej. `muscleAnalysis()` y
+  `strengthProfile()` ambas recorren todos los `workoutSets` no-calentamiento). No hay
+  ningún caché compartido entre pestañas dentro de la misma sesión de pantalla.
+
+### Sincronizaciones duplicadas
+- **No se encontró ninguna.** `SyncEngine.syncNow()` tiene un lock simple (`_syncing`) que
+  descarta llamadas concurrentes, y se dispara desde 3 fuentes (listener de conectividad,
+  timer de respaldo cada 3h, arranque de la app) sin solaparse nunca gracias a ese lock.
+- **Sí hay una oportunidad de paralelismo, no un bug**: `SyncEngine.syncNow()` recorre las
+  6 `SyncableEntity` (`Profile`, `Routine`, `WorkoutSession`, `Goal`, `Nutrition`,
+  `Recovery`) secuencialmente. El orden `Routine → WorkoutSession` importa (una sesión
+  necesita el `serverId` de su rutina), pero `Goal`/`Nutrition`/`Recovery`/`Profile` son
+  independientes entre sí y hoy corren una atrás de la otra en vez de en paralelo.
+- **`WorkoutSessionSyncable._drainPendingOps`** manda un request HTTP por cada operación
+  pendiente (`insert`/`update`/`delete` de un set), secuencialmente, en vez de agrupar
+  varias operaciones de la misma sesión en un solo round-trip. A los volúmenes típicos de
+  una sesión (10-30 sets) no es un problema real, pero es una oportunidad si en el futuro
+  se permiten sesiones con muchas más series.
+
+### Cálculos que podrían optimizarse
+- **Ningún resultado de `StatsRepository`/`GamificationRepository` se cachea.** Cada
+  llamada (`muscleAnalysis`, `strengthProfile`, `tonnage`, `streak`, `profile` de
+  gamificación) vuelve a traer las tablas completas (`workoutSessions`, `workoutSets`,
+  `exercises`, `personalRecords`) a memoria y las recorre con Dart puro — no hay
+  agregación en SQL (`SUM`/`GROUP BY` vía Drift) ni ningún acumulador incremental
+  mantenido al agregar un set. Con el volumen de datos típico de un usuario (meses de
+  entrenamiento) esto es imperceptible; con años de historial podría empezar a notarse en
+  dispositivos de gama baja. Oportunidad futura: mover las agregaciones a consultas SQL
+  (Drift soporta `sum`/`count`/`groupBy`) o mantener contadores incrementales al escribir
+  cada set, igual que ya se hace con `PersonalRecords`.
+- **`ExerciseRepository.get(id)`** decodifica el `detailJson` completo (instrucciones,
+  tips, variantes, etc.) en cada apertura de `ExerciseDetailScreen` — correcto y ya barato
+  (un solo row), sin necesidad de cambios.
+
+### Batería / memoria
+- **`SyncEngine`**: un solo listener de conectividad de por vida de la app + un
+  `Timer.periodic` de 3 horas — huella mínima, no se encontró ninguna fuga ni polling
+  agresivo.
+- **`HealthService`** (wearables): solo lee bajo pedido explícito del usuario (no hay
+  polling en background) — sin impacto de batería fuera de la sesión activa de esa
+  pantalla.
+- **Costo operativo, no de código**: el backend FastAPI sigue desplegado (hosting activo)
+  pese a que, según la sección 7.1 de `ARQUITECTURA_BACKEND.md`, ningún flujo real de la
+  app lo alcanza hoy salvo 3 pantallas rotas. No es una oportunidad de "optimizar código"
+  sino de decidir en la Fase 4/5 si se apaga, se reduce a solo lo que sostiene Coach IA, o
+  se reemplaza por una Supabase Edge Function.
+
+---
+
 ## Verificado en este proyecto (para no re-hacer)
 - ✅ Inputs validados con Pydantic; ORM SQLAlchemy (sin SQL crudo → sin inyección).
 - ✅ Passwords con bcrypt (passlib). ✅ Auth JWT. ✅ Secretos en `.env` gitignored.
