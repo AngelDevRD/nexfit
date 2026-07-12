@@ -1,9 +1,13 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/api_client.dart';
 import 'core/local/database.dart';
 import 'core/local/local_bootstrap.dart';
+import 'core/supabase_config.dart';
 import 'core/sync/entities/routine_syncable.dart';
 import 'core/sync/entities/workout_session_syncable.dart';
 import 'core/sync/sync_engine.dart';
@@ -15,7 +19,25 @@ import 'repositories/workout_repository.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/home_shell.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Fase 0 (ver docs/ARQUITECTURA_BACKEND.md): solo se inicializa el cliente,
+  // nada del flujo de auth/datos actual lo usa todavía. Si falla (sin red en
+  // el arranque, credenciales de build distintas, etc.) no debe impedir que
+  // la app arranque con el backend FastAPI de siempre.
+  try {
+    await Supabase.initialize(
+      url: SupabaseConfig.url,
+      publishableKey: SupabaseConfig.publishableKey,
+    );
+  } catch (e, st) {
+    developer.log(
+      'Supabase.initialize fallo -- no bloquea el arranque (Fase 0)',
+      error: e,
+      stackTrace: st,
+      name: 'main',
+    );
+  }
   runApp(const AppGymApp());
 }
 

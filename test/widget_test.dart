@@ -11,7 +11,7 @@ void main() {
 
       await tester.pumpWidget(const AppGymApp());
       await tester.pumpAndSettle();
-      expect(find.text('AppGym'), findsOneWidget);
+      expect(find.text('NexFit'), findsOneWidget);
       expect(find.text('Iniciar sesión'), findsOneWidget);
     },
   );

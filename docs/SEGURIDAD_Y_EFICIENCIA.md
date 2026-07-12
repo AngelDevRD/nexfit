@@ -12,9 +12,12 @@ Lo que ya está hecho se marca con ✅.
   `DATABASE_URL` del deploy después.
 - [ ] **Rotar la API key de Groq (`LLM_API_KEY`).** También se pegó en el chat. Generar
   una nueva en console.groq.com y reemplazar en `backend/.env` (ya gitignored).
-- [ ] **Activar RLS en Supabase** en las 13 tablas, sin políticas para `anon`/`authenticated`
-  (cierra la API pública PostgREST; el backend entra como `postgres` y la salta). Ver el
-  prompt que ya preparamos para la sesión con el MCP.
+- [x] **Activar RLS en Supabase** en las 13 tablas de la app — ✅ verificado 2026-07-11 vía
+  MCP de Supabase: ya estaba activo en las 13 (sin policies todavía, que se agregan en la
+  Fase 2 de `ARQUITECTURA_BACKEND.md`). Pendiente solo `public.alembic_version` (tabla
+  interna de Alembic, sin datos de usuario) — advisory `critical` por exposición vía
+  `anon key`; no se aplicó el `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` automáticamente,
+  queda a decisión del usuario.
 - [ ] **`SECRET_KEY` real en producción.** El código ya bloquea el arranque con la key
   placeholder si `ENV=production` (`backend/app/core/config.py`), pero hay que setear una
   aleatoria de 64+ chars en el entorno del deploy. ✅ gate ya implementado.

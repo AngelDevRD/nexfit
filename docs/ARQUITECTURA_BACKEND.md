@@ -35,13 +35,22 @@ Postgres (hosteado en Supabase, solo como DB gestionada)
   nutrición, recovery y social **no** están wireados al `SyncEngine` todavía: sus servicios
   llaman directo a FastAPI sin fallback local.
 - **Hallazgo clave**: el proyecto Supabase para esta app **ya existe** (`AppGym`,
-  `vywkyuuuxpovoevwdewh`, creado 2026-07-04, actualmente `INACTIVE` por inactividad —
-  confirmado vía MCP de Supabase). Hoy se usa **únicamente como Postgres gestionado**
-  detrás de SQLAlchemy (ver `SEGURIDAD_Y_EFICIENCIA.md`: "Pooler de Supabase", "Activar
-  RLS... 13 tablas"). Auth, RLS y el cliente PostgREST/Supabase **no** están en uso. Migrar
-  a "Supabase" en este proyecto no es agregar infraestructura nueva — es empezar a consumir
-  la infraestructura que ya está pagada y corriendo, en vez de solo usarla como disco duro
-  de FastAPI.
+  `vywkyuuuxpovoevwdewh`, creado 2026-07-04). Hoy se usa **únicamente como Postgres
+  gestionado** detrás de SQLAlchemy. Auth y el cliente PostgREST/Supabase **no** están en
+  uso desde el cliente. Migrar a "Supabase" en este proyecto no es agregar infraestructura
+  nueva — es empezar a consumir la infraestructura que ya está pagada y corriendo, en vez
+  de solo usarla como disco duro de FastAPI.
+  - **Corrección respecto a `SEGURIDAD_Y_EFICIENCIA.md`** (confirmado en Fase 0 vía MCP de
+    Supabase, `list_tables`/`get_advisors`): RLS **ya está activado** en las 13 tablas de la
+    app (`exercises`, `users`, `daily_checkins`, `goals`, `nutrition_logs`, `routines`,
+    `routine_days`, `routine_exercises`, `workout_sessions`, `workout_sets`,
+    `personal_records`, `challenges`, `challenge_participants`) — el checklist de
+    hardening estaba desactualizado en ese punto. Falta activarlo solo en
+    `public.alembic_version` (tabla interna de migraciones de Alembic, sin datos de
+    usuario; advisory `critical` por exposición vía `anon key`, pendiente de decisión del
+    usuario — no se aplicó automáticamente). Ninguna de las 13 tablas tiene **policies**
+    todavía (RLS activo sin policies = deniega todo por defecto), así que escribirlas es
+    trabajo real de la Fase 2, no algo ya resuelto.
 - **Coach IA** (`lib/services/coach_service.dart` → `backend/app/routes/v1/coach.py` +
   `services/llm_client.py` + `services/digital_twin.py`): el único dominio que
   genuinamente necesita un servidor — sostiene la API key de Groq y orquesta tool-calling
@@ -117,13 +126,29 @@ Componentes nuevos (a construir en la Fase 0, sin tocar pantallas todavía):
 Cada fase es desplegable y verificable por separado; ninguna deja la app en un estado
 peor que el anterior.
 
-### Fase 0 — Fundaciones (sin cambio visible para el usuario)
-- Agregar `supabase_flutter` a `pubspec.yaml`.
-- Reactivar el proyecto Supabase `AppGym` (`vywkyuuuxpovoevwdewh`, hoy `INACTIVE`) y activar
-  RLS en sus 13 tablas (pendiente ya anotado en `SEGURIDAD_Y_EFICIENCIA.md`).
-- Construir `SmartBackendAvailability` + `ComingSoonView` (sección 3), sin conectarlos
-  todavía a ninguna pantalla real.
-- **Criterio de éxito**: build verde, cero cambios de comportamiento.
+### Fase 0 — Fundaciones (sin cambio visible para el usuario) ✅ completada 2026-07-11
+- ✅ Agregado `supabase_flutter: ^2.8.0` a `pubspec.yaml` (resuelto en `2.16.0`, sin
+  conflictos con las demás dependencias).
+- ✅ Proyecto Supabase `AppGym` (`vywkyuuuxpovoevwdewh`) reactivado — estaba `INACTIVE`
+  (pausado por inactividad), ahora `ACTIVE_HEALTHY`. RLS ya estaba activo en las 13 tablas
+  (ver corrección en la sección 1); no se tocaron policies ni esquema.
+- ✅ `lib/core/supabase_config.dart`: URL y publishable key del proyecto, con override por
+  `--dart-define=SUPABASE_URL`/`SUPABASE_PUBLISHABLE_KEY` para builds de otro entorno.
+- ✅ `Supabase.initialize(...)` llamado en `main()` (`lib/main.dart`), envuelto en
+  `try/catch` — si falla, se loguea y la app sigue arrancando igual que antes. Ninguna
+  pantalla ni provider consume `Supabase.instance.client` todavía.
+- ✅ `lib/core/smart_backend_availability.dart`: `SmartBackendAvailability.isConfigured` /
+  `.baseUrl`, basado en `--dart-define=SMART_BACKEND_URL`. Sin consumidores todavía.
+- ✅ `lib/widgets/coming_soon_view.dart`: widget reusable con el texto "Próximamente"
+  acordado. Sin consumidores todavía.
+- ✅ Corregido de paso un test roto pre-existente (`test/widget_test.dart` esperaba el
+  texto `"AppGym"`, pero el rebrand a `"NexFit"` del commit `d66fb78` nunca actualizó el
+  test) — no relacionado con Supabase, detectado al correr la suite completa como
+  verificación de esta fase.
+- **Verificado**: `flutter analyze lib/` → *No issues found!* · `flutter test` → 12/12 ✅ ·
+  `flutter build apk --release` → build exitoso (47.4MB). Cero cambios de comportamiento:
+  auth, sync, y todos los servicios siguen usando exclusivamente `ApiClient`/FastAPI, tal
+  como antes de esta fase.
 
 ### Fase 1 — Auth a Supabase (desbloquea publicar ya)
 - Reemplazar `AuthService`/`AuthProvider` para usar Supabase Auth (registro, login,
@@ -177,13 +202,33 @@ peor que el anterior.
 
 | Fase | Estado | Fecha |
 |---|---|---|
-| 0 — Fundaciones | ⬜ No iniciada | — |
+| 0 — Fundaciones | ✅ Completada | 2026-07-11 |
 | 1 — Auth a Supabase | ⬜ No iniciada | — |
 | 2 — Dominios de datos a Supabase | ⬜ No iniciada | — |
 | 3 — Dominios on-device | ⬜ No iniciada | — |
 | 4 — Backend inteligente aislado | ⬜ No iniciada | — |
 | 5 — Cutover de CI y limpieza | ⬜ No iniciada | — |
 
+### 5.1 Qué depende todavía del backend FastAPI (sin cambios en esta fase)
+
+Todo lo funcional: auth completa, rutinas, entrenamientos, objetivos, nutrición, recovery,
+social, calendario, exportación de datos y Coach IA siguen pasando 100% por
+`ApiClient`/`http://10.0.2.2:8000` (o `API_BASE_URL` si se pasa por build), exactamente
+igual que antes de la Fase 0. La Fase 0 no desactiva ni redirige ninguna llamada existente.
+
+### 5.2 Qué se migra en la Fase 1 (siguiente paso, no iniciado)
+
+Únicamente `AuthService`/`AuthProvider`/`lib/services/auth_service.dart` → Supabase Auth
+(registro, login, recuperar contraseña). Nada más se toca en la Fase 1.
+
+### 5.3 Componentes ya listos para usar en fases siguientes
+
+- `Supabase.instance.client` — cliente global disponible en toda la app desde `main()`.
+- `SupabaseConfig.url` / `SupabaseConfig.publishableKey` — para cualquier código que
+  necesite las credenciales del proyecto.
+- `SmartBackendAvailability.isConfigured` / `.baseUrl` — para gatear Coach IA en la Fase 4.
+- `ComingSoonView` (`lib/widgets/coming_soon_view.dart`) — para reemplazar cualquier
+  pantalla que dependa del backend inteligente mientras no esté configurado o falle.
+
 Este documento se creó el 2026-07-11 como resultado del análisis de arquitectura
-solicitado antes de tocar código. Ningún archivo de `lib/` ni `backend/` fue modificado
-para producir este plan.
+solicitado antes de tocar código, y se actualizó el mismo día al completar la Fase 0.
