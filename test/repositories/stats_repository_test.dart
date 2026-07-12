@@ -194,4 +194,74 @@ void main() {
 
     expect(await repo.recordPrediction(1), null);
   });
+
+  test(
+    'deloadRecommendation recomienda descarga cuando el volumen reciente supera el baseline x1.3',
+    () async {
+      await addExercise(1, 'sentadilla', 'legs');
+      // Baseline: semanas -4, -3, -2 con 1000kg de volumen cada una.
+      for (final weeksAgo in [4, 3, 2]) {
+        final session = await addSession(
+          DateTime.now().subtract(Duration(days: 7 * weeksAgo)),
+        );
+        await addSet(session, 1, 100, 10);
+      }
+      // Reciente: semanas -1 y actual con 2000kg de volumen cada una.
+      for (final weeksAgo in [1, 0]) {
+        final session = await addSession(
+          DateTime.now().subtract(Duration(days: 7 * weeksAgo)),
+        );
+        await addSet(session, 1, 200, 10);
+      }
+
+      final deload = await repo.deloadRecommendation();
+      expect(deload.recommended, true);
+    },
+  );
+
+  test(
+    'deloadRecommendation no recomienda descarga sin historial de tonelaje',
+    () async {
+      final deload = await repo.deloadRecommendation();
+      expect(deload.recommended, false);
+    },
+  );
+
+  test(
+    'upcomingRecordPredictions incluye solo ejercicios con historial suficiente',
+    () async {
+      await addExercise(1, 'press-banca', 'chest');
+      await addExercise(2, 'sentadilla', 'legs');
+
+      // Ejercicio 1: 3 PRs -> predicción válida.
+      final start = DateTime.now().subtract(const Duration(days: 60));
+      for (var i = 0; i < 3; i++) {
+        await db
+            .into(db.personalRecords)
+            .insert(
+              local.PersonalRecordsCompanion.insert(
+                exerciseId: const Value(1),
+                recordType: 'max_weight',
+                value: 80.0 + i * 5,
+                achievedAt: start.add(Duration(days: 30 * i)),
+              ),
+            );
+      }
+      // Ejercicio 2: 1 solo PR -> sin predicción.
+      await db
+          .into(db.personalRecords)
+          .insert(
+            local.PersonalRecordsCompanion.insert(
+              exerciseId: const Value(2),
+              recordType: 'max_weight',
+              value: 100.0,
+              achievedAt: DateTime.now(),
+            ),
+          );
+
+      final predictions = await repo.upcomingRecordPredictions();
+      expect(predictions, hasLength(1));
+      expect(predictions.single.exerciseId, 1);
+    },
+  );
 }

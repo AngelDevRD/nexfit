@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../core/local/database.dart' as local;
+import '../models/calendar.dart';
 import '../models/stats.dart';
 
 /// Umbrales de fuerza relativa por ejercicio/sexo -- portado tal cual de
@@ -416,6 +417,57 @@ class StatsRepository {
       predictedKg: _round(predicted, 1),
       weeksAhead: weeksAhead,
       dataPoints: n,
+    );
+  }
+
+  /// Espejo de `get_upcoming_record_predictions` en
+  /// `backend/app/services/calendar.py`: una predicción por cada ejercicio
+  /// del perfil de fuerza actual, descartando los que no tienen histórico
+  /// suficiente.
+  Future<List<RecordPrediction>> upcomingRecordPredictions({
+    int weeksAhead = 8,
+  }) async {
+    final profile = await strengthProfile();
+    final predictions = <RecordPrediction>[];
+    for (final entry in profile.maxStrengthByExercise) {
+      final prediction = await recordPrediction(
+        entry.exerciseId,
+        weeksAhead: weeksAhead,
+      );
+      if (prediction != null) predictions.add(prediction);
+    }
+    return predictions;
+  }
+
+  /// Espejo de `get_deload_recommendation` en
+  /// `backend/app/services/calendar.py`: compara el tonelaje promedio de las
+  /// últimas 2 semanas contra el de las 3 semanas previas (mismo umbral
+  /// x1.3).
+  Future<DeloadRecommendation> deloadRecommendation() async {
+    final history = await tonnage(period: 'week', periods: 5);
+    final values = history.map((t) => t.totalTonnageKg).toList();
+
+    final baseline = values.sublist(0, 3);
+    final recent = values.sublist(3);
+    final baselineAvg = baseline.isNotEmpty
+        ? baseline.reduce((a, b) => a + b) / baseline.length
+        : 0.0;
+    final recentAvg = recent.isNotEmpty
+        ? recent.reduce((a, b) => a + b) / recent.length
+        : 0.0;
+
+    if (baselineAvg > 0 && recentAvg > baselineAvg * 1.3) {
+      return DeloadRecommendation(
+        recommended: true,
+        reason:
+            'Tu volumen de entrenamiento viene en aumento sostenido las '
+            'últimas semanas. Considerá una semana de descarga para '
+            'favorecer la recuperación.',
+      );
+    }
+    return DeloadRecommendation(
+      recommended: false,
+      reason: 'Tu volumen reciente está dentro de un rango normal.',
     );
   }
 }

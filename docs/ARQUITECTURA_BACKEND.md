@@ -350,7 +350,7 @@ terminar con login en Supabase, perfil en FastAPI y rutinas en Supabase al mismo
 | 3b — Estadísticas (`stats_service.dart`) | ✅ Completada | 2026-07-12 |
 | 3c — Gamificación + catálogo de ejercicios + calculadoras | ✅ Completada | 2026-07-12 |
 | 4 — Backend inteligente aislado | ✅ Completada (backend + integración Flutter) | 2026-07-12 |
-| 5 — Cutover de CI y limpieza | ⬜ No iniciada | — |
+| 5 — Cutover de CI y limpieza | 🟡 En progreso — Bloque 1 (migrar calendario + export/import) completado; Bloque 2 (eliminar `ApiClient`/`*_service.dart`/CI) pendiente | Bloque 1: 2026-07-12 |
 
 ### 5.1 Qué ya usa Supabase
 
@@ -559,10 +559,10 @@ poder entender la arquitectura actual leyendo solo esta sección.
   `docs/COACH_SYSTEM_PROMPT.md`). El cliente arma todo el `CoachContext` — el backend
   solo valida el JWT de Supabase, aplica rate limiting, antepone el system prompt y llama
   al `LLMProvider` activo (`GroqProvider` hoy, intercambiable sin tocar endpoints).
-- **Calendario y exportación/importación de datos** (`calendar_service.dart`,
-  `data_transfer_service.dart`): siguen **rotos** (ver 7.1) — su destino no es este
-  backend, son cálculo derivado y transferencia de archivo local respectivamente,
-  pendientes de portar al cliente (fuera del alcance de la Fase 4).
+- **Calendario y exportación/importación de datos**: estaban **rotos** al momento de esta
+  auditoría (ver 7.1) — su destino nunca fue este backend, eran cálculo derivado y
+  transferencia de archivo local respectivamente. Portados a Flutter/Drift en la Fase 5,
+  Bloque 1 (2026-07-12) — ver actualización al final de esta sección.
 - El resto de FastAPI legado (`backend/app/`) permanece intacto en el repo, sin borrar
   nada, pero **orbita sin ningún cliente real** — ver el inventario completo en 7.1;
   apagado/limpieza queda para la Fase 5.
@@ -614,8 +614,8 @@ que se registró o entrenó después de la Fase 1.
 | `lib/services/routine_service.dart`, `workout_service.dart` | Reemplazados por `RoutineRepository`/`WorkoutRepository` (ya offline-first desde antes de esta migración, destino reescrito a Supabase en la Fase 2). Cero importadores. | Fase 5 |
 | `lib/services/social_service.dart` | Reemplazado por `SocialRepository` (Fase 2, contra Supabase directo). Cero importadores — sus modelos (`ChallengeSummary`/`ChallengeDetail`/`LeaderboardEntry`) mantienen `fromJson` solo porque este archivo los sigue usando para compilar. | Fase 5 |
 | `lib/services/stats_service.dart`, `gamification_service.dart`, `exercise_service.dart`, `calculator_service.dart` | Reemplazados por `StatsRepository`/`GamificationRepository`/`ExerciseRepository`/`lib/core/calculators.dart` (Fase 3b/3c). Cero importadores. | Fase 5 |
-| `lib/services/calendar_service.dart`, `data_transfer_service.dart` | Rotos hoy (401, ver 7.1) — no es que "ya no se usen", es que su pantalla los sigue llamando pero fallan. Su reemplazo (repositorio local) todavía no existe. | Se reemplazan (no se eliminan directo) en cuanto se porte su lógica a Drift — trabajo pendiente de Fase 3 tardía o inicio de Fase 5, ver 7.1 |
-| `lib/core/api_client.dart` | Sigue instanciado en `main.dart` y provisto vía `Provider<ApiClient>` porque las 3 pantallas rotas de 7.1 todavía lo piden — no se puede eliminar hasta que esas 3 pantallas se resuelvan. | Fase 5, después de resolver calendario/export/coach |
+| ~~`lib/services/calendar_service.dart`, `data_transfer_service.dart`~~ | **Ya eliminados** (Fase 5, Bloque 1, 2026-07-12) — reemplazados por `StatsRepository.deloadRecommendation()`/`upcomingRecordPredictions()` + `GoalRepository.list()` (calendario) y `DataExportService`/`DataImportService` (export/import), ambos on-device contra Drift. Confirmado con grep antes de borrar: cero importadores fuera de sus pantallas. | — (ya resuelto) |
+| `lib/core/api_client.dart` | Ya no lo pide ninguna pantalla activa (calendario y export/import se resolvieron arriba; Coach IA usa `CoachGateway`/`HttpCoachGateway` desde la Fase 4). Sigue instanciado en `main.dart` y provisto vía `Provider<ApiClient>` solo porque los `*_service.dart` legado de 7.2 aún lo importan para compilar. | Fase 5, Bloque 2 (junto con los `*_service.dart` legado) |
 | `backend/app/routes/v1/{auth,users,goals,nutrition,recovery,routines,workouts,social,stats,gamification,exercises,calculators}.py` + `services/*.py` asociados (`goals.py`, `recovery.py`, `social.py`, `stats.py`, `strength_standards.py`, `predictions.py`, `records.py`, `calculators.py`) | Sin ningún cliente que los llame — ver 7.1. | Fase 5 (apagar el deploy/eliminar del repo backend) |
 
 ### 7.3 Flujo de datos
@@ -700,8 +700,8 @@ El diseño propuesto para que este flujo funcione de verdad queda en
 | Catálogo de ejercicios | ✅ On-device (Fase 3c) |
 | Calculadoras | ✅ On-device (Fase 3c) |
 | Social (retos) | ✅ Supabase, en vivo sin caché (Fase 2, excepción acordada) |
-| Calendario inteligente | 🔴 Roto (401) — pendiente de portar a on-device, no es Fase 4 |
-| Exportar/importar datos | 🔴 Roto (401) — pendiente de portar a on-device, no es Fase 4 |
+| Calendario inteligente | ✅ On-device — `StatsRepository.deloadRecommendation()`/`upcomingRecordPredictions()` + `GoalRepository.list()` (Fase 5, Bloque 1, 2026-07-12) |
+| Exportar/importar datos | ✅ On-device — `DataExportService`/`DataImportService` leyendo/escribiendo Drift directo (Fase 5, Bloque 1, 2026-07-12) |
 | Coach IA / chat | ✅ Backend inteligente (`backend_ia/`) + `CoachContextBuilder`/`CoachRepository`/`CoachGateway` en Flutter (Fase 4, completada 2026-07-12) |
 | Wearables (pasos/pulso/sueño) | ✅ On-device desde su creación (Health Connect/HealthKit, `HealthService` — nunca dependió de ningún backend) |
 | Análisis de técnica (pose) / vista 3D de ejercicios | ✅ On-device desde su creación (cámara + modelo local / assets 3D — nunca dependió de ningún backend) |
