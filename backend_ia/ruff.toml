@@ -1,0 +1,18 @@
+# Misma politica que ../ruff.toml (AG-CORE-001/006), en formato standalone
+# porque el root ruff.toml esta escrito como fragmento de pyproject.toml
+# ([tool.ruff]) y no parsea como archivo standalone -- fuera de alcance de
+# esta fase tocarlo (backend_ia/ es un proyecto nuevo e independiente).
+
+target-version = "py311"
+line-length = 100
+exclude = [".git", ".venv", "venv", "__pycache__"]
+
+[lint]
+select = ["E", "W", "F", "I", "B", "T20", "S", "UP", "RUF"]
+ignore = ["E501", "S101", "S104", "B008"]
+
+[lint.per-file-ignores]
+"tests/**/*.py" = ["T201", "S101"]
+
+[lint.isort]
+known-first-party = ["app"]

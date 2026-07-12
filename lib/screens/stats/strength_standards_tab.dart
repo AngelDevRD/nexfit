@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/api_client.dart';
 import '../../core/theme.dart';
 import '../../models/exercise.dart';
 import '../../models/stats.dart';
-import '../../services/stats_service.dart';
+import '../../repositories/stats_repository.dart';
 import '../exercises/exercise_picker_screen.dart';
 
 class StrengthStandardsTab extends StatefulWidget {
@@ -34,11 +33,11 @@ class _StrengthStandardsTabState extends State<StrengthStandardsTab> {
       _standard = null;
       _prediction = null;
     });
-    final service = StatsService(context.read<ApiClient>());
+    final repo = context.read<StatsRepository>();
     try {
       final results = await Future.wait([
-        service.strengthStandards(exercise.id),
-        service.recordPrediction(exercise.id),
+        repo.strengthStandards(exercise.id),
+        repo.recordPrediction(exercise.id),
       ]);
       setState(() {
         _standard = results[0] as StrengthStandard?;

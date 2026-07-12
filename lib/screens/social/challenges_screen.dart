@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/api_client.dart';
 import '../../core/theme.dart';
 import '../../models/social.dart';
-import '../../services/social_service.dart';
+import '../../repositories/social_repository.dart';
 import 'challenge_detail_screen.dart';
 
 class ChallengesScreen extends StatefulWidget {
@@ -15,7 +14,7 @@ class ChallengesScreen extends StatefulWidget {
 }
 
 class _ChallengesScreenState extends State<ChallengesScreen> {
-  late final SocialService _service;
+  SocialRepository? _repository;
   List<ChallengeSummary> _challenges = [];
   bool _loading = true;
   String? _error;
@@ -23,17 +22,25 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
   @override
   void initState() {
     super.initState();
-    _service = SocialService(context.read<ApiClient>());
+    _repository = context.read<SocialRepository?>();
     _load();
   }
 
   Future<void> _load() async {
+    final repository = _repository;
+    if (repository == null) {
+      setState(() {
+        _loading = false;
+        _error = 'Servicio social no disponible en este momento.';
+      });
+      return;
+    }
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      final challenges = await _service.listMine();
+      final challenges = await repository.listMine();
       if (!mounted) return;
       setState(() {
         _challenges = challenges;
@@ -48,7 +55,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
     }
   }
 
-  Future<void> _openDetail(int id) async {
+  Future<void> _openDetail(String id) async {
     final changed = await Navigator.of(context).push<bool>(
       MaterialPageRoute(builder: (_) => ChallengeDetailScreen(challengeId: id)),
     );
@@ -83,11 +90,11 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
         ],
       ),
     );
-    if (code == null || code.isEmpty) return;
+    if (code == null || code.isEmpty || _repository == null) return;
     try {
-      final joined = await _service.join(code);
+      final joinedId = await _repository!.join(code);
       if (!mounted) return;
-      await _openDetail(joined.id);
+      await _openDetail(joinedId);
       _load();
     } catch (e) {
       if (!mounted) return;
@@ -331,7 +338,7 @@ class _CreateChallengeScreenState extends State<_CreateChallengeScreen> {
     }
     setState(() => _saving = true);
     try {
-      await SocialService(context.read<ApiClient>()).create(
+      await context.read<SocialRepository?>()!.create(
         name: _nameController.text.trim(),
         description: _descController.text.trim().isEmpty
             ? null

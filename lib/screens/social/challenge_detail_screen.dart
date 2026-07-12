@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/api_client.dart';
 import '../../core/theme.dart';
 import '../../models/social.dart';
-import '../../services/social_service.dart';
+import '../../repositories/social_repository.dart';
 
 class ChallengeDetailScreen extends StatefulWidget {
-  final int challengeId;
+  final String challengeId;
 
   const ChallengeDetailScreen({super.key, required this.challengeId});
 
@@ -17,7 +16,7 @@ class ChallengeDetailScreen extends StatefulWidget {
 }
 
 class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
-  late final SocialService _service;
+  SocialRepository? _repository;
   ChallengeDetail? _challenge;
   String? _error;
   bool _loading = true;
@@ -25,17 +24,25 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _service = SocialService(context.read<ApiClient>());
+    _repository = context.read<SocialRepository?>();
     _load();
   }
 
   Future<void> _load() async {
+    final repository = _repository;
+    if (repository == null) {
+      setState(() {
+        _loading = false;
+        _error = 'Servicio social no disponible en este momento.';
+      });
+      return;
+    }
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      final detail = await _service.detail(widget.challengeId);
+      final detail = await repository.detail(widget.challengeId);
       if (!mounted) return;
       setState(() {
         _challenge = detail;
@@ -78,9 +85,9 @@ class _ChallengeDetailScreenState extends State<ChallengeDetailScreen> {
     if (confirmed != true) return;
     try {
       if (isOwner) {
-        await _service.remove(challenge.id);
+        await _repository!.remove(challenge.id);
       } else {
-        await _service.leave(challenge.id);
+        await _repository!.leave(challenge.id);
       }
       if (!mounted) return;
       Navigator.of(context).pop(true);

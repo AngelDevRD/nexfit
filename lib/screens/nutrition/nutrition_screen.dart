@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/api_client.dart';
 import '../../core/theme.dart';
 import '../../models/nutrition.dart';
-import '../../services/nutrition_service.dart';
+import '../../repositories/nutrition_repository.dart';
 
 class NutritionScreen extends StatefulWidget {
   const NutritionScreen({super.key});
@@ -15,7 +14,7 @@ class NutritionScreen extends StatefulWidget {
 }
 
 class _NutritionScreenState extends State<NutritionScreen> {
-  late final NutritionService _service;
+  late final NutritionRepository _repository;
   List<NutritionLog> _logs = [];
   bool _loading = true;
   final _dateFormat = DateFormat('dd/MM/yyyy');
@@ -30,13 +29,13 @@ class _NutritionScreenState extends State<NutritionScreen> {
   @override
   void initState() {
     super.initState();
-    _service = NutritionService(context.read<ApiClient>());
+    _repository = context.read<NutritionRepository>();
     _load();
   }
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final logs = await _service.list();
+    final logs = await _repository.list();
     setState(() {
       _logs = logs;
       _loading = false;
@@ -45,7 +44,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
 
   Future<void> _save() async {
     setState(() => _saving = true);
-    await _service.upsert({
+    await _repository.upsert({
       'log_date': DateTime.now().toIso8601String().split('T').first,
       'calories': double.tryParse(_caloriesController.text) ?? 0,
       'protein_g': double.tryParse(_proteinController.text) ?? 0,

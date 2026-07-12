@@ -1,66 +1,101 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
-import '../core/api_client.dart';
-import '../core/api_exception.dart';
+import '../core/auth/auth_repository.dart';
+import '../models/profile.dart';
 import '../models/user.dart';
-import '../services/auth_service.dart';
+import '../repositories/profile_repository.dart';
 
-enum AuthStatus { unknown, authenticated, unauthenticated }
+export '../core/auth/auth_repository.dart' show AuthStatus;
 
 class AuthProvider extends ChangeNotifier {
-  final ApiClient client;
-  late final AuthService authService;
+  final AuthRepository _authRepository;
+
+  // Fase 2 (ver docs/ARQUITECTURA_BACKEND.md): el perfil extendido (edad,
+  // sexo, altura, peso, objetivo, experiencia) ya no depende de FastAPI --
+  // vive en su propio dominio offline-first (Drift + Supabase), separado de
+  // la identidad/sesión que maneja este provider. `AuthProvider` solo lo
+  // combina con `AppUser` para no tener que tocar `profile_screen.dart`.
+  final ProfileRepository _profileRepository;
+
+  StreamSubscription<AuthStatus>? _authStateSub;
 
   AuthStatus status = AuthStatus.unknown;
   AppUser? user;
   String? error;
 
-  AuthProvider(this.client) {
-    authService = AuthService(client);
+  AuthProvider(this._authRepository, this._profileRepository) {
+    _authStateSub = _authRepository.authStateChanges.listen((newStatus) async {
+      status = newStatus;
+      await _refreshUser();
+      notifyListeners();
+    });
   }
 
   Future<void> tryAutoLogin() async {
-    final token = await client.token;
-    if (token == null) {
-      status = AuthStatus.unauthenticated;
-      notifyListeners();
-      return;
-    }
-    try {
-      user = await authService.me();
-      status = AuthStatus.authenticated;
-    } on ApiException catch (e) {
-      // El servidor rechazo explicitamente el token (401/403) -> invalido.
-      // Cualquier otro error (sin conexion, timeout, DNS) no lo invalida:
-      // se sigue offline con el token cacheado, sin loguear al usuario.
-      if (e.statusCode == 401 || e.statusCode == 403) {
-        await client.clearToken();
-        status = AuthStatus.unauthenticated;
-      } else {
-        status = AuthStatus.authenticated;
-      }
-    } catch (_) {
-      status = AuthStatus.authenticated;
-    }
+    status = await _authRepository.restoreSession();
+    await _refreshUser();
     notifyListeners();
   }
 
   Future<bool> login(String email, String password) => _run(() async {
-    await authService.login(email, password);
-    user = await authService.me();
+    await _authRepository.login(email: email, password: password);
     status = AuthStatus.authenticated;
+    await _refreshUser();
   });
 
   Future<bool> register(String email, String password, String name) =>
       _run(() async {
-        await authService.register(email, password, name);
-        user = await authService.me();
-        status = AuthStatus.authenticated;
+        await _authRepository.register(
+          email: email,
+          password: password,
+          name: name,
+        );
+        // Si el proyecto Supabase exige confirmar el email, signUp no deja
+        // sesión activa todavía -- currentUser será null hasta que el
+        // usuario confirme y haga login.
+        status = _authRepository.currentUser != null
+            ? AuthStatus.authenticated
+            : AuthStatus.unauthenticated;
+        await _refreshUser();
       });
 
+  Future<bool> resetPassword(String email) =>
+      _run(() => _authRepository.resetPassword(email: email));
+
+  /// Perfil extendido -- ver nota en el campo `_profileRepository`. Escribe
+  /// local (offline-first); `ProfileSyncable` sube el cambio cuando haya
+  /// conexión.
   Future<bool> updateProfile(Map<String, dynamic> fields) => _run(() async {
-    user = await authService.updateProfile(fields);
+    final identity = _authRepository.currentUser;
+    if (identity == null) throw StateError('No hay sesión activa');
+    await _profileRepository.upsert(identity.id, identity.name, fields);
+    await _refreshUser();
   });
+
+  Future<void> _refreshUser() async {
+    final identity = _authRepository.currentUser;
+    if (identity == null) {
+      user = null;
+      return;
+    }
+    final profile = await _profileRepository.get(identity.id);
+    user = _merge(identity, profile);
+  }
+
+  AppUser _merge(AppUser identity, Profile? profile) => AppUser(
+    id: identity.id,
+    email: identity.email,
+    name: identity.name,
+    age: profile?.age,
+    sex: profile?.sex,
+    heightCm: profile?.heightCm,
+    weightKg: profile?.weightKg,
+    bodyFatPct: profile?.bodyFatPct,
+    goal: profile?.goal,
+    experienceLevel: profile?.experienceLevel,
+  );
 
   Future<bool> _run(Future<void> Function() action) async {
     error = null;
@@ -76,9 +111,15 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    await authService.logout();
+    await _authRepository.logout();
     user = null;
     status = AuthStatus.unauthenticated;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _authStateSub?.cancel();
+    super.dispose();
   }
 }

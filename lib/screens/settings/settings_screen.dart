@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
-import '../../core/api_client.dart';
+import '../../core/local/database.dart';
 import '../../core/theme.dart';
 import '../../features/import_export/export_screen.dart';
 import '../../features/import_export/import_preview_screen.dart';
 import '../../providers/theme_provider.dart';
-import '../../services/data_transfer_service.dart';
+import '../../services/data_export_service.dart';
+import '../../services/data_import_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -21,7 +23,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _export() async {
     setState(() => _working = true);
     try {
-      await DataTransferService(context.read<ApiClient>()).exportAll();
+      final email = sb.Supabase.instance.client.auth.currentUser?.email;
+      await DataExportService(
+        context.read<AppDatabase>(),
+        userEmail: email,
+      ).exportAll();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -34,7 +40,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _import() async {
-    final apiClient = context.read<ApiClient>();
+    final db = context.read<AppDatabase>();
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -61,7 +67,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     setState(() => _working = true);
     try {
-      final summary = await DataTransferService(apiClient).importAll();
+      final summary = await DataImportService(db).importAll();
       if (!mounted) return;
       if (summary == null) return;
       ScaffoldMessenger.of(context).showSnackBar(

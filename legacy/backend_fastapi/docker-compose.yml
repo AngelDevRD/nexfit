@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: appgym
+      POSTGRES_PASSWORD: appgym
+      POSTGRES_DB: appgym
+    ports:
+      - "5432:5432"
+    volumes:
+      - appgym_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appgym"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: .
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://appgym:appgym@db:5432/appgym
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+
+volumes:
+  appgym_db_data:

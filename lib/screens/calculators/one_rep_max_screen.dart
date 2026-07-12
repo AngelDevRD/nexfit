@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
-import '../../core/api_client.dart';
+import '../../core/calculators.dart';
 import '../../core/theme.dart';
-import '../../services/calculator_service.dart';
 
 class OneRepMaxScreen extends StatefulWidget {
   const OneRepMaxScreen({super.key});
@@ -23,11 +21,8 @@ class _OneRepMaxScreenState extends State<OneRepMaxScreen> {
     final reps = int.tryParse(_repsController.text);
     if (weight == null || reps == null) return;
     setState(() => _loading = true);
-    final data = await CalculatorService(
-      context.read<ApiClient>(),
-    ).oneRepMax(weight, reps);
     setState(() {
-      _result = (data['estimated_1rm_kg'] as num).toDouble();
+      _result = Calculators.oneRepMax(weight, reps);
       _loading = false;
     });
   }

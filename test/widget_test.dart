@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:appgym/core/auth/unavailable_auth_repository.dart';
 import 'package:appgym/main.dart';
 
 void main() {
@@ -9,9 +10,14 @@ void main() {
     (WidgetTester tester) async {
       SharedPreferences.setMockInitialValues({});
 
-      await tester.pumpWidget(const AppGymApp());
+      await tester.pumpWidget(
+        const AppGymApp(
+          authRepository: UnavailableAuthRepository(),
+          supabaseClient: null,
+        ),
+      );
       await tester.pumpAndSettle();
-      expect(find.text('AppGym'), findsOneWidget);
+      expect(find.text('NexFit'), findsOneWidget);
       expect(find.text('Iniciar sesión'), findsOneWidget);
     },
   );

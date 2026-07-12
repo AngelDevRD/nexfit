@@ -1,5 +1,5 @@
 class LeaderboardEntry {
-  final int userId;
+  final String userId;
   final String name;
   final double value;
   final int rank;
@@ -12,19 +12,10 @@ class LeaderboardEntry {
     required this.rank,
     required this.isMe,
   });
-
-  factory LeaderboardEntry.fromJson(Map<String, dynamic> json) =>
-      LeaderboardEntry(
-        userId: json['user_id'],
-        name: json['name'],
-        value: (json['value'] as num).toDouble(),
-        rank: json['rank'],
-        isMe: json['is_me'],
-      );
 }
 
 class ChallengeSummary {
-  final int id;
+  final String id;
   final String name;
   final String metric;
   final DateTime startsOn;
@@ -43,18 +34,6 @@ class ChallengeSummary {
     required this.participantCount,
     required this.isOwner,
   });
-
-  factory ChallengeSummary.fromJson(Map<String, dynamic> json) =>
-      ChallengeSummary(
-        id: json['id'],
-        name: json['name'],
-        metric: json['metric'],
-        startsOn: DateTime.parse(json['starts_on']),
-        endsOn: DateTime.parse(json['ends_on']),
-        inviteCode: json['invite_code'],
-        participantCount: json['participant_count'],
-        isOwner: json['is_owner'],
-      );
 }
 
 class ChallengeDetail extends ChallengeSummary {
@@ -73,22 +52,6 @@ class ChallengeDetail extends ChallengeSummary {
     required this.description,
     required this.leaderboard,
   });
-
-  factory ChallengeDetail.fromJson(Map<String, dynamic> json) =>
-      ChallengeDetail(
-        id: json['id'],
-        name: json['name'],
-        metric: json['metric'],
-        startsOn: DateTime.parse(json['starts_on']),
-        endsOn: DateTime.parse(json['ends_on']),
-        inviteCode: json['invite_code'],
-        participantCount: json['participant_count'],
-        isOwner: json['is_owner'],
-        description: json['description'],
-        leaderboard: (json['leaderboard'] as List)
-            .map((e) => LeaderboardEntry.fromJson(e))
-            .toList(),
-      );
 }
 
 /// Metricas disponibles al crear un reto (value backend -> etiqueta ES + unidad).

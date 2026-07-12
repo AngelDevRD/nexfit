@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/api_client.dart';
 import '../../core/theme.dart';
 import '../../models/exercise.dart';
 import '../../models/goal.dart';
-import '../../services/goal_service.dart';
+import '../../repositories/goal_repository.dart';
 import '../exercises/exercise_picker_screen.dart';
 
 class GoalsScreen extends StatefulWidget {
@@ -16,20 +15,20 @@ class GoalsScreen extends StatefulWidget {
 }
 
 class _GoalsScreenState extends State<GoalsScreen> {
-  late final GoalService _service;
+  late final GoalRepository _repository;
   List<Goal> _goals = [];
   bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _service = GoalService(context.read<ApiClient>());
+    _repository = context.read<GoalRepository>();
     _load();
   }
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final goals = await _service.list();
+    final goals = await _repository.list();
     setState(() {
       _goals = goals;
       _loading = false;
@@ -88,7 +87,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                         return _GoalCard(
                           goal: goal,
                           onDelete: () async {
-                            await _service.delete(goal.id);
+                            await _repository.delete(goal.id);
                             _load();
                           },
                         );
@@ -209,7 +208,7 @@ class _CreateGoalDialogState extends State<_CreateGoalDialog> {
       _error = null;
     });
     try {
-      await GoalService(context.read<ApiClient>()).create({
+      await context.read<GoalRepository>().create({
         'title': _titleController.text.trim(),
         'metric': _metric,
         if (_exercise != null) 'exercise_id': _exercise!.id,

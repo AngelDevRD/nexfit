@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/api_client.dart';
 import '../../core/theme.dart';
 import '../../features/exercise_3d/exercise_3d_view.dart';
 import '../../models/exercise.dart';
-import '../../services/exercise_service.dart';
+import '../../repositories/exercise_repository.dart';
 import '../../widgets/exercise_thumb.dart';
 
 class ExerciseDetailScreen extends StatefulWidget {
@@ -24,7 +23,8 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   @override
   void initState() {
     super.initState();
-    ExerciseService(context.read<ApiClient>())
+    context
+        .read<ExerciseRepository>()
         .get(widget.exerciseId)
         .then((e) => setState(() => _exercise = e))
         .catchError((e) => setState(() => _error = e.toString()));

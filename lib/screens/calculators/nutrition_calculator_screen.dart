@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
-import '../../core/api_client.dart';
+import '../../core/calculators.dart';
 import '../../core/theme.dart';
 import '../../models/user.dart';
-import '../../services/calculator_service.dart';
 
 class NutritionCalculatorScreen extends StatefulWidget {
   const NutritionCalculatorScreen({super.key});
@@ -22,7 +20,7 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
   String _activityLevel = 'moderate';
   String _goal = 'hypertrophy';
   bool _loading = false;
-  Map<String, dynamic>? _result;
+  Map<String, double>? _result;
 
   Future<void> _calculate() async {
     final weight = double.tryParse(_weightController.text);
@@ -30,16 +28,15 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
     final age = int.tryParse(_ageController.text);
     if (weight == null || height == null || age == null) return;
     setState(() => _loading = true);
-    final result = await CalculatorService(context.read<ApiClient>()).nutrition(
-      weightKg: weight,
-      heightCm: height,
-      age: age,
-      sex: _sex,
-      activityLevel: _activityLevel,
-      goal: _goal,
-    );
     setState(() {
-      _result = result;
+      _result = Calculators.nutrition(
+        weightKg: weight,
+        heightCm: height,
+        age: age,
+        sex: _sex,
+        activityLevel: _activityLevel,
+        goal: _goal,
+      );
       _loading = false;
     });
   }
@@ -144,27 +141,27 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
             const SizedBox(height: AppSpacing.md),
             _ResultRow(
               label: 'Calorías objetivo',
-              value: '${_result!['target_calories']} kcal',
+              value: '${_result!['target_calories']!.toStringAsFixed(0)} kcal',
               accent: AppColors.primary,
             ),
             _ResultRow(
               label: 'Proteínas',
-              value: '${_result!['protein_g']} g',
+              value: '${_result!['protein_g']!.toStringAsFixed(0)} g',
               accent: AppColors.secondary,
             ),
             _ResultRow(
               label: 'Carbohidratos',
-              value: '${_result!['carbs_g']} g',
+              value: '${_result!['carbs_g']!.toStringAsFixed(0)} g',
               accent: AppColors.tertiary,
             ),
             _ResultRow(
               label: 'Grasas',
-              value: '${_result!['fat_g']} g',
+              value: '${_result!['fat_g']!.toStringAsFixed(0)} g',
               accent: AppColors.warning,
             ),
             _ResultRow(
               label: 'Agua',
-              value: '${_result!['water_ml']} ml',
+              value: '${_result!['water_ml']!.toStringAsFixed(0)} ml',
               accent: AppColors.onSurfaceVariant,
             ),
           ],

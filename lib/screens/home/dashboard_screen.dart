@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/api_client.dart';
 import '../../core/theme.dart';
 import '../../models/gamification.dart';
 import '../../models/stats.dart';
 import '../../providers/auth_provider.dart';
-import '../../services/gamification_service.dart';
-import '../../services/stats_service.dart';
+import '../../repositories/gamification_repository.dart';
+import '../../repositories/stats_repository.dart';
 import '../calculators/calculators_hub_screen.dart';
 import '../calendar/calendar_screen.dart';
 import '../coach/coach_chat_screen.dart';
@@ -29,8 +28,8 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  late final StatsService _statsService;
-  late final GamificationService _gamificationService;
+  late final StatsRepository _statsRepository;
+  late final GamificationRepository _gamificationRepository;
   TrainingStreak? _streak;
   GamificationProfile? _gamification;
   bool _loading = true;
@@ -39,8 +38,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    _statsService = StatsService(context.read<ApiClient>());
-    _gamificationService = GamificationService(context.read<ApiClient>());
+    _statsRepository = context.read<StatsRepository>();
+    _gamificationRepository = context.read<GamificationRepository>();
     _load();
   }
 
@@ -51,8 +50,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
     try {
       final results = await Future.wait([
-        _statsService.streak(),
-        _gamificationService.profile(),
+        _statsRepository.streak(),
+        _gamificationRepository.profile(),
       ]);
       setState(() {
         _streak = results[0] as TrainingStreak;

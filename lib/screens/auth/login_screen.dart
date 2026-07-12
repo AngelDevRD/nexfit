@@ -44,6 +44,45 @@ class _LoginScreenState extends State<LoginScreen> {
     ).showSnackBar(SnackBar(content: Text('Login con $provider próximamente')));
   }
 
+  Future<void> _forgotPassword() async {
+    final controller = TextEditingController(text: _emailController.text);
+    final email = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Recuperar contraseña'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.emailAddress,
+          decoration: const InputDecoration(hintText: 'Correo electrónico'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(controller.text.trim()),
+            child: const Text('Enviar'),
+          ),
+        ],
+      ),
+    );
+    if (email == null || email.isEmpty || !mounted) return;
+    final auth = context.read<AuthProvider>();
+    final ok = await auth.resetPassword(email);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          ok
+              ? 'Si el correo existe, te enviamos un enlace para recuperar tu contraseña.'
+              : (auth.error ?? 'No se pudo procesar la solicitud'),
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -91,7 +130,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: AppSpacing.md),
                       Text(
-                        'AppGym',
+                        'NexFit',
                         style: Theme.of(context).textTheme.headlineMedium
                             ?.copyWith(
                               color: AppColors.primary,
@@ -167,8 +206,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Align(
                           alignment: Alignment.centerRight,
                           child: TextButton(
-                            onPressed: () =>
-                                _socialComingSoon('recuperación de contraseña'),
+                            onPressed: _forgotPassword,
                             child: const Text('¿Olvidaste tu contraseña?'),
                           ),
                         ),

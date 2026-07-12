@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/api_client.dart';
 import '../../core/theme.dart';
 import '../../models/calendar.dart';
-import '../../services/calendar_service.dart';
+import '../../repositories/goal_repository.dart';
+import '../../repositories/stats_repository.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -27,9 +27,25 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final overview = await CalendarService(
-      context.read<ApiClient>(),
-    ).overview();
+    final goalRepository = context.read<GoalRepository>();
+    final statsRepository = context.read<StatsRepository>();
+
+    final goals = await goalRepository.list();
+    final upcomingGoals = goals.where((g) => g.achievedAt == null).toList()
+      ..sort((a, b) {
+        if (a.targetDate == null && b.targetDate == null) return 0;
+        if (a.targetDate == null) return 1;
+        if (b.targetDate == null) return -1;
+        return a.targetDate!.compareTo(b.targetDate!);
+      });
+
+    final overview = CalendarOverview(
+      upcomingGoals: upcomingGoals,
+      deload: await statsRepository.deloadRecommendation(),
+      upcomingRecordPredictions: await statsRepository
+          .upcomingRecordPredictions(),
+    );
+
     setState(() {
       _overview = overview;
       _loading = false;

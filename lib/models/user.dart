@@ -1,5 +1,8 @@
 class AppUser {
-  final int id;
+  // String en vez de int: el id ahora puede venir del backend FastAPI (numerico,
+  // serializado como string) o de Supabase Auth (UUID) -- ver
+  // lib/core/auth/auth_repository.dart.
+  final String id;
   final String email;
   final String name;
   final int? age;
@@ -24,7 +27,7 @@ class AppUser {
   });
 
   factory AppUser.fromJson(Map<String, dynamic> json) => AppUser(
-    id: json['id'],
+    id: json['id'].toString(),
     email: json['email'],
     name: json['name'],
     age: json['age'],

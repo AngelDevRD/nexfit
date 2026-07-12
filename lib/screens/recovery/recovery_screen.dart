@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/api_client.dart';
 import '../../core/theme.dart';
 import '../../models/recovery.dart';
-import '../../services/recovery_service.dart';
+import '../../repositories/recovery_repository.dart';
 
 class RecoveryScreen extends StatefulWidget {
   const RecoveryScreen({super.key});
@@ -14,7 +13,7 @@ class RecoveryScreen extends StatefulWidget {
 }
 
 class _RecoveryScreenState extends State<RecoveryScreen> {
-  late final RecoveryService _service;
+  late final RecoveryRepository _repository;
   RecoveryIndex? _index;
   bool _loading = true;
   bool _saving = false;
@@ -25,13 +24,13 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
   @override
   void initState() {
     super.initState();
-    _service = RecoveryService(context.read<ApiClient>());
+    _repository = context.read<RecoveryRepository>();
     _load();
   }
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final index = await _service.index();
+    final index = await _repository.index();
     setState(() {
       _index = index;
       _loading = false;
@@ -40,7 +39,7 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
 
   Future<void> _submit() async {
     setState(() => _saving = true);
-    await _service.upsertCheckIn(DateTime.now(), _sleepHours, _fatigue);
+    await _repository.upsertCheckIn(DateTime.now(), _sleepHours, _fatigue);
     setState(() => _saving = false);
     _load();
   }

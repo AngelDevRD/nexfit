@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/api_client.dart';
 import '../../core/theme.dart';
 import '../../models/stats.dart';
-import '../../services/stats_service.dart';
+import '../../repositories/stats_repository.dart';
 
 class MuscleAnalysisTab extends StatefulWidget {
   const MuscleAnalysisTab({super.key});
@@ -24,9 +23,7 @@ class _MuscleAnalysisTabState extends State<MuscleAnalysisTab> {
   }
 
   Future<void> _load() async {
-    final entries = await StatsService(
-      context.read<ApiClient>(),
-    ).muscleAnalysis();
+    final entries = await context.read<StatsRepository>().muscleAnalysis();
     setState(() {
       _entries = entries;
       _loading = false;
