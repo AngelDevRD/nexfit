@@ -7,7 +7,8 @@ técnicamente no puede vivir en el cliente ni en Supabase (Coach IA / tool-calli
 Este documento es la fuente de verdad de esa decisión. Actualizarlo cada vez que una fase
 del plan avance, para que ninguna sesión futura tenga que re-analizar la arquitectura desde
 cero. Ver también [SEGURIDAD_Y_EFICIENCIA.md](./SEGURIDAD_Y_EFICIENCIA.md) (checklist de
-hardening, complementario a este documento).
+hardening, complementario a este documento) y [docs/adr/](./adr/README.md) (el *por qué*
+de cada decisión — este documento explica el *cómo* funciona hoy).
 
 ---
 
