@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'core/api_client.dart';
 import 'core/auth/auth_repository.dart';
 import 'core/auth/supabase_auth_repository.dart';
 import 'core/auth/unavailable_auth_repository.dart';
@@ -84,7 +83,6 @@ class AppGymApp extends StatefulWidget {
 }
 
 class _AppGymAppState extends State<AppGymApp> {
-  late final ApiClient _client;
   late final AppDatabase _db;
   late final ProfileRepository _profileRepository;
   late final AuthProvider _authProvider;
@@ -103,7 +101,6 @@ class _AppGymAppState extends State<AppGymApp> {
   @override
   void initState() {
     super.initState();
-    _client = ApiClient();
     _themeProvider = ThemeProvider();
 
     _db = AppDatabase();
@@ -151,7 +148,6 @@ class _AppGymAppState extends State<AppGymApp> {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<ApiClient>.value(value: _client),
         ChangeNotifierProvider<AuthProvider>.value(value: _authProvider),
         Provider<AppDatabase>.value(value: _db),
         Provider<ProfileRepository>.value(value: _profileRepository),
