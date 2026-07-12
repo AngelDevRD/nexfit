@@ -1,5 +1,5 @@
 class LeaderboardEntry {
-  final int userId;
+  final String userId;
   final String name;
   final double value;
   final int rank;
@@ -13,9 +13,11 @@ class LeaderboardEntry {
     required this.isMe,
   });
 
+  // Usado solo por `services/social_service.dart` (FastAPI, sin conectar
+  // desde ninguna pantalla tras la Fase 2 -- ver docs/ARQUITECTURA_BACKEND.md).
   factory LeaderboardEntry.fromJson(Map<String, dynamic> json) =>
       LeaderboardEntry(
-        userId: json['user_id'],
+        userId: json['user_id'].toString(),
         name: json['name'],
         value: (json['value'] as num).toDouble(),
         rank: json['rank'],
@@ -24,7 +26,7 @@ class LeaderboardEntry {
 }
 
 class ChallengeSummary {
-  final int id;
+  final String id;
   final String name;
   final String metric;
   final DateTime startsOn;
@@ -44,9 +46,11 @@ class ChallengeSummary {
     required this.isOwner,
   });
 
+  // Usado solo por `services/social_service.dart` (FastAPI, sin conectar
+  // desde ninguna pantalla tras la Fase 2 -- ver docs/ARQUITECTURA_BACKEND.md).
   factory ChallengeSummary.fromJson(Map<String, dynamic> json) =>
       ChallengeSummary(
-        id: json['id'],
+        id: json['id'].toString(),
         name: json['name'],
         metric: json['metric'],
         startsOn: DateTime.parse(json['starts_on']),
@@ -74,9 +78,11 @@ class ChallengeDetail extends ChallengeSummary {
     required this.leaderboard,
   });
 
+  // Usado solo por `services/social_service.dart` (FastAPI, sin conectar
+  // desde ninguna pantalla tras la Fase 2 -- ver docs/ARQUITECTURA_BACKEND.md).
   factory ChallengeDetail.fromJson(Map<String, dynamic> json) =>
       ChallengeDetail(
-        id: json['id'],
+        id: json['id'].toString(),
         name: json['name'],
         metric: json['metric'],
         startsOn: DateTime.parse(json['starts_on']),

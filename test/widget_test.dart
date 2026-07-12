@@ -11,7 +11,10 @@ void main() {
       SharedPreferences.setMockInitialValues({});
 
       await tester.pumpWidget(
-        const AppGymApp(authRepository: UnavailableAuthRepository()),
+        const AppGymApp(
+          authRepository: UnavailableAuthRepository(),
+          supabaseClient: null,
+        ),
       );
       await tester.pumpAndSettle();
       expect(find.text('NexFit'), findsOneWidget);

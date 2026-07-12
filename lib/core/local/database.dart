@@ -23,7 +23,9 @@ class Exercises extends Table {
 // Raíz de agregado -> lleva metadata de sync.
 class Routines extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get serverId => integer().nullable()();
+  // uuid de Supabase una vez sincronizada (era IntColumn cuando el destino
+  // era el id serial de FastAPI -- ver docs/ARQUITECTURA_BACKEND.md Fase 2).
+  TextColumn get serverId => text().nullable()();
   TextColumn get name => text()();
   TextColumn get goal => text().nullable()();
   IntColumn get daysPerWeek => integer().withDefault(const Constant(3))();
@@ -58,7 +60,7 @@ class RoutineExercises extends Table {
 // Raíz de agregado -> lleva metadata de sync.
 class WorkoutSessions extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get serverId => integer().nullable()();
+  TextColumn get serverId => text().nullable()();
   IntColumn get routineId => integer().nullable()();
   DateTimeColumn get startedAt => dateTime()();
   DateTimeColumn get endedAt => dateTime().nullable()();
@@ -72,9 +74,9 @@ class WorkoutSets extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get sessionId =>
       integer().references(WorkoutSessions, #id, onDelete: KeyAction.cascade)();
-  // Id del set en el backend, una vez sincronizado. Null mientras el set
+  // Id (uuid) del set en Supabase, una vez sincronizado. Null mientras el set
   // solo existe local (todavía no viajó al servidor).
-  IntColumn get serverId => integer().nullable()();
+  TextColumn get serverId => text().nullable()();
   IntColumn get exerciseId => integer()();
   IntColumn get setNumber => integer()();
   RealColumn get weightKg => real().withDefault(const Constant(0))();
@@ -106,11 +108,75 @@ class PendingSetOps extends Table {
   IntColumn get sessionId =>
       integer().references(WorkoutSessions, #id, onDelete: KeyAction.cascade)();
   IntColumn get localSetId => integer().nullable()();
-  IntColumn get serverSetId => integer().nullable()();
+  TextColumn get serverSetId => text().nullable()();
   // 'insert' | 'update' | 'delete'
   TextColumn get op => text()();
   TextColumn get payloadJson => text().withDefault(const Constant('{}'))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+// Perfil del usuario autenticado (Fase 2). Fila única por usuario, `id` =
+// mismo texto que `AuthRepository.currentUser.id` (uuid de Supabase Auth) --
+// a diferencia de Routines/WorkoutSessions, acá el "serverId" siempre se
+// conoce desde el principio (es el propio id del usuario logueado), no hace
+// falta esperar una respuesta del servidor para tener uno.
+class Profiles extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text().withDefault(const Constant(''))();
+  IntColumn get age => integer().nullable()();
+  TextColumn get sex => text().nullable()();
+  RealColumn get heightCm => real().nullable()();
+  RealColumn get weightKg => real().nullable()();
+  RealColumn get bodyFatPct => real().nullable()();
+  TextColumn get goal => text().nullable()();
+  TextColumn get experienceLevel => text().nullable()();
+  DateTimeColumn get updatedAt => dateTime()();
+  BoolColumn get dirty => boolean().withDefault(const Constant(true))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class Goals extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get serverId => text().nullable()();
+  TextColumn get title => text()();
+  TextColumn get metric => text()();
+  IntColumn get exerciseId => integer().nullable()();
+  RealColumn get startingValue => real()();
+  RealColumn get targetValue => real()();
+  DateTimeColumn get targetDate => dateTime().nullable()();
+  DateTimeColumn get achievedAt => dateTime().nullable()();
+  DateTimeColumn get updatedAt => dateTime()();
+  BoolColumn get dirty => boolean().withDefault(const Constant(true))();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+}
+
+// Un registro por día (clave natural = fecha) -> upsert, no create-or-delete
+// como Routines.
+class NutritionLogs extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get serverId => text().nullable()();
+  DateTimeColumn get logDate => dateTime()();
+  RealColumn get calories => real().withDefault(const Constant(0))();
+  RealColumn get proteinG => real().withDefault(const Constant(0))();
+  RealColumn get carbsG => real().withDefault(const Constant(0))();
+  RealColumn get fatG => real().withDefault(const Constant(0))();
+  RealColumn get waterMl => real().withDefault(const Constant(0))();
+  TextColumn get notes => text().nullable()();
+  DateTimeColumn get updatedAt => dateTime()();
+  BoolColumn get dirty => boolean().withDefault(const Constant(true))();
+}
+
+// Recovery: check-ins diarios (sleep/fatiga). Un registro por día.
+class DailyCheckins extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get serverId => text().nullable()();
+  DateTimeColumn get checkinDate => dateTime()();
+  RealColumn get sleepHours => real()();
+  IntColumn get perceivedFatigue => integer()();
+  DateTimeColumn get updatedAt => dateTime()();
+  BoolColumn get dirty => boolean().withDefault(const Constant(true))();
 }
 
 @DriftDatabase(
@@ -123,6 +189,10 @@ class PendingSetOps extends Table {
     WorkoutSets,
     PersonalRecords,
     PendingSetOps,
+    Profiles,
+    Goals,
+    NutritionLogs,
+    DailyCheckins,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -132,7 +202,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -143,6 +213,49 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 3) {
         await m.addColumn(workoutSets, workoutSets.serverId);
+      }
+      if (from < 4) {
+        // Fase 2 (ver docs/ARQUITECTURA_BACKEND.md): el destino de sync pasa
+        // de FastAPI (ids int) a Supabase (ids uuid). Los serverId viejos
+        // apuntaban a filas que ya no existen en el esquema nuevo, así que no
+        // hay nada que preservar ahí -- se descartan explícitamente (columna
+        // recreada como texto, valor forzado a null) y se remarca todo como
+        // dirty para que el SyncEngine lo vuelva a subir contra las tablas
+        // nuevas. Los datos de negocio (nombres, sets, reps, fechas) no se
+        // tocan -- solo se pierde el enlace viejo con un backend que ya no
+        // existe.
+        await m.alterTable(
+          TableMigration(
+            routines,
+            columnTransformer: {routines.serverId: const Constant(null)},
+          ),
+        );
+        await m.alterTable(
+          TableMigration(
+            workoutSessions,
+            columnTransformer: {workoutSessions.serverId: const Constant(null)},
+          ),
+        );
+        await m.alterTable(
+          TableMigration(
+            workoutSets,
+            columnTransformer: {workoutSets.serverId: const Constant(null)},
+          ),
+        );
+        await m.alterTable(
+          TableMigration(
+            pendingSetOps,
+            columnTransformer: {
+              pendingSetOps.serverSetId: const Constant(null),
+            },
+          ),
+        );
+        await m.createTable(profiles);
+        await m.createTable(goals);
+        await m.createTable(nutritionLogs);
+        await m.createTable(dailyCheckins);
+        await customStatement('UPDATE routines SET dirty = 1');
+        await customStatement('UPDATE workout_sessions SET dirty = 1');
       }
     },
   );

@@ -12,12 +12,16 @@ Lo que ya está hecho se marca con ✅.
   `DATABASE_URL` del deploy después.
 - [ ] **Rotar la API key de Groq (`LLM_API_KEY`).** También se pegó en el chat. Generar
   una nueva en console.groq.com y reemplazar en `backend/.env` (ya gitignored).
-- [x] **Activar RLS en Supabase** en las 13 tablas de la app — ✅ verificado 2026-07-11 vía
-  MCP de Supabase: ya estaba activo en las 13 (sin policies todavía, que se agregan en la
-  Fase 2 de `ARQUITECTURA_BACKEND.md`). Pendiente solo `public.alembic_version` (tabla
-  interna de Alembic, sin datos de usuario) — advisory `critical` por exposición vía
-  `anon key`; no se aplicó el `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` automáticamente,
-  queda a decisión del usuario.
+- [x] **Activar RLS en Supabase** — ✅ verificado 2026-07-11 (ya estaba activo en las 13
+  tablas de entonces) y reconfirmado 2026-07-12 tras la Fase 2 de
+  `ARQUITECTURA_BACKEND.md`: las 11 tablas recreadas con esquema uuid (`profiles`,
+  `routines`, `routine_days`, `routine_exercises`, `workout_sessions`, `workout_sets`,
+  `personal_records`, `goals`, `nutrition_logs`, `daily_checkins`, `challenges`,
+  `challenge_participants`) nacieron con RLS + policies desde la migración, no como paso
+  aparte. `get_advisors(security)` post-migración: 0 hallazgos nuevos de RLS. Pendiente
+  solo `public.exercises`/`public.users` (tablas propias de FastAPI, RLS activo sin
+  policies = deniega todo, no expuestas) y `public.alembic_version` (sin RLS, advisory
+  `critical` por exposición vía `anon key` — sigue sin aplicarse, a decisión del usuario).
 - [ ] **`SECRET_KEY` real en producción.** El código ya bloquea el arranque con la key
   placeholder si `ENV=production` (`backend/app/core/config.py`), pero hay que setear una
   aleatoria de 64+ chars en el entorno del deploy. ✅ gate ya implementado.

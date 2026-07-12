@@ -193,19 +193,56 @@ peor que el anterior.
   al usuario qué UX se espera en ese caso (hoy simplemente vuelve a la pantalla de login
   sin ningún mensaje).
 
-### Fase 2 — Dominios de datos a Supabase
-- Esquema Supabase espejo de las tablas Drift ya existentes (rutinas, días, ejercicios de
-  rutina, sesiones de entrenamiento, objetivos, nutrición, recovery, retos sociales), con
-  RLS `user_id = auth.uid()`.
-- Como `SyncableEntity` ya es agnóstico del backend (`push(AppDatabase db)`), solo cambia
-  el interior de `RoutineSyncable`/`WorkoutSessionSyncable` (llamar al cliente Supabase en
-  vez de `RoutineService`/`ApiClient`) — **`SyncEngine` no se toca**.
-- Crear `GoalSyncable`, `NutritionSyncable`, `RecoverySyncable`, `SocialSyncable` nuevos
-  (hoy esos servicios no tienen offline-first; lo ganan en esta fase).
-- Retirar los routers de FastAPI equivalentes solo después de verificar paridad,
-  dominio por dominio (no es un corte único).
-- **Criterio de éxito**: cada dominio migrado sigue funcionando offline y sincroniza al
-  recuperar conexión, verificado uno por uno.
+### Fase 2 — Perfil + dominios de datos a Supabase ✅ completada 2026-07-12
+Alcance ampliado por decisión explícita del usuario: el perfil extendido (edad, sexo,
+altura, peso, objetivo, experiencia) se migra junto con rutinas/entrenamientos/objetivos/
+nutrición/recovery en esta misma fase, en vez de quedar como módulo aparte — para no
+terminar con login en Supabase, perfil en FastAPI y rutinas en Supabase al mismo tiempo.
+
+- ✅ **Esquema Supabase**: tabla nueva `profiles` (uuid = id del propio usuario de Supabase
+  Auth) + `routines`/`routine_days`/`routine_exercises`/`workout_sessions`/`workout_sets`/
+  `personal_records`/`goals`/`nutrition_logs`/`daily_checkins`/`challenges`/
+  `challenge_participants` recreadas con `id uuid default gen_random_uuid()` y
+  `user_id uuid references auth.users(id)` (antes `int` referenciando la tabla propia de
+  FastAPI). Las 13 tablas estaban en 0 filas — confirmado de nuevo justo antes de aplicar
+  las migraciones — así que el `drop`+`create` no perdió ningún dato real.
+- ✅ **RLS en las 11 tablas nuevas**: activado desde la creación, con policies
+  `auth.uid() = user_id` (o el equivalente vía join para las tablas hijas como
+  `routine_days`/`workout_sets`). `challenges`/`challenge_participants` usan una policy más
+  estricta (solo participantes ven el reto) más dos funciones Postgres `security definer`
+  (`join_challenge_by_code`, `challenge_leaderboard`) para las dos operaciones que
+  necesitan cruzar datos de otros usuarios — RLS bloquea esa lectura a propósito desde el
+  cliente directo, así que esas dos funciones son el único punto controlado de excepción.
+- ✅ **Drift**: `schemaVersion` 3→4. `serverId` de `Routines`/`WorkoutSessions`/`WorkoutSets`/
+  `PendingSetOps.serverSetId` pasa de `int` a `text` (uuid); la migración descarta
+  explícitamente los valores viejos (apuntaban a un backend que ya no existe) y remarca
+  esas filas `dirty` para resincronizar contra el esquema nuevo — los datos de negocio
+  (nombres, sets, reps, fechas) no se tocan. Tablas nuevas: `Profiles`, `Goals`,
+  `NutritionLogs`, `DailyCheckins`.
+- ✅ **Repositorios offline-first nuevos** (mismo patrón que `RoutineRepository`, ya
+  existente): `ProfileRepository`, `GoalRepository`, `NutritionRepository`,
+  `RecoveryRepository`. `AuthProvider` ahora combina identidad (Supabase Auth, Fase 1) +
+  perfil (`ProfileRepository`, local) en el mismo `AppUser` que ya consumía
+  `profile_screen.dart` — esa pantalla no se tocó.
+- ✅ **`RoutineSyncable`/`WorkoutSessionSyncable` reescritas** para Supabase (antes
+  FastAPI/`ApiClient`) — `SyncEngine` no se tocó, sigue sin saber qué backend hay detrás.
+- ✅ **Nuevos**: `ProfileSyncable`, `GoalSyncable`, `NutritionSyncable`, `RecoverySyncable`
+  (offline-first real por primera vez para estos 4 dominios — antes llamaban directo a
+  FastAPI sin ningún fallback local).
+- ✅ **Social, excepción explícita**: `SocialRepository` reemplaza a `SocialService`
+  hablando directo con Supabase (incluyendo las dos funciones `security definer`), sin
+  tabla Drift ni sync offline — es la excepción acordada, la fuente de verdad sigue siendo
+  Supabase en vivo.
+- **No se tocó** ningún archivo de `backend/` (FastAPI) ni se borró `lib/services/
+  goal_service.dart`/`nutrition_service.dart`/`recovery_service.dart`/`social_service.dart`
+  (quedan sin usar, igual que `auth_service.dart` desde la Fase 1) — solo se restauraron
+  sus `fromJson` en los modelos (`Goal`, `NutritionLog`, `RecoveryIndex`, `ChallengeSummary`,
+  `ChallengeDetail`, `LeaderboardEntry`) porque seguían siendo válidos y usados por ese
+  código legacy.
+- **Simplificaciones documentadas, no ocultas** (ver sección 5.4).
+- **Verificado**: `flutter analyze lib/ test/` → *No issues found!* · `flutter test` →
+  12/12 ✅ · `flutter build apk --release` → build exitoso (47.5MB) · Security Advisor
+  (`get_advisors(security)`) revisado antes y después — ver sección 5.5.
 
 ### Fase 3 — Dominios 100% on-device
 - Confirmar y cortar cualquier llamada de red residual en `exercise_service.dart` (usar
@@ -239,71 +276,112 @@ peor que el anterior.
 |---|---|---|
 | 0 — Fundaciones | ✅ Completada | 2026-07-11 |
 | 1 — Auth a Supabase | ✅ Completada | 2026-07-11 |
-| 2 — Dominios de datos a Supabase | ⬜ No iniciada | — |
+| 2 — Perfil + rutinas + entrenamientos + objetivos + nutrición + recovery a Supabase | ✅ Completada | 2026-07-12 |
 | 3 — Dominios on-device | ⬜ No iniciada | — |
 | 4 — Backend inteligente aislado | ⬜ No iniciada | — |
 | 5 — Cutover de CI y limpieza | ⬜ No iniciada | — |
 
 ### 5.1 Qué ya usa Supabase
 
-Únicamente identidad/sesión: registro, login, logout, recuperar contraseña, persistencia
-de sesión y renovación automática de token, todo detrás de la interfaz `AuthRepository`
-(`lib/core/auth/`). Nada de datos de la app (rutinas, entrenamientos, etc.) pasa por
-Supabase todavía.
+- **Identidad/sesión** (Fase 1): registro, login, logout, recuperar contraseña,
+  persistencia y renovación automática de sesión — `AuthRepository`.
+- **Perfil** (`profiles`): edad, sexo, altura, peso, %grasa, objetivo, experiencia —
+  offline-first vía `ProfileRepository` + `ProfileSyncable`, combinado en `AuthProvider`.
+- **Rutinas y entrenamientos** (`routines`, `routine_days`, `routine_exercises`,
+  `workout_sessions`, `workout_sets`, `personal_records`) — mismo `SyncEngine` de antes,
+  destino reescrito de FastAPI a Supabase.
+- **Objetivos** (`goals`), **nutrición** (`nutrition_logs`), **recovery**
+  (`daily_checkins`) — offline-first nuevo, antes llamaban directo a FastAPI sin ningún
+  fallback local.
+- **Social** (`challenges`, `challenge_participants`) — excepción explícita: lectura/
+  escritura directa a Supabase sin Drift, la fuente de verdad es siempre el servidor.
 
 ### 5.2 Qué sigue dependiendo de FastAPI
 
-- **Rutinas, entrenamientos, objetivos, nutrición, recovery, social, calendario,
-  exportación de datos, Coach IA**: sin cambios, siguen pasando 100% por
-  `ApiClient`/`http://10.0.2.2:8000` (o `API_BASE_URL` si se pasa por build).
-- **Perfil extendido** (edad, sexo, altura, peso, objetivo, experiencia —
-  `PATCH /users/me`, `lib/services/auth_service.dart#updateProfile`, usado desde
-  `profile_screen.dart`): sigue apuntando a FastAPI sin cambios de código, pero con un
-  efecto colateral real de esta fase — al ya no existir ningún login contra FastAPI que
-  emita su JWT propio, `ApiClient.token` nunca se puebla, así que esta llamada **fallará
-  (401/sin token)** hasta que el perfil se migre a algún destino (Supabase u otro). No se
-  decidió todavía si el perfil es parte de la Fase 2 o necesita su propia fase — queda
-  como pregunta abierta para el usuario antes de continuar.
-- **Mismo efecto colateral en `RoutineSyncable`/`WorkoutSessionSyncable`**
-  (`lib/core/sync/entities/`): su `push()` también depende del JWT de FastAPI vía
-  `ApiClient`. Sin login contra FastAPI, esas llamadas fallarán en silencio (el
-  `SyncEngine` ya está diseñado para tolerar fallos de red sin romper la UI — las filas
-  `dirty` simplemente no suben y se reintentan en la próxima pasada, para siempre, hasta
-  la Fase 2). En producción esto no es una regresión nueva: el login a FastAPI ya era
-  inalcanzable por el bug de `10.0.2.2:8000` documentado en la Fase 0, así que routines/
-  workouts nunca llegaron a sincronizar en un build público real. En desarrollo local
-  (emulador contra un backend FastAPI corriendo en la máquina) sí es un cambio de
-  comportamiento observable: antes de esta fase sincronizaban, después no, hasta la
-  Fase 2.
+- **Coach IA** (`coach_service.dart` → `backend/app/routes/v1/coach.py` +
+  `services/llm_client.py` + `services/digital_twin.py`): sin tocar, como estaba previsto
+  — es el único dominio reservado para la Fase 4.
+- **Calendario, exportación de datos** (`calendar_service.dart`,
+  `data_transfer_service.dart`): no estaban en el alcance explícito de esta fase (el
+  usuario los dejó fuera de la lista de dominios de Fase 2); siguen apuntando a FastAPI sin
+  cambios y sin verificar todavía si funcionan (ver 5.4).
+- **Catálogo de ejercicios, calculadoras, stats, gamificación**: dominio de la Fase 3
+  (on-device), sin tocar en esta fase.
+- **`lib/services/{auth,goal,nutrition,recovery,social}_service.dart` (FastAPI)**: código
+  intacto, sin borrar, ya desconectado de toda pantalla real. Se restauraron los
+  `fromJson` en los modelos (`Goal`, `NutritionLog`, `RecoveryIndex`, `ChallengeSummary`,
+  `ChallengeDetail`, `LeaderboardEntry`) que estos archivos siguen necesitando para
+  compilar, aunque nada los llame.
 
-### 5.3 Qué se migra en la Fase 2 (siguiente paso, no iniciado)
+### 5.3 Qué se migra en la Fase 3 (siguiente paso, no iniciado)
 
-Rutinas y entrenamientos (ya offline-first vía `SyncEngine`) más los dominios que hoy no
-tienen fallback local (objetivos, nutrición, recovery, social) — ver detalle en la sección
-4. La pregunta abierta del perfil extendido (5.2) debería resolverse antes o durante esta
-fase, ya que es lo único que quedó en una zona gris entre "auth" y "datos".
+Catálogo de ejercicios (cortar cualquier llamada de red residual, usar solo el asset
+local), calculadoras, y el cálculo real de estadísticas (`stats_service.dart`,
+`gamification_service.dart`) leyendo de las tablas Drift locales. Esto además **desbloquea
+dos simplificaciones pendientes de la Fase 2** (ver 5.4): el progreso de objetivos y el
+factor de carga de entrenamiento del índice de recovery, ambos hoy sin ese dato porque
+depende de estadísticas que todavía no se calculan localmente.
 
-### 5.4 Componentes ya listos para usar en fases siguientes
+### 5.4 Simplificaciones deliberadas de la Fase 2 (documentadas, no ocultas)
 
-- `AuthRepository` (`lib/core/auth/auth_repository.dart`) — contrato ya probado en
-  producción de código; cualquier fase futura que necesite el usuario autenticado debe
-  leerlo de acá (`currentUser`), nunca de Supabase o FastAPI directamente.
-- `Supabase.instance.client` — cliente global disponible en toda la app desde `main()`,
-  ya usado por `SupabaseAuthRepository` para Auth; disponible para Postgres/Storage en la
-  Fase 2.
-- `SupabaseConfig.url` / `SupabaseConfig.publishableKey` — para cualquier código que
-  necesite las credenciales del proyecto.
-- `SmartBackendAvailability.isConfigured` / `.baseUrl` — para gatear Coach IA en la Fase 4.
-- `ComingSoonView` (`lib/widgets/coming_soon_view.dart`) — para reemplazar cualquier
-  pantalla que dependa del backend inteligente mientras no esté configurado o falle.
+- **Progreso de objetivos**: `compute_goal_progress` en FastAPI calculaba
+  `current_value`/`progress_pct`/`achieved` consultando `personal_records`/`profiles`. Acá
+  todavía no hay ningún mecanismo que sincronice `personal_records` hacia abajo (solo se
+  sube, nunca se lee de vuelta) ni cálculo local de récords personales — eso es trabajo de
+  estadísticas (Fase 3). Por ahora `GoalRepository.list()` devuelve cada objetivo con
+  `currentValue = startingValue` y `progressPct = 0` en vez de simular un valor que no es
+  real. La UI (`goals_screen.dart`) no se tocó y sigue mostrando la barra de progreso —
+  solo que hoy siempre arranca en 0% hasta la Fase 3.
+- **Índice de recovery**: `compute_recovery_index` en FastAPI pondera sueño (40%) +
+  fatiga percibida (30%) + carga de entrenamiento vía tonelaje semanal (30%). El tercer
+  factor también depende de stats (Fase 3) — `RecoveryRepository.index()` usa el mismo
+  valor neutro que el propio backend usa cuando no hay historial previo
+  (`load_score = 100`), no un número inventado. El índice se recalculará con el factor de
+  carga real en la Fase 3.
+- **`join`/`leave`/`remove` de retos y el leaderboard** dependen de dos funciones
+  Postgres `security definer` (`join_challenge_by_code`, `challenge_leaderboard`) creadas
+  en esta fase — necesarias porque RLS bloquea, a propósito, que un usuario lea
+  `challenges`/`workout_sets` ajenos directamente desde el cliente.
 
-### 5.5 Mejora pendiente, señalada por el usuario (no bloqueante)
+### 5.5 Security Advisor
+
+Revisado antes y después de aplicar las migraciones (`get_advisors(type: security)`):
+
+- **2 findings `INFO`, preexistentes, no introducidos por esta fase**: `public.exercises`
+  y `public.users` tienen RLS activo sin policies (deniega todo por defecto — es el lado
+  seguro, no una tabla expuesta). Son las tablas propias de FastAPI que esta fase
+  explícitamente no tocó.
+- **2 findings `WARN` encontrados y corregidos en el momento**: las dos funciones
+  `security definer` (`join_challenge_by_code`, `challenge_leaderboard`) se crearon con
+  `EXECUTE` otorgado a `PUBLIC` por defecto (comportamiento estándar de Postgres al crear
+  una función), lo que las hacía invocables por el rol `anon` sin sesión. Corregido con
+  `revoke ... from public` + `grant ... to authenticated` — verificado con un segundo
+  `get_advisors` que el hallazgo para `anon` desapareció.
+- **2 findings `WARN` restantes, revisados y aceptados a propósito**: las mismas dos
+  funciones siguen figurando como "el rol `authenticated` puede ejecutarlas" — eso es
+  exactamente su propósito (todo usuario logueado necesita poder unirse a un reto o ver un
+  leaderboard). No es un hallazgo pendiente, es el diseño; cada función valida membresía
+  del caller (`auth.uid()`) antes de devolver o modificar cualquier dato.
+
+### 5.6 Componentes ya listos para usar en fases siguientes
+
+- `AuthRepository` (`lib/core/auth/auth_repository.dart`) — sin cambios, sigue siendo el
+  único punto de verdad para el usuario autenticado.
+- `ProfileRepository`/`GoalRepository`/`NutritionRepository`/`RecoveryRepository` — mismo
+  patrón (`db`, offline-first, dirty-flag) reutilizable para cualquier dominio nuevo que
+  aparezca más adelante.
+- `SocialRepository` — patrón de referencia para cualquier futuro dominio que necesite
+  leer datos de otros usuarios vía función `security definer`.
+- `SmartBackendAvailability.isConfigured` / `.baseUrl` y `ComingSoonView` — sin usar
+  todavía, listos para gatear Coach IA en la Fase 4.
+
+### 5.7 Mejora pendiente, señalada por el usuario (no bloqueante)
 
 El `try/catch` silencioso alrededor de `Supabase.initialize` en `main.dart` está bien para
 esta transición, pero no debe quedar así de forma permanente: en una fase posterior hay
 que registrar ese error en un servicio real (Crashlytics o equivalente) en vez de solo
-`developer.log`, para poder diagnosticar un fallo de Supabase en producción sin dejar de
-arrancar la app. Ya queda marcado con `// TODO(fase-posterior)` en `lib/main.dart`.
+`developer.log`. Sigue marcado con `// TODO(fase-posterior)` en `lib/main.dart` — sin
+cambios en esta fase, no era su alcance.
 
 Este documento se creó el 2026-07-11 como resultado del análisis de arquitectura
-solicitado antes de tocar código, y se actualizó el mismo día al completar las Fases 0 y 1.
+solicitado antes de tocar código, y se actualizó el 2026-07-12 al completar la Fase 2.

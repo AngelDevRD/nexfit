@@ -11,13 +11,22 @@ import 'core/auth/unavailable_auth_repository.dart';
 import 'core/local/database.dart';
 import 'core/local/local_bootstrap.dart';
 import 'core/supabase_config.dart';
+import 'core/sync/entities/goal_syncable.dart';
+import 'core/sync/entities/nutrition_syncable.dart';
+import 'core/sync/entities/profile_syncable.dart';
+import 'core/sync/entities/recovery_syncable.dart';
 import 'core/sync/entities/routine_syncable.dart';
 import 'core/sync/entities/workout_session_syncable.dart';
 import 'core/sync/sync_engine.dart';
 import 'core/theme.dart';
 import 'providers/auth_provider.dart';
 import 'providers/theme_provider.dart';
+import 'repositories/goal_repository.dart';
+import 'repositories/nutrition_repository.dart';
+import 'repositories/profile_repository.dart';
+import 'repositories/recovery_repository.dart';
 import 'repositories/routine_repository.dart';
+import 'repositories/social_repository.dart';
 import 'repositories/workout_repository.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/home_shell.dart';
@@ -32,12 +41,14 @@ Future<void> main() async {
   // TODO(fase-posterior): reportar este error a un servicio real (Crashlytics
   // o similar) en vez de solo loguearlo -- ver observación del usuario.
   AuthRepository authRepository;
+  SupabaseClient? supabaseClient;
   try {
     await Supabase.initialize(
       url: SupabaseConfig.url,
       publishableKey: SupabaseConfig.publishableKey,
     );
-    authRepository = SupabaseAuthRepository(Supabase.instance.client);
+    supabaseClient = Supabase.instance.client;
+    authRepository = SupabaseAuthRepository(supabaseClient);
   } catch (e, st) {
     developer.log(
       'Supabase.initialize fallo -- auth deshabilitada esta sesión',
@@ -47,13 +58,23 @@ Future<void> main() async {
     );
     authRepository = const UnavailableAuthRepository();
   }
-  runApp(AppGymApp(authRepository: authRepository));
+  runApp(
+    AppGymApp(authRepository: authRepository, supabaseClient: supabaseClient),
+  );
 }
 
 class AppGymApp extends StatefulWidget {
-  const AppGymApp({super.key, required this.authRepository});
+  const AppGymApp({
+    super.key,
+    required this.authRepository,
+    required this.supabaseClient,
+  });
 
   final AuthRepository authRepository;
+  // Null solo si Supabase.initialize falló en main() -- ver comentario ahí.
+  // En ese caso el SyncEngine sigue arrancando pero sin las entidades que
+  // dependen de Supabase (no hay nada a lo que sincronizar).
+  final SupabaseClient? supabaseClient;
 
   @override
   State<AppGymApp> createState() => _AppGymAppState();
@@ -61,10 +82,15 @@ class AppGymApp extends StatefulWidget {
 
 class _AppGymAppState extends State<AppGymApp> {
   late final ApiClient _client;
-  late final AuthProvider _authProvider;
   late final AppDatabase _db;
+  late final ProfileRepository _profileRepository;
+  late final AuthProvider _authProvider;
   late final RoutineRepository _routineRepository;
   late final WorkoutRepository _workoutRepository;
+  late final GoalRepository _goalRepository;
+  late final NutritionRepository _nutritionRepository;
+  late final RecoveryRepository _recoveryRepository;
+  SocialRepository? _socialRepository;
   late final SyncEngine _syncEngine;
   late final ThemeProvider _themeProvider;
 
@@ -72,20 +98,37 @@ class _AppGymAppState extends State<AppGymApp> {
   void initState() {
     super.initState();
     _client = ApiClient();
-    _authProvider = AuthProvider(widget.authRepository, _client)
-      ..tryAutoLogin();
     _themeProvider = ThemeProvider();
 
     _db = AppDatabase();
     seedExercisesIfEmpty(_db);
+    _profileRepository = ProfileRepository(_db);
+    _authProvider = AuthProvider(widget.authRepository, _profileRepository)
+      ..tryAutoLogin();
     _routineRepository = RoutineRepository(_db);
     _workoutRepository = WorkoutRepository(_db);
+    _goalRepository = GoalRepository(_db);
+    _nutritionRepository = NutritionRepository(_db);
+    _recoveryRepository = RecoveryRepository(_db);
+
+    final supabase = widget.supabaseClient;
+    _socialRepository = supabase != null ? SocialRepository(supabase) : null;
+
     // Orden importa: las rutinas deben sincronizar antes que las sesiones de
     // entrenamiento, porque una sesión offline referencia su rutina por id
-    // local y necesita el serverId ya resuelto para mandarse al backend.
+    // local y necesita el serverId ya resuelto para mandarse al servidor.
     _syncEngine = SyncEngine(
       db: _db,
-      entities: [RoutineSyncable(_client), WorkoutSessionSyncable(_client)],
+      entities: supabase == null
+          ? const []
+          : [
+              ProfileSyncable(supabase),
+              RoutineSyncable(supabase),
+              WorkoutSessionSyncable(supabase),
+              GoalSyncable(supabase),
+              NutritionSyncable(supabase),
+              RecoverySyncable(supabase),
+            ],
     )..start();
   }
 
@@ -102,8 +145,13 @@ class _AppGymAppState extends State<AppGymApp> {
         Provider<ApiClient>.value(value: _client),
         ChangeNotifierProvider<AuthProvider>.value(value: _authProvider),
         Provider<AppDatabase>.value(value: _db),
+        Provider<ProfileRepository>.value(value: _profileRepository),
         Provider<RoutineRepository>.value(value: _routineRepository),
         Provider<WorkoutRepository>.value(value: _workoutRepository),
+        Provider<GoalRepository>.value(value: _goalRepository),
+        Provider<NutritionRepository>.value(value: _nutritionRepository),
+        Provider<RecoveryRepository>.value(value: _recoveryRepository),
+        Provider<SocialRepository?>.value(value: _socialRepository),
         ChangeNotifierProvider<ThemeProvider>.value(value: _themeProvider),
       ],
       child: Consumer<ThemeProvider>(

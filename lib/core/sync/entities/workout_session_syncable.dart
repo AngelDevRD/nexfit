@@ -1,24 +1,25 @@
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
-import '../../../services/workout_service.dart';
-import '../../api_client.dart';
 import '../../local/database.dart';
 import '../syncable.dart';
 
-/// Sync de sesiones de entrenamiento. A diferencia de Routines, el backend sí
-/// soporta PATCH de la sesión y CRUD incremental de sets, así que una sesión
-/// ya sincronizada puede seguir recibiendo cambios: se drena la cola
-/// [PendingSetOps] set por set en vez de reenviar el árbol completo.
+/// Sync de sesiones de entrenamiento contra Supabase (Fase 2, ver
+/// docs/ARQUITECTURA_BACKEND.md -- antes apuntaba a FastAPI vía
+/// `WorkoutService`/`ApiClient`). A diferencia de Routines, Supabase sí
+/// soporta actualizar la sesión (marcar `ended_at`) y CRUD incremental de
+/// sets, así que una sesión ya sincronizada puede seguir recibiendo cambios:
+/// se drena la cola [PendingSetOps] set por set en vez de reenviar el árbol
+/// completo.
 ///
 /// Requiere que [RoutineSyncable] haya corrido antes en la misma pasada de
 /// sync: si la sesión referencia una rutina (`routineId`, id LOCAL) que
 /// todavía no tiene `serverId`, se deja la sesión `dirty` para reintentar en
 /// la próxima pasada en vez de romper la referencia.
 class WorkoutSessionSyncable implements SyncableEntity {
-  final ApiClient client;
-  late final WorkoutService _service = WorkoutService(client);
+  final sb.SupabaseClient client;
 
   WorkoutSessionSyncable(this.client);
 
@@ -27,6 +28,9 @@ class WorkoutSessionSyncable implements SyncableEntity {
 
   @override
   Future<void> push(AppDatabase db) async {
+    final userId = client.auth.currentUser?.id;
+    if (userId == null) return;
+
     final dirty = await (db.select(
       db.workoutSessions,
     )..where((t) => t.dirty.equals(true))).get();
@@ -37,7 +41,7 @@ class WorkoutSessionSyncable implements SyncableEntity {
         continue;
       }
 
-      int? serverRoutineId;
+      String? serverRoutineId;
       if (session.routineId != null) {
         final routine = await (db.select(
           db.routines,
@@ -50,11 +54,14 @@ class WorkoutSessionSyncable implements SyncableEntity {
         serverRoutineId = routine.serverId;
       }
 
-      int? serverId = session.serverId;
+      String? serverId = session.serverId;
       if (serverId == null) {
-        serverId = await _pushStart(db, session, serverRoutineId);
+        serverId = await _pushStart(db, session, userId, serverRoutineId);
       } else if (session.endedAt != null) {
-        await _service.finishSession(serverId);
+        await client
+            .from('workout_sessions')
+            .update({'ended_at': session.endedAt!.toIso8601String()})
+            .eq('id', serverId);
       }
       await _drainPendingOps(db, session.id, serverId);
       await (db.update(db.workoutSessions)
@@ -63,23 +70,38 @@ class WorkoutSessionSyncable implements SyncableEntity {
     }
   }
 
-  Future<int> _pushStart(
+  Future<String> _pushStart(
     AppDatabase db,
     WorkoutSession session,
-    int? serverRoutineId,
+    String userId,
+    String? serverRoutineId,
   ) async {
-    final created = await _service.startSession(routineId: serverRoutineId);
+    final created = await client
+        .from('workout_sessions')
+        .insert({
+          'user_id': userId,
+          'routine_id': serverRoutineId,
+          'started_at': session.startedAt.toIso8601String(),
+          if (session.endedAt != null)
+            'ended_at': session.endedAt!.toIso8601String(),
+          'notes': session.notes,
+        })
+        .select()
+        .single();
+    final serverId = created['id'] as String;
     await (db.update(db.workoutSessions)..where((t) => t.id.equals(session.id)))
-        .write(WorkoutSessionsCompanion(serverId: Value(created.id)));
-    if (session.endedAt != null) {
-      await _service.finishSession(created.id);
-    }
-    return created.id;
+        .write(WorkoutSessionsCompanion(serverId: Value(serverId)));
+    return serverId;
   }
 
   Future<void> _pushDelete(AppDatabase db, WorkoutSession session) async {
-    // El backend no expone DELETE de sesión completa hoy -- se borra local
-    // nomás. Si en el futuro se agrega, este es el lugar para llamarlo.
+    if (session.serverId != null) {
+      // Cascade en Supabase se encarga de workout_sets.
+      await client
+          .from('workout_sessions')
+          .delete()
+          .eq('id', session.serverId!);
+    }
     await (db.delete(
       db.workoutSessions,
     )..where((t) => t.id.equals(session.id))).go();
@@ -88,7 +110,7 @@ class WorkoutSessionSyncable implements SyncableEntity {
   Future<void> _drainPendingOps(
     AppDatabase db,
     int localSessionId,
-    int serverSessionId,
+    String serverSessionId,
   ) async {
     final ops = await (db.select(
       db.pendingSetOps,
@@ -101,21 +123,33 @@ class WorkoutSessionSyncable implements SyncableEntity {
 
       switch (pending.op) {
         case 'insert':
-          final createdSet = await _service.addSet(serverSessionId, payload);
+          final createdSet = await client
+              .from('workout_sets')
+              .insert({'session_id': serverSessionId, ...payload})
+              .select()
+              .single();
           if (pending.localSetId != null) {
-            await (db.update(db.workoutSets)
-                  ..where((t) => t.id.equals(pending.localSetId!)))
-                .write(WorkoutSetsCompanion(serverId: Value(createdSet.id)));
+            await (db.update(
+              db.workoutSets,
+            )..where((t) => t.id.equals(pending.localSetId!))).write(
+              WorkoutSetsCompanion(serverId: Value(createdSet['id'] as String)),
+            );
           }
           break;
         case 'update':
           if (pending.serverSetId != null) {
-            await _service.updateSet(pending.serverSetId!, payload);
+            await client
+                .from('workout_sets')
+                .update(payload)
+                .eq('id', pending.serverSetId!);
           }
           break;
         case 'delete':
           if (pending.serverSetId != null) {
-            await _service.deleteSet(pending.serverSetId!);
+            await client
+                .from('workout_sets')
+                .delete()
+                .eq('id', pending.serverSetId!);
           }
           break;
       }
