@@ -706,3 +706,59 @@ El diseño propuesto para que este flujo funcione de verdad queda en
 
 Auditoría de rendimiento correspondiente: ver `docs/SEGURIDAD_Y_EFICIENCIA.md`, sección
 "Auditoría de rendimiento (Fase 3)".
+
+---
+
+## 8. Arquitectura final (v1 estable, 2026-07-12)
+
+Con el Bloque 2 de la Fase 5 (`18fe5c0`) NexFit dejó de depender por completo del backend
+FastAPI legado. Esta sección congela el diagrama y el inventario de responsabilidades
+definitivos — la fuente de verdad a partir de aquí es esta, no las secciones 1-2 (que
+describen el punto de partida y el plan, ya ejecutado).
+
+### 8.1 Diagrama
+
+```
+Flutter
+  │
+  ├── Drift (lib/core/local/)
+  │     ├── persistencia offline-first (todas las tablas de dominio)
+  │     ├── cola de sync (`dirty` flag por fila)
+  │     └── repositories (Routine/Workout/Goal/Nutrition/Recovery/Profile/
+  │                        Stats/Gamification/Exercise/Social)
+  │
+  ├── Supabase
+  │     ├── Auth (`SupabaseAuthRepository`)
+  │     ├── Postgres + RLS (destino de `SyncEngine`, y lectura directa para
+  │     │                    Social/retos — único dominio sin caché local)
+  │     └── (Storage: sin uso actual)
+  │
+  └── CoachRepository
+        │
+        ▼
+  CoachGateway (HttpCoachGateway si `SmartBackendAvailability.isConfigured`,
+                ComingSoonView si no)
+        │
+        ▼
+  backend_ia (FastAPI propio, aislado de `backend/`)
+        │
+        ▼
+      Groq (llama-3.3-70b-versatile, tool-calling)
+```
+
+### 8.2 Qué corre dónde
+
+| Capa | Responsabilidad | Vive en |
+|---|---|---|
+| Dispositivo | Toda la lógica de dominio: CRUD offline-first, cálculos derivados (estadísticas, gamificación, calculadoras, calendario/deload, export-import), catálogo de ejercicios, wearables, pose/3D | `lib/repositories/`, `lib/core/local/`, `lib/services/data_export_service.dart`/`data_import_service.dart`/`health_service.dart` |
+| Supabase | Identidad de usuario, persistencia multi-dispositivo, RLS por usuario, el único dato "en vivo" (leaderboard de retos) | Proyecto `AppGym` (`vywkyuuuxpovoevwdewh`) |
+| `backend_ia` | Única pieza que sostiene un secreto de servidor (API key de Groq) y orquesta tool-calling sobre contexto ya armado en el cliente | `backend_ia/` (FastAPI propio, sin relación de código con `backend/`) |
+| Archivado (no ejecuta) | El backend FastAPI original de 12 routers — reemplazado en su totalidad por las tres capas de arriba, conservado solo por referencia histórica | `legacy/backend_fastapi/` (ver 8.3) |
+
+### 8.3 Código archivado
+
+`backend/` se movió a `legacy/backend_fastapi/` (Fase 5, ver README propio dentro de esa
+carpeta para el detalle). No se borró: contiene meses de trabajo y el historial de
+implementación de dominios que luego se rediseñaron sobre Supabase/Drift. No se despliega,
+no lo importa ningún workflow de CI, y ningún flujo de la app emite el JWT que necesitaría
+para responder.
