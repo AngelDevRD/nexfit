@@ -2,11 +2,10 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/api_client.dart';
 import '../../core/theme.dart';
 import '../../models/exercise.dart';
 import '../../models/stats.dart';
-import '../../services/stats_service.dart';
+import '../../repositories/stats_repository.dart';
 import '../exercises/exercise_picker_screen.dart';
 
 class ProgressTab extends StatefulWidget {
@@ -30,9 +29,9 @@ class _ProgressTabState extends State<ProgressTab> {
       _selected = exercise;
       _loading = true;
     });
-    final entries = await StatsService(
-      context.read<ApiClient>(),
-    ).exerciseProgress(exercise.id);
+    final entries = await context.read<StatsRepository>().exerciseProgress(
+      exercise.id,
+    );
     if (!mounted) return;
     setState(() {
       _entries = entries;

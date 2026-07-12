@@ -21,12 +21,15 @@ import 'core/sync/sync_engine.dart';
 import 'core/theme.dart';
 import 'providers/auth_provider.dart';
 import 'providers/theme_provider.dart';
+import 'repositories/exercise_repository.dart';
+import 'repositories/gamification_repository.dart';
 import 'repositories/goal_repository.dart';
 import 'repositories/nutrition_repository.dart';
 import 'repositories/profile_repository.dart';
 import 'repositories/recovery_repository.dart';
 import 'repositories/routine_repository.dart';
 import 'repositories/social_repository.dart';
+import 'repositories/stats_repository.dart';
 import 'repositories/workout_repository.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/home_shell.dart';
@@ -90,6 +93,9 @@ class _AppGymAppState extends State<AppGymApp> {
   late final GoalRepository _goalRepository;
   late final NutritionRepository _nutritionRepository;
   late final RecoveryRepository _recoveryRepository;
+  late final StatsRepository _statsRepository;
+  late final GamificationRepository _gamificationRepository;
+  late final ExerciseRepository _exerciseRepository;
   SocialRepository? _socialRepository;
   late final SyncEngine _syncEngine;
   late final ThemeProvider _themeProvider;
@@ -110,6 +116,9 @@ class _AppGymAppState extends State<AppGymApp> {
     _goalRepository = GoalRepository(_db);
     _nutritionRepository = NutritionRepository(_db);
     _recoveryRepository = RecoveryRepository(_db);
+    _statsRepository = StatsRepository(_db);
+    _gamificationRepository = GamificationRepository(_db);
+    _exerciseRepository = ExerciseRepository(_db);
 
     final supabase = widget.supabaseClient;
     _socialRepository = supabase != null ? SocialRepository(supabase) : null;
@@ -151,6 +160,9 @@ class _AppGymAppState extends State<AppGymApp> {
         Provider<GoalRepository>.value(value: _goalRepository),
         Provider<NutritionRepository>.value(value: _nutritionRepository),
         Provider<RecoveryRepository>.value(value: _recoveryRepository),
+        Provider<StatsRepository>.value(value: _statsRepository),
+        Provider<GamificationRepository>.value(value: _gamificationRepository),
+        Provider<ExerciseRepository>.value(value: _exerciseRepository),
         Provider<SocialRepository?>.value(value: _socialRepository),
         ChangeNotifierProvider<ThemeProvider>.value(value: _themeProvider),
       ],

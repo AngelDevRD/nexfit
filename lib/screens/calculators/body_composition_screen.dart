@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
-import '../../core/api_client.dart';
+import '../../core/calculators.dart';
 import '../../core/theme.dart';
 import '../../models/user.dart';
-import '../../services/calculator_service.dart';
 
 class BodyCompositionScreen extends StatefulWidget {
   const BodyCompositionScreen({super.key});
@@ -31,19 +29,19 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> {
     if (weight == null || height == null) return;
     setState(() => _loading = true);
 
-    final service = CalculatorService(context.read<ApiClient>());
     final bodyFat = double.tryParse(_bodyFatController.text);
-    final results = await Future.wait([
-      service.bmi(weight, height),
-      service.leanBodyMass(weight, height, _sex, bodyFatPct: bodyFat),
-      service.idealWeight(height, _sex),
-    ]);
+    final (bmiValue, bmiCategory) = Calculators.bmi(weight, height);
 
     setState(() {
-      _bmi = (results[0]['bmi'] as num).toDouble();
-      _bmiCategory = results[0]['category'] as String;
-      _leanBodyMass = (results[1]['lean_body_mass_kg'] as num).toDouble();
-      _idealWeight = (results[2]['ideal_weight_kg'] as num).toDouble();
+      _bmi = bmiValue;
+      _bmiCategory = bmiCategory;
+      _leanBodyMass = Calculators.leanBodyMass(
+        weight,
+        height,
+        _sex,
+        bodyFatPct: bodyFat,
+      );
+      _idealWeight = Calculators.idealWeight(height, _sex);
       _loading = false;
     });
   }

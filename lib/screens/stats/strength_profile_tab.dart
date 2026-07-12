@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/api_client.dart';
 import '../../core/theme.dart';
 import '../../models/stats.dart';
-import '../../services/stats_service.dart';
+import '../../repositories/stats_repository.dart';
 
 class StrengthProfileTab extends StatefulWidget {
   const StrengthProfileTab({super.key});
@@ -25,11 +24,8 @@ class _StrengthProfileTabState extends State<StrengthProfileTab> {
   }
 
   Future<void> _load() async {
-    final service = StatsService(context.read<ApiClient>());
-    final results = await Future.wait([
-      service.strengthProfile(),
-      service.streak(),
-    ]);
+    final repo = context.read<StatsRepository>();
+    final results = await Future.wait([repo.strengthProfile(), repo.streak()]);
     setState(() {
       _profile = results[0] as StrengthProfile;
       _streak = results[1] as TrainingStreak;

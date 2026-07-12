@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
-import '../../core/api_client.dart';
+import '../../core/calculators.dart';
 import '../../core/theme.dart';
-import '../../services/calculator_service.dart';
 
 class FatLossRateScreen extends StatefulWidget {
   const FatLossRateScreen({super.key});
@@ -16,7 +14,7 @@ class _FatLossRateScreenState extends State<FatLossRateScreen> {
   final _currentController = TextEditingController();
   final _targetController = TextEditingController();
   bool _loading = false;
-  Map<String, dynamic>? _result;
+  Map<String, double>? _result;
   String? _error;
 
   Future<void> _calculate() async {
@@ -34,11 +32,8 @@ class _FatLossRateScreenState extends State<FatLossRateScreen> {
       _loading = true;
       _error = null;
     });
-    final result = await CalculatorService(
-      context.read<ApiClient>(),
-    ).fatLossRate(current, target);
     setState(() {
-      _result = result;
+      _result = Calculators.fatLossRate(current, target);
       _loading = false;
     });
   }

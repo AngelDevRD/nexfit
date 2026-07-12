@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/api_client.dart';
 import '../../core/theme.dart';
 import '../../models/gamification.dart';
-import '../../services/gamification_service.dart';
+import '../../repositories/gamification_repository.dart';
 
 class GamificationScreen extends StatefulWidget {
   const GamificationScreen({super.key});
@@ -23,9 +22,7 @@ class _GamificationScreenState extends State<GamificationScreen> {
   }
 
   Future<void> _load() async {
-    final profile = await GamificationService(
-      context.read<ApiClient>(),
-    ).profile();
+    final profile = await context.read<GamificationRepository>().profile();
     setState(() => _profile = profile);
   }
 

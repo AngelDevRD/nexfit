@@ -2,10 +2,9 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/api_client.dart';
 import '../../core/theme.dart';
 import '../../models/stats.dart';
-import '../../services/stats_service.dart';
+import '../../repositories/stats_repository.dart';
 
 class TonnageTab extends StatefulWidget {
   const TonnageTab({super.key});
@@ -27,9 +26,10 @@ class _TonnageTabState extends State<TonnageTab> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final entries = await StatsService(
-      context.read<ApiClient>(),
-    ).tonnage(period: _period, periods: 12);
+    final entries = await context.read<StatsRepository>().tonnage(
+      period: _period,
+      periods: 12,
+    );
     setState(() {
       _entries = entries;
       _loading = false;

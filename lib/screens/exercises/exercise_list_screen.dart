@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/api_client.dart';
 import '../../core/theme.dart';
 import '../../models/exercise.dart';
-import '../../services/exercise_service.dart';
+import '../../repositories/exercise_repository.dart';
 import '../../widgets/exercise_thumb.dart';
 import 'exercise_detail_screen.dart';
 
@@ -16,7 +15,7 @@ class ExerciseListScreen extends StatefulWidget {
 }
 
 class _ExerciseListScreenState extends State<ExerciseListScreen> {
-  late final ExerciseService _service;
+  late final ExerciseRepository _repository;
   List<ExerciseSummary> _exercises = [];
   bool _loading = true;
   String? _error;
@@ -26,7 +25,7 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
   @override
   void initState() {
     super.initState();
-    _service = ExerciseService(context.read<ApiClient>());
+    _repository = context.read<ExerciseRepository>();
     _load();
   }
 
@@ -36,7 +35,9 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
       _error = null;
     });
     try {
-      final exercises = await _service.list(muscleGroup: _selectedMuscleGroup);
+      final exercises = await _repository.list(
+        muscleGroup: _selectedMuscleGroup,
+      );
       setState(() {
         _exercises = exercises;
         _loading = false;
