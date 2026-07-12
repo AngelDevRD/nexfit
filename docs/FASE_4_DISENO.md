@@ -112,25 +112,47 @@ inteligente) y, si hiciera falta, una implementación *unavailable* para cuando
 manda `CoachContext` + pregunta y recibe una respuesta de texto sin importar qué LLM la
 generó.
 
-### Extremo a extremo
+### Extremo a extremo (diagrama definitivo)
 
 ```
-┌──────────────────────────┐        ┌───────────────────────────┐        ┌─────────┐
-│ Flutter (NexFit)          │ HTTPS  │ Backend inteligente        │ HTTPS  │  LLM    │
-│                           │───────►│ (stateless, standalone)    │───────►│ (Groq,  │
-│ StatsRepository           │        │                            │◄───────│ swap-   │
-│ GoalRepository            │        │ 1. Valida JWT de Supabase  │        │ eable)  │
-│ RecoveryRepository        │        │ 2. Rate limit              │        └─────────┘
-│ GamificationRepository    │        │ 3. Antepone system prompt  │
-│ ProfileRepository         │        │ 4. Llama al LLM            │
-│      │                    │        │ 5. Devuelve la respuesta   │
-│      ▼                    │        │                            │
-│ CoachRepository           │        │ Sin DB, sin Alembic, sin   │
-│      │                    │        │ SQLAlchemy, sin tool-      │
-│      ▼                    │        │ calling contra ninguna DB  │
-│ CoachGateway ─────────────┘        └───────────────────────────┘
-└──────────────────────────┘
+Flutter
+  │
+  ▼
+Repositories (Stats/Goal/Recovery/Gamification/Profile)
+  │
+  ▼
+CoachContextBuilder
+  │
+  ▼
+CoachContext v1
+  │
+  ▼
+CoachRepository
+  │
+  ▼
+CoachGateway
+  │
+  ▼
+Backend IA (stateless, standalone, repo/deploy separado)
+  │
+  ▼
+JWT Validator (Supabase)
+  │
+  ▼
+Rate Limiter
+  │
+  ▼
+LLMProvider ──► Groq / OpenAI / Gemini / Claude / Ollama
+  │
+  ▼
+System Prompt (docs/COACH_SYSTEM_PROMPT.md)
+  │
+  ▼
+Respuesta ──► Flutter
 ```
+
+Sin DB, sin Alembic, sin SQLAlchemy, sin tool-calling contra ninguna base — en ningún
+punto de este flujo el backend consulta Supabase ni ninguna otra base de datos.
 
 Puntos clave de aislamiento:
 - **Repo/deploy separado** del resto del backend legado (`backend/` actual queda tal cual,
@@ -172,54 +194,20 @@ limiting del punto siguiente (contador en memoria/Redis por uuid, no por IP).
 
 ## 5. Endpoints propuestos
 
-Todos bajo `/api/v1/coach`, mismo prefijo que hoy para minimizar el cambio del lado del
-cliente.
+**Contrato HTTP completo (headers, request, response, códigos de error) congelado en
+`docs/COACH_API.md`** — no se repite acá para no tener dos fuentes de verdad. Resumen:
 
-### `POST /api/v1/coach/chat`
-
-Reemplaza al endpoint actual. Request:
-
-```json
-{
-  "question": "¿Cómo viene mi progreso esta semana?",
-  "context": { "...": "ver docs/COACH_CONTEXT.md para el esquema completo" }
-}
-```
-
-`context` es exactamente el objeto `CoachContext` definido en `docs/COACH_CONTEXT.md` —
-ese documento es el contrato fuente de verdad entre Flutter y este backend, no se
-redefine acá. Lo arma `CoachRepository` combinando los repositorios ya existentes, sin
-ninguna query nueva.
-
-Response:
-
-```json
-{ "reply": "Vas bien: 3 días de racha y el volumen semanal se mantiene..." }
-```
-
-No hay ningún campo de "necesito más datos" ni segundo round-trip — si el contexto no
-alcanza, el modelo lo dice en `reply` (instrucción explícita del `SYSTEM_PROMPT`, igual
-que hoy).
-
-### `GET /api/v1/coach/status`
-
-Reemplaza el chequeo que hoy hace `SmartBackendAvailability` mirando si
-`SMART_BACKEND_URL` está seteado en el cliente. Sin autenticación (público, solo dice si
-el servicio está operativo):
-
-```json
-{ "available": true }
-```
-
-`available: false` si falta la API key del LLM en el backend — consultable antes de
-mandar un mensaje (hoy el cliente se entera recién al fallar el POST con 503). No expone
-qué proveedor/modelo corre detrás — es un detalle interno (sección 7).
-
-### Sin más endpoints
-
-No hay `/coach/context-preview` (era para debug, no lo usa ninguna pantalla), ni ningún
-endpoint de datos de usuario, ni ninguna ruta de tool-calling — ese es exactamente el
-punto de este rediseño.
+- `POST /api/v1/coach/chat` — reemplaza al endpoint actual. Body: `{ sessionId, message,
+  context }`, donde `context` es exactamente el objeto `CoachContext` de
+  `docs/COACH_CONTEXT.md`. Sin ningún campo de "necesito más datos" ni segundo
+  round-trip — si el contexto no alcanza, el modelo lo dice en `reply` (instrucción
+  explícita del system prompt, ver `docs/COACH_SYSTEM_PROMPT.md`).
+- `GET /api/v1/coach/status` — reemplaza el chequeo que hoy hace
+  `SmartBackendAvailability` mirando si `SMART_BACKEND_URL` está seteado en el cliente.
+  Sin autenticación, dice si el servicio está operativo sin exponer qué proveedor/modelo
+  corre detrás (detalle interno, sección 7).
+- Sin más endpoints — no hay `/coach/context-preview` (era para debug, no lo usa ninguna
+  pantalla), ni ningún endpoint de datos de usuario, ni ninguna ruta de tool-calling.
 
 ## 6. Integración con el Coach IA (cliente)
 
@@ -236,19 +224,38 @@ punto de este rediseño.
   `SMART_BACKEND_URL` no está vacío — cubre también el caso "el servidor está desplegado
   pero sin la key del LLM configurada".
 
-## 7. Integración con el LLM (Groq, intercambiable)
+## 7. Integración con el LLM — interfaz `LLMProvider`, ningún SDK específico
 
-Se reutiliza el diseño actual de `llm_client.ask_llm` (cliente HTTP genérico contra una
-API compatible con OpenAI — `chat/completions`), pero **sin tool-calling** (se elimina esa
-parte por completo, ver sección 2) y detrás de una interfaz interna del backend
-(`LlmProvider`/equivalente) para que cambiar de Groq a OpenAI/Gemini/Claude/Ollama sea
-solo una implementación nueva de esa interfaz + variables de entorno, sin tocar los
-endpoints ni el contrato con Flutter:
-- Configurable por variables de entorno (`LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`).
-- El mismo `SYSTEM_PROMPT` (ajustado para explicitar que el contexto viene ya armado del
-  cliente y es todo lo que el modelo va a tener disponible — sin herramientas).
+Regla explícita del usuario: el backend **nunca depende de un SDK de proveedor
+concreto**, solo de una interfaz propia:
+
+```
+LLMProvider (interfaz abstracta: complete(systemPrompt, userMessage) -> LlmReply)
+    │
+    ├── GroqProvider     (implementación real para arrancar — API compatible con OpenAI)
+    ├── OpenAIProvider   (futura)
+    ├── GeminiProvider   (futura)
+    ├── ClaudeProvider   (futura)
+    └── OllamaProvider   (futura, para correr un modelo local/self-hosted)
+```
+
+El resto del backend (validación de JWT, rate limiting, endpoints) solo conoce
+`LLMProvider` — nunca importa `httpx` apuntando directo a Groq ni ningún detalle de un
+proveedor puntual fuera de la implementación de su propio `*Provider`. Cambiar de
+proveedor es: implementar una clase nueva que cumpla `LLMProvider` + cambiar qué
+implementación se inyecta (por variable de entorno, ej. `LLM_PROVIDER=groq`) — cero
+cambios en endpoints, en el contrato con Flutter, ni en `CoachGateway`.
+
+- **`GroqProvider`** (primera implementación): reutiliza el diseño actual de
+  `llm_client.ask_llm` — cliente HTTP contra una API compatible con OpenAI
+  (`chat/completions`) — pero **sin tool-calling** (se elimina esa parte por completo,
+  ver sección 2). Configurable por variables de entorno (`LLM_BASE_URL`, `LLM_API_KEY`,
+  `LLM_MODEL`).
+- **System prompt**: vive en `docs/COACH_SYSTEM_PROMPT.md` como recurso versionado, no
+  incrustado en el código — el backend lo carga desde ahí (archivo/recurso), no lo
+  redefine. Ver ese documento para personalidad, tono, límites y reglas de seguridad.
 - El mismo manejo de "LLM no configurado" → 503, ahora también reflejado en
-  `GET /coach/status`.
+  `GET /coach/status`. Detalle completo de códigos de error en `docs/COACH_API.md`.
 
 ## 8. Qué se elimina o no se lleva a este backend
 
@@ -280,17 +287,28 @@ Solo las estrictamente necesarias — ninguna relacionada a Postgres/Alembic/aut
 ## 10. Próximos pasos (orden acordado con el usuario)
 
 1. ✅ Consolidar la auditoría (`docs/ARQUITECTURA_BACKEND.md` sección 7).
-2. ✅ Definir el contrato `CoachContext` — `docs/COACH_CONTEXT.md`.
-3. ✅ Revisar y aprobar ese contrato con el usuario — **aprobado 2026-07-12 como v1**,
-   con los 10 ajustes de la revisión (versión, `app`, split profile/preferences/settings,
-   `capabilities`, regla de ventana configurable, resumen en vez de volcado completo,
-   presupuesto de tokens, `extensions`, `sessionId`, `generatedAt`).
-4. **Implementar el backend inteligente mínimo y completamente stateless** (este
-   documento) — pendiente de la orden explícita del usuario para empezar.
-5. Conectar Flutter mediante `CoachContextBuilder` → `CoachRepository` →
+2. ✅ Definir el contrato `CoachContext` — `docs/COACH_CONTEXT.md`, **aprobado 2026-07-12
+   como v1** con los 10 ajustes de esa revisión (versión, `app`, split
+   profile/preferences/settings, `capabilities`, regla de ventana configurable, resumen en
+   vez de volcado completo, presupuesto de tokens, `extensions`, `sessionId`,
+   `generatedAt`).
+3. ✅ Definir el contrato HTTP público — `docs/COACH_API.md`, **aprobado 2026-07-12**:
+   endpoint, headers, request/response, y los 7 códigos de error (`400`, `401`, `403`,
+   `429`, `500`, `503`, timeout) con su sobre de error uniforme.
+4. ✅ Definir el system prompt como recurso versionado, separado del código —
+   `docs/COACH_SYSTEM_PROMPT.md`, **aprobado 2026-07-12**: personalidad, límites, cómo
+   responder con datos faltantes o funciones no disponibles, criterios de seguridad.
+5. ✅ Formalizar la interfaz `LLMProvider` (sección 7) — el backend nunca depende de un
+   SDK de proveedor específico, solo de esa interfaz; `GroqProvider` es la primera
+   implementación.
+6. **Implementar el backend inteligente mínimo y completamente stateless** (este
+   documento + los 3 contratos aprobados) — pendiente de la orden explícita del usuario
+   para empezar.
+7. Conectar Flutter mediante `CoachContextBuilder` → `CoachRepository` →
    `CoachProvider`/`CoachGateway`.
-6. Dejar Groq como un detalle interno del backend, intercambiable por cualquier otro
-   proveedor sin tocar Flutter.
 
-El contrato quedó congelado como v1 (`docs/COACH_CONTEXT.md`). No se implementa nada de
-esto hasta recibir la orden explícita del usuario de empezar la Fase 4.
+Con `docs/COACH_CONTEXT.md`, `docs/COACH_API.md` y `docs/COACH_SYSTEM_PROMPT.md`
+aprobados, el diseño de la Fase 4 queda **completo y cerrado** — el usuario indicó
+explícitamente que no ve necesarios más cambios de arquitectura antes de empezar a
+desarrollar. No se implementa nada de esto hasta recibir la orden explícita del usuario
+de empezar la Fase 4.
