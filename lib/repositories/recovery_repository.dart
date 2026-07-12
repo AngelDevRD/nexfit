@@ -6,14 +6,11 @@ import '../models/recovery.dart';
 /// Reemplaza a `RecoveryService` (FastAPI) -- offline-first vía Drift. Un
 /// check-in por día, mismo patrón upsert-por-fecha que Nutrition.
 ///
-/// Nota (Fase 2, ver docs/ARQUITECTURA_BACKEND.md): `compute_recovery_index`
-/// en FastAPI pondera sueño+fatiga+carga de entrenamiento (tonelaje semanal
-/// vía `personal_records`/`workout_sets`). La carga de entrenamiento es
-/// estadística que recién se calcula on-device en la Fase 3 -- por ahora se
-/// usa el mismo valor neutro que el propio backend usa cuando no hay
-/// historial previo (`load_score = 100`), documentado explícitamente en vez
-/// de omitir el factor en silencio. El índice se recalcula por completo en
-/// la Fase 3 cuando el tonelaje esté disponible localmente.
+/// Fase 3a (ver docs/ARQUITECTURA_BACKEND.md): `compute_recovery_index`
+/// (`backend/app/services/recovery.py`) pondera sueño (40%) + fatiga
+/// percibida (30%) + carga de entrenamiento vía tonelaje semanal (30%). Los
+/// tres factores ahora se calculan acá leyendo `DailyCheckins`/`WorkoutSets`/
+/// `WorkoutSessions` locales -- ya no depende de ningún backend.
 class RecoveryRepository {
   final local.AppDatabase db;
 
@@ -61,7 +58,7 @@ class RecoveryRepository {
 
     final sleepScore = _clamp((latest.sleepHours / _sleepTargetHours) * 100);
     final fatigueScore = _clamp((10 - latest.perceivedFatigue) * 10);
-    const loadScore = 100.0; // ver nota de clase: pendiente de Fase 3.
+    final loadScore = await _weeklyLoadScore();
 
     final recoveryIndex =
         (0.4 * sleepScore + 0.3 * fatigueScore + 0.3 * loadScore).round();
@@ -81,5 +78,49 @@ class RecoveryRepository {
       perceivedFatigue: latest.perceivedFatigue,
       checkinDate: latest.checkinDate,
     );
+  }
+
+  DateTime _weekStart(DateTime d) =>
+      DateTime(d.year, d.month, d.day).subtract(Duration(days: d.weekday - 1));
+
+  /// Espejo del componente `load_score` de `compute_recovery_index`: compara
+  /// el tonelaje (peso × reps, sin warmups) de esta semana contra el
+  /// promedio de las 4 anteriores -- misma ventana de 5 semanas que
+  /// `get_tonnage_history(db, user_id, period="week", periods=5)`.
+  Future<double> _weeklyLoadScore() async {
+    final sessions = await db.select(db.workoutSessions).get();
+    final startedAtBySession = {for (final s in sessions) s.id: s.startedAt};
+    final sets = await (db.select(
+      db.workoutSets,
+    )..where((t) => t.isWarmup.equals(false))).get();
+
+    final buckets = <DateTime, double>{};
+    for (final set in sets) {
+      final startedAt = startedAtBySession[set.sessionId];
+      if (startedAt == null) continue;
+      final key = _weekStart(startedAt);
+      buckets[key] = (buckets[key] ?? 0) + set.weightKg * set.reps;
+    }
+
+    final today = _weekStart(DateTime.now());
+    final tonnage = [
+      for (var i = 4; i >= 0; i--)
+        buckets[today.subtract(Duration(days: 7 * i))] ?? 0.0,
+    ];
+
+    final thisWeek = tonnage.last;
+    final previousWeeks = tonnage
+        .sublist(0, tonnage.length - 1)
+        .where((t) => t > 0)
+        .toList();
+    if (previousWeeks.isEmpty) return 100.0;
+
+    final avgPrevious =
+        previousWeeks.reduce((a, b) => a + b) / previousWeeks.length;
+    if (avgPrevious <= 0) return 100.0;
+
+    final overloadRatio = thisWeek / avgPrevious;
+    final overshoot = overloadRatio - 1;
+    return _clamp(100 - (overshoot > 0 ? overshoot : 0) * 100);
   }
 }

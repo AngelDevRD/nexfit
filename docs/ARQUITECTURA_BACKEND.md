@@ -244,14 +244,48 @@ terminar con login en Supabase, perfil en FastAPI y rutinas en Supabase al mismo
   12/12 ✅ · `flutter build apk --release` → build exitoso (47.5MB) · Security Advisor
   (`get_advisors(security)`) revisado antes y después — ver sección 5.5.
 
-### Fase 3 — Dominios 100% on-device
-- Confirmar y cortar cualquier llamada de red residual en `exercise_service.dart` (usar
-  solo `assets/data/exercises.json` + caché Drift).
-- Portar a Dart la lógica de `stats_service.dart`/`gamification_service.dart` para que
-  lean directo de las tablas Drift locales, replicando `stats.py`/`gamification.py` del
-  backend actual.
-- **Criterio de éxito**: estas pantallas funcionan sin red y sin sesión Supabase activa
-  (offline puro).
+### Fase 3 — Dominios 100% on-device (dividida en sub-fases por su tamaño real)
+
+#### Fase 3a — Récords personales, progreso de objetivos y factor de carga de recovery ✅ completada 2026-07-12
+- ✅ **Récords personales**: ya se calculaban on-device desde antes de esta fase
+  (`WorkoutRepository._checkPersonalRecords`, escribe en la tabla local `PersonalRecords`
+  al agregar un set) — lo que faltaba era leerlos de vuelta, no calcularlos.
+- ✅ **`GoalRepository`**: `_currentValueFor`/`_toGoal` replican `get_current_value`/
+  `compute_goal_progress` de `backend/app/services/goals.py`, leyendo `Profiles` (peso/
+  %grasa) o `PersonalRecords` (máximos por ejercicio) locales. Se corrigió de paso un bug
+  de la Fase 2: `create()` fijaba `startingValue = 0` siempre; ahora usa el valor actual
+  del usuario al crear el objetivo, igual que FastAPI.
+- ✅ **`RecoveryRepository._weeklyLoadScore`**: replica el tercer factor de
+  `compute_recovery_index` (`backend/app/services/recovery.py`) — tonelaje de esta semana
+  vs. promedio de las 4 anteriores, leyendo `WorkoutSessions`/`WorkoutSets` locales.
+  Reemplaza el valor neutro fijo (`load_score = 100`) de la Fase 2.
+- ✅ **Tests nuevos** (`test/repositories/goal_repository_test.dart`,
+  `recovery_repository_test.dart`): verifican los cálculos con casos concretos (objetivo de
+  peso corporal, objetivo de fuerza con récord parcial y alcanzado, sobrecarga de tonelaje
+  que baja el factor de carga a 0) — no solo que compile, que el número sea el esperado.
+- **Verificado**: `flutter analyze lib/ test/` → *No issues found!* · `flutter test` →
+  19/19 ✅ (7 nuevos) · `flutter build apk --release` → build exitoso (47.5MB).
+- **Fuera de esta sub-fase, sin tocar**: catálogo de ejercicios (sigue usando
+  `ExerciseService`/`ApiClient`), calculadoras (no verificadas si ya eran locales),
+  estadísticas de `stats_service.dart` (volumen muscular, perfil de fuerza, progreso por
+  ejercicio, tonelaje histórico, racha, estándares de fuerza, predicción de récords) y
+  gamificación (`gamification_service.dart`) — quedan para 3b/3c.
+
+#### Fase 3b — Estadísticas (`stats_service.dart`) ⬜ no iniciada
+`stats.py` tiene 7 cálculos distintos (volumen muscular, perfil de fuerza, progreso por
+ejercicio, tonelaje histórico, racha de entrenamiento, estándares de fuerza, predicción de
+récords) — se porta como su propia sub-fase para poder revisarla con el mismo detalle que
+3a, no de un salto grande sin poder probarse en dispositivo.
+
+#### Fase 3c — Gamificación + catálogo de ejercicios + calculadoras ⬜ no iniciada
+Gamificación (`gamification_service.dart`), corte de la llamada de red residual del
+catálogo de ejercicios, y verificación de que las calculadoras ya son 100% locales.
+
+- **Criterio de éxito de la Fase 3 completa**: estas pantallas funcionan sin red y sin
+  sesión Supabase activa (offline puro), sin ninguna llamada innecesaria a Supabase para
+  datos que puedan calcularse localmente. La sincronización se sigue usando solo para
+  compartir el resultado entre dispositivos (vía `PersonalRecords`/`Profiles` ya
+  sincronizados en la Fase 2), no para hacer el cálculo.
 
 ### Fase 4 — Backend inteligente aislado y opcional
 - Adelgazar FastAPI a solo lo que sostiene Coach IA (`coach`, `llm_client`,
@@ -277,7 +311,9 @@ terminar con login en Supabase, perfil en FastAPI y rutinas en Supabase al mismo
 | 0 — Fundaciones | ✅ Completada | 2026-07-11 |
 | 1 — Auth a Supabase | ✅ Completada | 2026-07-11 |
 | 2 — Perfil + rutinas + entrenamientos + objetivos + nutrición + recovery a Supabase | ✅ Completada | 2026-07-12 |
-| 3 — Dominios on-device | ⬜ No iniciada | — |
+| 3a — Récords personales + progreso de objetivos + factor de carga de recovery | ✅ Completada | 2026-07-12 |
+| 3b — Estadísticas (`stats_service.dart`) | ⬜ No iniciada | — |
+| 3c — Gamificación + catálogo de ejercicios + calculadoras | ⬜ No iniciada | — |
 | 4 — Backend inteligente aislado | ⬜ No iniciada | — |
 | 5 — Cutover de CI y limpieza | ⬜ No iniciada | — |
 
@@ -313,35 +349,29 @@ terminar con login en Supabase, perfil en FastAPI y rutinas en Supabase al mismo
   `ChallengeDetail`, `LeaderboardEntry`) que estos archivos siguen necesitando para
   compilar, aunque nada los llame.
 
-### 5.3 Qué se migra en la Fase 3 (siguiente paso, no iniciado)
+### 5.3 Qué se migra en la Fase 3b/3c (siguiente paso, no iniciado)
 
-Catálogo de ejercicios (cortar cualquier llamada de red residual, usar solo el asset
-local), calculadoras, y el cálculo real de estadísticas (`stats_service.dart`,
-`gamification_service.dart`) leyendo de las tablas Drift locales. Esto además **desbloquea
-dos simplificaciones pendientes de la Fase 2** (ver 5.4): el progreso de objetivos y el
-factor de carga de entrenamiento del índice de recovery, ambos hoy sin ese dato porque
-depende de estadísticas que todavía no se calculan localmente.
+Estadísticas (`stats_service.dart`: volumen muscular, perfil de fuerza, progreso por
+ejercicio, tonelaje histórico, racha, estándares de fuerza, predicción de récords),
+gamificación (`gamification_service.dart`), catálogo de ejercicios (cortar cualquier
+llamada de red residual) y verificación de las calculadoras.
 
-### 5.4 Simplificaciones deliberadas de la Fase 2 (documentadas, no ocultas)
+### 5.4 Simplificaciones de la Fase 2 — resueltas en la Fase 3a
 
-- **Progreso de objetivos**: `compute_goal_progress` en FastAPI calculaba
-  `current_value`/`progress_pct`/`achieved` consultando `personal_records`/`profiles`. Acá
-  todavía no hay ningún mecanismo que sincronice `personal_records` hacia abajo (solo se
-  sube, nunca se lee de vuelta) ni cálculo local de récords personales — eso es trabajo de
-  estadísticas (Fase 3). Por ahora `GoalRepository.list()` devuelve cada objetivo con
-  `currentValue = startingValue` y `progressPct = 0` en vez de simular un valor que no es
-  real. La UI (`goals_screen.dart`) no se tocó y sigue mostrando la barra de progreso —
-  solo que hoy siempre arranca en 0% hasta la Fase 3.
-- **Índice de recovery**: `compute_recovery_index` en FastAPI pondera sueño (40%) +
-  fatiga percibida (30%) + carga de entrenamiento vía tonelaje semanal (30%). El tercer
-  factor también depende de stats (Fase 3) — `RecoveryRepository.index()` usa el mismo
-  valor neutro que el propio backend usa cuando no hay historial previo
-  (`load_score = 100`), no un número inventado. El índice se recalculará con el factor de
-  carga real en la Fase 3.
-- **`join`/`leave`/`remove` de retos y el leaderboard** dependen de dos funciones
-  Postgres `security definer` (`join_challenge_by_code`, `challenge_leaderboard`) creadas
-  en esta fase — necesarias porque RLS bloquea, a propósito, que un usuario lea
-  `challenges`/`workout_sets` ajenos directamente desde el cliente.
+- **Progreso de objetivos**: ✅ resuelto. `GoalRepository` ahora calcula
+  `currentValue`/`progressPct`/`achieved` de verdad, leyendo `PersonalRecords` (récords ya
+  se calculaban on-device desde antes de la Fase 2, solo no se leían de vuelta) y
+  `Profiles` locales — réplica de `compute_goal_progress` en FastAPI. Se corrigió además
+  un bug real de la Fase 2: `create()` fijaba `startingValue = 0` siempre en vez del valor
+  actual del usuario al crear el objetivo.
+- **Índice de recovery**: ✅ resuelto. `RecoveryRepository._weeklyLoadScore` calcula el
+  tercer factor (tonelaje de esta semana vs. promedio de las 4 anteriores) leyendo
+  `WorkoutSessions`/`WorkoutSets` locales — réplica de `compute_recovery_index` en
+  FastAPI. Ya no usa el valor neutro fijo.
+- **`join`/`leave`/`remove` de retos y el leaderboard** siguen dependiendo de dos
+  funciones Postgres `security definer` (`join_challenge_by_code`, `challenge_leaderboard`)
+  — es el diseño correcto (Social es la excepción acordada), no una simplificación
+  pendiente de resolver.
 
 ### 5.5 Security Advisor
 
@@ -447,7 +477,7 @@ cambios en esta fase, no era su alcance.
 
 ## 6. Distribución actual de responsabilidades
 
-Foto tomada el 2026-07-12, al cerrar la Fase 2. Cualquiera debería poder entender la
+Foto tomada el 2026-07-12, al cerrar la Fase 3a. Cualquiera debería poder entender la
 arquitectura actual leyendo solo esta sección.
 
 ### Flutter + Drift (cliente, offline-first)
@@ -458,13 +488,16 @@ arquitectura actual leyendo solo esta sección.
   red para crear/editar/ver estos datos.
 - Cola de sincronización (`SyncEngine` + `SyncableEntity`), disparada por conectividad y
   por un timer de respaldo.
-- **Pendiente de mover acá (Fase 3)**: cálculo de estadísticas (volumen muscular, perfil de
-  fuerza, progreso por ejercicio, tonelaje, racha, estándares de fuerza, predicción de
-  récords), récords personales, progreso de objetivos, gamificación, y el factor de carga
-  de entrenamiento del índice de recovery. Hoy ese cálculo no existe en ningún lado del
-  cliente — `stats_service.dart`/`gamification_service.dart` siguen apuntando a FastAPI sin
-  usarse desde ninguna pantalla activa (ver 5.2), y las dos simplificaciones de la Fase 2
-  (5.4) usan valores neutros en su lugar.
+- **Cálculo de negocio ya on-device (Fase 3a)**: récords personales (`PersonalRecords`,
+  calculados al agregar un set), progreso de objetivos (`GoalRepository`), factor de carga
+  del índice de recovery (`RecoveryRepository`) — todos leyendo solo Drift local, sin
+  ninguna llamada a Supabase para el cálculo en sí (la sincronización solo comparte el
+  resultado entre dispositivos).
+- **Pendiente de mover acá (Fase 3b/3c)**: el resto de estadísticas (volumen muscular,
+  perfil de fuerza, progreso por ejercicio, tonelaje histórico, racha, estándares de
+  fuerza, predicción de récords) y gamificación. `stats_service.dart`/
+  `gamification_service.dart` siguen apuntando a FastAPI sin usarse desde ninguna pantalla
+  activa (ver 5.2).
 
 ### Supabase (identidad + datos del usuario)
 
