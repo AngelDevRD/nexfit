@@ -91,7 +91,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: AppSpacing.md),
                       Text(
-                        'AppGym',
+                        'NexFit',
                         style: Theme.of(context).textTheme.headlineMedium
                             ?.copyWith(
                               color: AppColors.primary,
