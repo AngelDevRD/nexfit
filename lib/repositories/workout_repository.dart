@@ -25,21 +25,25 @@ class WorkoutRepository {
 
   WorkoutRepository(this.db);
 
-  Future<WorkoutSession> startSession({int? routineId}) async {
+  Future<WorkoutSession> startSession({
+    int? routineId,
+    DateTime? startedAt,
+  }) async {
     final now = DateTime.now();
+    final start = startedAt ?? now;
     final id = await db
         .into(db.workoutSessions)
         .insert(
           local.WorkoutSessionsCompanion.insert(
             routineId: Value(routineId),
-            startedAt: now,
+            startedAt: start,
             updatedAt: now,
           ),
         );
     return WorkoutSession(
       id: id,
       routineId: routineId,
-      startedAt: now,
+      startedAt: start,
       sets: const [],
     );
   }

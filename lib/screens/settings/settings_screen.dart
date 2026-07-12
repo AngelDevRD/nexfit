@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
 import '../../core/theme.dart';
+import '../../features/import_export/export_screen.dart';
+import '../../features/import_export/import_preview_screen.dart';
 import '../../providers/theme_provider.dart';
 import '../../services/data_transfer_service.dart';
 
@@ -166,6 +168,51 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                 ],
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Text(
+            'Migración de datos',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceContainer,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Traé tu historial desde otra app (Strong, Hevy, FitNotes, '
+                  'etc.) o exportá el tuyo a un archivo CSV, Excel o JSON.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ImportPreviewScreen(),
+                    ),
+                  ),
+                  icon: const Icon(Icons.file_open_outlined),
+                  label: const Text('Importar desde archivo'),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ExportScreen()),
+                  ),
+                  icon: const Icon(Icons.file_download_outlined),
+                  label: const Text('Exportar a archivo'),
+                ),
               ],
             ),
           ),
