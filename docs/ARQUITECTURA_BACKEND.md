@@ -363,7 +363,69 @@ Revisado antes y después de aplicar las migraciones (`get_advisors(type: securi
   leaderboard). No es un hallazgo pendiente, es el diseño; cada función valida membresía
   del caller (`auth.uid()`) antes de devolver o modificar cualquier dato.
 
-### 5.6 Componentes ya listos para usar en fases siguientes
+### 5.6 Auditoría de consolidación (2026-07-12, previa a la Fase 3)
+
+Antes de dar la Fase 2 por cerrada del todo se auditaron, con evidencia (no solo lectura de
+código), cuatro puntos:
+
+**a) Ciclo de vida de sync, entidad por entidad** — las 7 entidades (`Profiles`,
+`Routines`, `WorkoutSessions`, `WorkoutSets`, `Goals`, `NutritionLogs`, `DailyCheckins`)
+siguen `crear/modificar local → dirty=true (default de columna o explícito en la
+mutación) → SyncEngine.syncNow() las recoge automáticamente (listener de conectividad +
+timer de respaldo, sin cambios desde antes de la Fase 2) → push() al destino → dirty=false
+si tuvo éxito`. Hay **tres formas** de `push()`, cada una con una razón concreta, no
+arbitraria:
+  - *Create-or-delete* (`Routines`, `Goals`): la UI nunca edita después de crear, así que
+    no hace falta soportar diff.
+  - *Upsert por clave natural* (`Profiles` por `id`=usuario; `NutritionLogs`/
+    `DailyCheckins` por fecha): son dominios de "una fila por \[usuario\|día\]", no hay
+    concepto de "borrar" en la UI actual.
+  - *Create + cola de operaciones incrementales* (`WorkoutSessions`/`WorkoutSets` vía
+    `PendingSetOps`): es el único dominio donde la UI sí edita/borra ítems hijos
+    (sets) después de sincronizados, así que necesita un diff granular en vez de
+    reenviar el árbol completo. `WorkoutSets` en particular **no tiene columna `dirty`
+    propia** — su sync se rastrea enteramente vía `PendingSetOps`, que es la diferencia de
+    diseño real y ya estaba documentada en el código antes de esta fase (no la introduje).
+  - **Política de conflictos, uniforme en las tres formas**: last-write-wins sin merge —
+    el último `push()` exitoso sobrescribe lo que hubiera en el servidor. No hay vector de
+    versión ni resolución automática de conflictos entre dispositivos; es una decisión de
+    diseño consciente (dominio de un solo usuario editando mayormente desde un dispositivo
+    a la vez), no un vacío.
+
+**b) Auditoría de RLS con evidencia SQL** — se consultó `pg_policies` directamente (no
+solo `get_advisors`) para las 11 tablas nuevas. **Se encontró y corrigió un bug real**: la
+policy `challenges_select_participants` comparaba `cp.challenge_id = cp.id` (columna `id`
+propia de `challenge_participants`, no la de `challenges`) por no calificar la tabla
+externa — la condición nunca era verdadera para nadie, ni siquiera el dueño del reto. Se
+corrigió calificando explícitamente `challenges.id` (migración
+`fix_challenges_select_policy_column_collision`), verificado leyendo la policy resultante
+de vuelta desde `pg_policies`. El resto de las policies (14 en total) fueron revisadas una
+por una: todas usan `auth.uid() = user_id`/`owner_id`/`id` (directo o vía `EXISTS` con
+join al padre) tanto en `USING` como en `WITH CHECK`, sin ningún `using (true)` — un
+usuario no puede leer, modificar, insertar ni borrar filas de otro. `get_advisors`
+después del fix: mismos 4 hallazgos que antes (2 `INFO` preexistentes de tablas de
+FastAPI, 2 `WARN` intencionales ya explicados en 5.5), cero regresiones.
+
+**c) Uniformidad de repositorios** — `ProfileRepository`/`GoalRepository`/
+`NutritionRepository`/`RecoveryRepository`/`RoutineRepository` comparten estructura
+(constructor `(AppDatabase db)`, sin estado propio más allá de `db`). Los nombres de
+método difieren **solo cuando el dominio lo justifica**: `list/create/delete` para los
+dominios create-or-delete, `get/upsert` para los de fila única (`Profile`) o por fecha
+(`Nutrition`/`Recovery`) — no hay dos repos con la misma forma de dominio implementados de
+formas distintas.
+
+**d) FastAPI fuera del flujo principal** — confirmado por grep, no por inspección visual:
+cero archivos bajo `lib/screens/` o `lib/core/sync/` importan `ApiClient` ni ningún
+`*_service.dart` de los 6 dominios migrados (perfil, rutinas, entrenamientos, objetivos,
+nutrición, recovery). Los archivos `auth_service.dart`, `goal_service.dart`,
+`nutrition_service.dart`, `recovery_service.dart`, `social_service.dart`,
+`routine_service.dart`, `workout_service.dart` siguen en el repo, compilando, sin ningún
+importador real — exactamente "código por compatibilidad", como pediste.
+
+**Fase 2: consolidada.** Con el fix de RLS aplicado y verificado, no queda ningún punto
+abierto de esta fase.
+
+### 5.7 Componentes ya listos para usar en fases siguientes
 
 - `AuthRepository` (`lib/core/auth/auth_repository.dart`) — sin cambios, sigue siendo el
   único punto de verdad para el usuario autenticado.
@@ -375,7 +437,7 @@ Revisado antes y después de aplicar las migraciones (`get_advisors(type: securi
 - `SmartBackendAvailability.isConfigured` / `.baseUrl` y `ComingSoonView` — sin usar
   todavía, listos para gatear Coach IA en la Fase 4.
 
-### 5.7 Mejora pendiente, señalada por el usuario (no bloqueante)
+### 5.8 Mejora pendiente, señalada por el usuario (no bloqueante)
 
 El `try/catch` silencioso alrededor de `Supabase.initialize` en `main.dart` está bien para
 esta transición, pero no debe quedar así de forma permanente: en una fase posterior hay
@@ -383,5 +445,48 @@ que registrar ese error en un servicio real (Crashlytics o equivalente) en vez d
 `developer.log`. Sigue marcado con `// TODO(fase-posterior)` en `lib/main.dart` — sin
 cambios en esta fase, no era su alcance.
 
+## 6. Distribución actual de responsabilidades
+
+Foto tomada el 2026-07-12, al cerrar la Fase 2. Cualquiera debería poder entender la
+arquitectura actual leyendo solo esta sección.
+
+### Flutter + Drift (cliente, offline-first)
+
+- Toda la UI y la navegación.
+- Base de datos local (SQLite vía Drift): fuente de verdad inmediata para rutinas,
+  entrenamientos, perfil, objetivos, nutrición y recovery — la app es 100% funcional sin
+  red para crear/editar/ver estos datos.
+- Cola de sincronización (`SyncEngine` + `SyncableEntity`), disparada por conectividad y
+  por un timer de respaldo.
+- **Pendiente de mover acá (Fase 3)**: cálculo de estadísticas (volumen muscular, perfil de
+  fuerza, progreso por ejercicio, tonelaje, racha, estándares de fuerza, predicción de
+  récords), récords personales, progreso de objetivos, gamificación, y el factor de carga
+  de entrenamiento del índice de recovery. Hoy ese cálculo no existe en ningún lado del
+  cliente — `stats_service.dart`/`gamification_service.dart` siguen apuntando a FastAPI sin
+  usarse desde ninguna pantalla activa (ver 5.2), y las dos simplificaciones de la Fase 2
+  (5.4) usan valores neutros en su lugar.
+
+### Supabase (identidad + datos del usuario)
+
+- **Auth**: registro, login, logout, recuperar contraseña, sesión persistida y renovación
+  automática de token.
+- **Datos por usuario, con RLS** (`auth.uid() = user_id`, auditado en 5.6): perfil,
+  rutinas, entrenamientos, objetivos, nutrición, check-ins de recovery.
+- **Social** (retos): única excepción sin caché local — lectura/escritura en vivo,
+  incluyendo dos funciones `security definer` para las operaciones que cruzan datos de
+  otros usuarios (unirse por código, leaderboard).
+
+### Backend inteligente (FastAPI hoy, pendiente de aislar en la Fase 4)
+
+- **Coach IA / chat / tool-calling**: el único dominio que sigue — y seguirá — necesitando
+  un servidor propio, porque sostiene la API key del LLM y orquesta llamadas que no pueden
+  exponerse al cliente.
+- **Sin decidir todavía** (fuera del alcance de la Fase 2, no tocado): calendario y
+  exportación de datos (`calendar_service.dart`, `data_transfer_service.dart`) siguen
+  apuntando a FastAPI sin verificar si de hecho funcionan hoy.
+- El resto de FastAPI (`backend/app/`) permanece intacto en el repo, sin borrar nada,
+  hasta la limpieza final de la Fase 5.
+
 Este documento se creó el 2026-07-11 como resultado del análisis de arquitectura
-solicitado antes de tocar código, y se actualizó el 2026-07-12 al completar la Fase 2.
+solicitado antes de tocar código, y se actualizó el 2026-07-12 al completar y consolidar
+la Fase 2.
