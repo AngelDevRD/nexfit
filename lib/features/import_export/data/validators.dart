@@ -1,3 +1,4 @@
+import '../../../core/date_parsing.dart';
 import '../domain/import_export_models.dart';
 import '../domain/mapping_models.dart';
 import '../domain/validation_models.dart';
@@ -9,11 +10,9 @@ import '../domain/validation_models.dart';
 /// su cuenta -- si algo no se puede tipar de forma segura, lo reporta como
 /// error en vez de adivinar un valor.
 ///
-/// Limitacion conocida: [_toDateTime] solo entiende fechas ISO-8601 (via
-/// `DateTime.tryParse`) o un [DateTime] ya tipado (ej. de ExcelParser).
-/// Formatos regionales como "12/07/2026" quedan como error de fecha
-/// invalida -- soportarlos requeriria un parser de fechas configurable,
-/// fuera de alcance de esta fase.
+/// El parseo de fecha (ISO-8601 o "d MMM yyyy, HH:mm" en espanol) vive en
+/// [parseFlexibleDate] (`core/date_parsing.dart`), compartido con el
+/// importador de medidas corporales.
 class Validators {
   List<ValidatedRecord> validate(ParsedDataset dataset, MappingResult mapping) {
     final records = <ValidatedRecord>[];
@@ -113,13 +112,14 @@ class Validators {
         return text.toLowerCase() == 'true' ||
             text == '1' ||
             text.toLowerCase() == 'si' ||
-            text.toLowerCase() == 'yes';
+            text.toLowerCase() == 'yes' ||
+            text.toLowerCase() == 'warmup';
     }
   }
 
   DateTime? _toDateTime(dynamic rawValue, String text) {
     if (rawValue is DateTime) return rawValue;
-    return DateTime.tryParse(text);
+    return parseFlexibleDate(text);
   }
 
   num? _positiveNum(

@@ -179,6 +179,33 @@ class DailyCheckins extends Table {
   BoolColumn get dirty => boolean().withDefault(const Constant(true))();
 }
 
+// Historial de medidas corporales (peso, % grasa, circunferencias). Un
+// registro por día, cargado a mano o importado desde un CSV externo
+// (Hevy/Renpho). Solo local por ahora -- sin `dirty`/`serverId` porque no
+// sincroniza con Supabase todavía; si se agrega sync despues, seguir el
+// patron de `DailyCheckins`/`RecoverySyncable` via `ALTER TABLE`.
+class BodyMeasurements extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  DateTimeColumn get measuredAt => dateTime()();
+  RealColumn get weightKg => real().nullable()();
+  RealColumn get fatPercent => real().nullable()();
+  RealColumn get neckCm => real().nullable()();
+  RealColumn get shoulderCm => real().nullable()();
+  RealColumn get chestCm => real().nullable()();
+  RealColumn get leftBicepCm => real().nullable()();
+  RealColumn get rightBicepCm => real().nullable()();
+  RealColumn get leftForearmCm => real().nullable()();
+  RealColumn get rightForearmCm => real().nullable()();
+  RealColumn get abdomenCm => real().nullable()();
+  RealColumn get waistCm => real().nullable()();
+  RealColumn get hipsCm => real().nullable()();
+  RealColumn get leftThighCm => real().nullable()();
+  RealColumn get rightThighCm => real().nullable()();
+  RealColumn get leftCalfCm => real().nullable()();
+  RealColumn get rightCalfCm => real().nullable()();
+  DateTimeColumn get updatedAt => dateTime()();
+}
+
 @DriftDatabase(
   tables: [
     Exercises,
@@ -193,6 +220,7 @@ class DailyCheckins extends Table {
     Goals,
     NutritionLogs,
     DailyCheckins,
+    BodyMeasurements,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -202,7 +230,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -256,6 +284,9 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(dailyCheckins);
         await customStatement('UPDATE routines SET dirty = 1');
         await customStatement('UPDATE workout_sessions SET dirty = 1');
+      }
+      if (from < 5) {
+        await m.createTable(bodyMeasurements);
       }
     },
   );

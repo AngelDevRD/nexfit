@@ -12,6 +12,7 @@ final Map<CanonicalField, List<String>> defaultSynonyms = {
   CanonicalField.exerciseName: [
     'exercise',
     'exercise name',
+    'exercise title',
     'ejercicio',
     'nombre ejercicio',
     'movement',
@@ -23,11 +24,13 @@ final Map<CanonicalField, List<String>> defaultSynonyms = {
     'workout date',
     'session date',
     'fecha entrenamiento',
+    'start time',
   ],
   CanonicalField.setNumber: [
     'set',
     'sets',
     'set number',
+    'set index',
     'serie',
     'series',
     'numero de serie',
@@ -57,8 +60,14 @@ final Map<CanonicalField, List<String>> defaultSynonyms = {
     'tiempo de descanso',
     'rest time',
   ],
-  CanonicalField.notes: ['notes', 'notas', 'comment', 'comentario'],
-  CanonicalField.isWarmup: ['warmup', 'calentamiento', 'is warmup'],
+  CanonicalField.notes: [
+    'notes',
+    'notas',
+    'comment',
+    'comentario',
+    'exercise notes',
+  ],
+  CanonicalField.isWarmup: ['warmup', 'calentamiento', 'is warmup', 'set type'],
   CanonicalField.bodyWeightKg: [
     'bodyweight',
     'body weight',

@@ -6617,6 +6617,1098 @@ class DailyCheckinsCompanion extends UpdateCompanion<DailyCheckin> {
   }
 }
 
+class $BodyMeasurementsTable extends BodyMeasurements
+    with TableInfo<$BodyMeasurementsTable, BodyMeasurement> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BodyMeasurementsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _measuredAtMeta = const VerificationMeta(
+    'measuredAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> measuredAt = GeneratedColumn<DateTime>(
+    'measured_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _weightKgMeta = const VerificationMeta(
+    'weightKg',
+  );
+  @override
+  late final GeneratedColumn<double> weightKg = GeneratedColumn<double>(
+    'weight_kg',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _fatPercentMeta = const VerificationMeta(
+    'fatPercent',
+  );
+  @override
+  late final GeneratedColumn<double> fatPercent = GeneratedColumn<double>(
+    'fat_percent',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _neckCmMeta = const VerificationMeta('neckCm');
+  @override
+  late final GeneratedColumn<double> neckCm = GeneratedColumn<double>(
+    'neck_cm',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _shoulderCmMeta = const VerificationMeta(
+    'shoulderCm',
+  );
+  @override
+  late final GeneratedColumn<double> shoulderCm = GeneratedColumn<double>(
+    'shoulder_cm',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _chestCmMeta = const VerificationMeta(
+    'chestCm',
+  );
+  @override
+  late final GeneratedColumn<double> chestCm = GeneratedColumn<double>(
+    'chest_cm',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _leftBicepCmMeta = const VerificationMeta(
+    'leftBicepCm',
+  );
+  @override
+  late final GeneratedColumn<double> leftBicepCm = GeneratedColumn<double>(
+    'left_bicep_cm',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _rightBicepCmMeta = const VerificationMeta(
+    'rightBicepCm',
+  );
+  @override
+  late final GeneratedColumn<double> rightBicepCm = GeneratedColumn<double>(
+    'right_bicep_cm',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _leftForearmCmMeta = const VerificationMeta(
+    'leftForearmCm',
+  );
+  @override
+  late final GeneratedColumn<double> leftForearmCm = GeneratedColumn<double>(
+    'left_forearm_cm',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _rightForearmCmMeta = const VerificationMeta(
+    'rightForearmCm',
+  );
+  @override
+  late final GeneratedColumn<double> rightForearmCm = GeneratedColumn<double>(
+    'right_forearm_cm',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _abdomenCmMeta = const VerificationMeta(
+    'abdomenCm',
+  );
+  @override
+  late final GeneratedColumn<double> abdomenCm = GeneratedColumn<double>(
+    'abdomen_cm',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _waistCmMeta = const VerificationMeta(
+    'waistCm',
+  );
+  @override
+  late final GeneratedColumn<double> waistCm = GeneratedColumn<double>(
+    'waist_cm',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _hipsCmMeta = const VerificationMeta('hipsCm');
+  @override
+  late final GeneratedColumn<double> hipsCm = GeneratedColumn<double>(
+    'hips_cm',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _leftThighCmMeta = const VerificationMeta(
+    'leftThighCm',
+  );
+  @override
+  late final GeneratedColumn<double> leftThighCm = GeneratedColumn<double>(
+    'left_thigh_cm',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _rightThighCmMeta = const VerificationMeta(
+    'rightThighCm',
+  );
+  @override
+  late final GeneratedColumn<double> rightThighCm = GeneratedColumn<double>(
+    'right_thigh_cm',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _leftCalfCmMeta = const VerificationMeta(
+    'leftCalfCm',
+  );
+  @override
+  late final GeneratedColumn<double> leftCalfCm = GeneratedColumn<double>(
+    'left_calf_cm',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _rightCalfCmMeta = const VerificationMeta(
+    'rightCalfCm',
+  );
+  @override
+  late final GeneratedColumn<double> rightCalfCm = GeneratedColumn<double>(
+    'right_calf_cm',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    measuredAt,
+    weightKg,
+    fatPercent,
+    neckCm,
+    shoulderCm,
+    chestCm,
+    leftBicepCm,
+    rightBicepCm,
+    leftForearmCm,
+    rightForearmCm,
+    abdomenCm,
+    waistCm,
+    hipsCm,
+    leftThighCm,
+    rightThighCm,
+    leftCalfCm,
+    rightCalfCm,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'body_measurements';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<BodyMeasurement> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('measured_at')) {
+      context.handle(
+        _measuredAtMeta,
+        measuredAt.isAcceptableOrUnknown(data['measured_at']!, _measuredAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_measuredAtMeta);
+    }
+    if (data.containsKey('weight_kg')) {
+      context.handle(
+        _weightKgMeta,
+        weightKg.isAcceptableOrUnknown(data['weight_kg']!, _weightKgMeta),
+      );
+    }
+    if (data.containsKey('fat_percent')) {
+      context.handle(
+        _fatPercentMeta,
+        fatPercent.isAcceptableOrUnknown(data['fat_percent']!, _fatPercentMeta),
+      );
+    }
+    if (data.containsKey('neck_cm')) {
+      context.handle(
+        _neckCmMeta,
+        neckCm.isAcceptableOrUnknown(data['neck_cm']!, _neckCmMeta),
+      );
+    }
+    if (data.containsKey('shoulder_cm')) {
+      context.handle(
+        _shoulderCmMeta,
+        shoulderCm.isAcceptableOrUnknown(data['shoulder_cm']!, _shoulderCmMeta),
+      );
+    }
+    if (data.containsKey('chest_cm')) {
+      context.handle(
+        _chestCmMeta,
+        chestCm.isAcceptableOrUnknown(data['chest_cm']!, _chestCmMeta),
+      );
+    }
+    if (data.containsKey('left_bicep_cm')) {
+      context.handle(
+        _leftBicepCmMeta,
+        leftBicepCm.isAcceptableOrUnknown(
+          data['left_bicep_cm']!,
+          _leftBicepCmMeta,
+        ),
+      );
+    }
+    if (data.containsKey('right_bicep_cm')) {
+      context.handle(
+        _rightBicepCmMeta,
+        rightBicepCm.isAcceptableOrUnknown(
+          data['right_bicep_cm']!,
+          _rightBicepCmMeta,
+        ),
+      );
+    }
+    if (data.containsKey('left_forearm_cm')) {
+      context.handle(
+        _leftForearmCmMeta,
+        leftForearmCm.isAcceptableOrUnknown(
+          data['left_forearm_cm']!,
+          _leftForearmCmMeta,
+        ),
+      );
+    }
+    if (data.containsKey('right_forearm_cm')) {
+      context.handle(
+        _rightForearmCmMeta,
+        rightForearmCm.isAcceptableOrUnknown(
+          data['right_forearm_cm']!,
+          _rightForearmCmMeta,
+        ),
+      );
+    }
+    if (data.containsKey('abdomen_cm')) {
+      context.handle(
+        _abdomenCmMeta,
+        abdomenCm.isAcceptableOrUnknown(data['abdomen_cm']!, _abdomenCmMeta),
+      );
+    }
+    if (data.containsKey('waist_cm')) {
+      context.handle(
+        _waistCmMeta,
+        waistCm.isAcceptableOrUnknown(data['waist_cm']!, _waistCmMeta),
+      );
+    }
+    if (data.containsKey('hips_cm')) {
+      context.handle(
+        _hipsCmMeta,
+        hipsCm.isAcceptableOrUnknown(data['hips_cm']!, _hipsCmMeta),
+      );
+    }
+    if (data.containsKey('left_thigh_cm')) {
+      context.handle(
+        _leftThighCmMeta,
+        leftThighCm.isAcceptableOrUnknown(
+          data['left_thigh_cm']!,
+          _leftThighCmMeta,
+        ),
+      );
+    }
+    if (data.containsKey('right_thigh_cm')) {
+      context.handle(
+        _rightThighCmMeta,
+        rightThighCm.isAcceptableOrUnknown(
+          data['right_thigh_cm']!,
+          _rightThighCmMeta,
+        ),
+      );
+    }
+    if (data.containsKey('left_calf_cm')) {
+      context.handle(
+        _leftCalfCmMeta,
+        leftCalfCm.isAcceptableOrUnknown(
+          data['left_calf_cm']!,
+          _leftCalfCmMeta,
+        ),
+      );
+    }
+    if (data.containsKey('right_calf_cm')) {
+      context.handle(
+        _rightCalfCmMeta,
+        rightCalfCm.isAcceptableOrUnknown(
+          data['right_calf_cm']!,
+          _rightCalfCmMeta,
+        ),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  BodyMeasurement map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BodyMeasurement(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      measuredAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}measured_at'],
+      )!,
+      weightKg: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}weight_kg'],
+      ),
+      fatPercent: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}fat_percent'],
+      ),
+      neckCm: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}neck_cm'],
+      ),
+      shoulderCm: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}shoulder_cm'],
+      ),
+      chestCm: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}chest_cm'],
+      ),
+      leftBicepCm: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}left_bicep_cm'],
+      ),
+      rightBicepCm: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}right_bicep_cm'],
+      ),
+      leftForearmCm: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}left_forearm_cm'],
+      ),
+      rightForearmCm: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}right_forearm_cm'],
+      ),
+      abdomenCm: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}abdomen_cm'],
+      ),
+      waistCm: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}waist_cm'],
+      ),
+      hipsCm: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}hips_cm'],
+      ),
+      leftThighCm: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}left_thigh_cm'],
+      ),
+      rightThighCm: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}right_thigh_cm'],
+      ),
+      leftCalfCm: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}left_calf_cm'],
+      ),
+      rightCalfCm: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}right_calf_cm'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $BodyMeasurementsTable createAlias(String alias) {
+    return $BodyMeasurementsTable(attachedDatabase, alias);
+  }
+}
+
+class BodyMeasurement extends DataClass implements Insertable<BodyMeasurement> {
+  final int id;
+  final DateTime measuredAt;
+  final double? weightKg;
+  final double? fatPercent;
+  final double? neckCm;
+  final double? shoulderCm;
+  final double? chestCm;
+  final double? leftBicepCm;
+  final double? rightBicepCm;
+  final double? leftForearmCm;
+  final double? rightForearmCm;
+  final double? abdomenCm;
+  final double? waistCm;
+  final double? hipsCm;
+  final double? leftThighCm;
+  final double? rightThighCm;
+  final double? leftCalfCm;
+  final double? rightCalfCm;
+  final DateTime updatedAt;
+  const BodyMeasurement({
+    required this.id,
+    required this.measuredAt,
+    this.weightKg,
+    this.fatPercent,
+    this.neckCm,
+    this.shoulderCm,
+    this.chestCm,
+    this.leftBicepCm,
+    this.rightBicepCm,
+    this.leftForearmCm,
+    this.rightForearmCm,
+    this.abdomenCm,
+    this.waistCm,
+    this.hipsCm,
+    this.leftThighCm,
+    this.rightThighCm,
+    this.leftCalfCm,
+    this.rightCalfCm,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['measured_at'] = Variable<DateTime>(measuredAt);
+    if (!nullToAbsent || weightKg != null) {
+      map['weight_kg'] = Variable<double>(weightKg);
+    }
+    if (!nullToAbsent || fatPercent != null) {
+      map['fat_percent'] = Variable<double>(fatPercent);
+    }
+    if (!nullToAbsent || neckCm != null) {
+      map['neck_cm'] = Variable<double>(neckCm);
+    }
+    if (!nullToAbsent || shoulderCm != null) {
+      map['shoulder_cm'] = Variable<double>(shoulderCm);
+    }
+    if (!nullToAbsent || chestCm != null) {
+      map['chest_cm'] = Variable<double>(chestCm);
+    }
+    if (!nullToAbsent || leftBicepCm != null) {
+      map['left_bicep_cm'] = Variable<double>(leftBicepCm);
+    }
+    if (!nullToAbsent || rightBicepCm != null) {
+      map['right_bicep_cm'] = Variable<double>(rightBicepCm);
+    }
+    if (!nullToAbsent || leftForearmCm != null) {
+      map['left_forearm_cm'] = Variable<double>(leftForearmCm);
+    }
+    if (!nullToAbsent || rightForearmCm != null) {
+      map['right_forearm_cm'] = Variable<double>(rightForearmCm);
+    }
+    if (!nullToAbsent || abdomenCm != null) {
+      map['abdomen_cm'] = Variable<double>(abdomenCm);
+    }
+    if (!nullToAbsent || waistCm != null) {
+      map['waist_cm'] = Variable<double>(waistCm);
+    }
+    if (!nullToAbsent || hipsCm != null) {
+      map['hips_cm'] = Variable<double>(hipsCm);
+    }
+    if (!nullToAbsent || leftThighCm != null) {
+      map['left_thigh_cm'] = Variable<double>(leftThighCm);
+    }
+    if (!nullToAbsent || rightThighCm != null) {
+      map['right_thigh_cm'] = Variable<double>(rightThighCm);
+    }
+    if (!nullToAbsent || leftCalfCm != null) {
+      map['left_calf_cm'] = Variable<double>(leftCalfCm);
+    }
+    if (!nullToAbsent || rightCalfCm != null) {
+      map['right_calf_cm'] = Variable<double>(rightCalfCm);
+    }
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  BodyMeasurementsCompanion toCompanion(bool nullToAbsent) {
+    return BodyMeasurementsCompanion(
+      id: Value(id),
+      measuredAt: Value(measuredAt),
+      weightKg: weightKg == null && nullToAbsent
+          ? const Value.absent()
+          : Value(weightKg),
+      fatPercent: fatPercent == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fatPercent),
+      neckCm: neckCm == null && nullToAbsent
+          ? const Value.absent()
+          : Value(neckCm),
+      shoulderCm: shoulderCm == null && nullToAbsent
+          ? const Value.absent()
+          : Value(shoulderCm),
+      chestCm: chestCm == null && nullToAbsent
+          ? const Value.absent()
+          : Value(chestCm),
+      leftBicepCm: leftBicepCm == null && nullToAbsent
+          ? const Value.absent()
+          : Value(leftBicepCm),
+      rightBicepCm: rightBicepCm == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rightBicepCm),
+      leftForearmCm: leftForearmCm == null && nullToAbsent
+          ? const Value.absent()
+          : Value(leftForearmCm),
+      rightForearmCm: rightForearmCm == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rightForearmCm),
+      abdomenCm: abdomenCm == null && nullToAbsent
+          ? const Value.absent()
+          : Value(abdomenCm),
+      waistCm: waistCm == null && nullToAbsent
+          ? const Value.absent()
+          : Value(waistCm),
+      hipsCm: hipsCm == null && nullToAbsent
+          ? const Value.absent()
+          : Value(hipsCm),
+      leftThighCm: leftThighCm == null && nullToAbsent
+          ? const Value.absent()
+          : Value(leftThighCm),
+      rightThighCm: rightThighCm == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rightThighCm),
+      leftCalfCm: leftCalfCm == null && nullToAbsent
+          ? const Value.absent()
+          : Value(leftCalfCm),
+      rightCalfCm: rightCalfCm == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rightCalfCm),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory BodyMeasurement.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BodyMeasurement(
+      id: serializer.fromJson<int>(json['id']),
+      measuredAt: serializer.fromJson<DateTime>(json['measuredAt']),
+      weightKg: serializer.fromJson<double?>(json['weightKg']),
+      fatPercent: serializer.fromJson<double?>(json['fatPercent']),
+      neckCm: serializer.fromJson<double?>(json['neckCm']),
+      shoulderCm: serializer.fromJson<double?>(json['shoulderCm']),
+      chestCm: serializer.fromJson<double?>(json['chestCm']),
+      leftBicepCm: serializer.fromJson<double?>(json['leftBicepCm']),
+      rightBicepCm: serializer.fromJson<double?>(json['rightBicepCm']),
+      leftForearmCm: serializer.fromJson<double?>(json['leftForearmCm']),
+      rightForearmCm: serializer.fromJson<double?>(json['rightForearmCm']),
+      abdomenCm: serializer.fromJson<double?>(json['abdomenCm']),
+      waistCm: serializer.fromJson<double?>(json['waistCm']),
+      hipsCm: serializer.fromJson<double?>(json['hipsCm']),
+      leftThighCm: serializer.fromJson<double?>(json['leftThighCm']),
+      rightThighCm: serializer.fromJson<double?>(json['rightThighCm']),
+      leftCalfCm: serializer.fromJson<double?>(json['leftCalfCm']),
+      rightCalfCm: serializer.fromJson<double?>(json['rightCalfCm']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'measuredAt': serializer.toJson<DateTime>(measuredAt),
+      'weightKg': serializer.toJson<double?>(weightKg),
+      'fatPercent': serializer.toJson<double?>(fatPercent),
+      'neckCm': serializer.toJson<double?>(neckCm),
+      'shoulderCm': serializer.toJson<double?>(shoulderCm),
+      'chestCm': serializer.toJson<double?>(chestCm),
+      'leftBicepCm': serializer.toJson<double?>(leftBicepCm),
+      'rightBicepCm': serializer.toJson<double?>(rightBicepCm),
+      'leftForearmCm': serializer.toJson<double?>(leftForearmCm),
+      'rightForearmCm': serializer.toJson<double?>(rightForearmCm),
+      'abdomenCm': serializer.toJson<double?>(abdomenCm),
+      'waistCm': serializer.toJson<double?>(waistCm),
+      'hipsCm': serializer.toJson<double?>(hipsCm),
+      'leftThighCm': serializer.toJson<double?>(leftThighCm),
+      'rightThighCm': serializer.toJson<double?>(rightThighCm),
+      'leftCalfCm': serializer.toJson<double?>(leftCalfCm),
+      'rightCalfCm': serializer.toJson<double?>(rightCalfCm),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  BodyMeasurement copyWith({
+    int? id,
+    DateTime? measuredAt,
+    Value<double?> weightKg = const Value.absent(),
+    Value<double?> fatPercent = const Value.absent(),
+    Value<double?> neckCm = const Value.absent(),
+    Value<double?> shoulderCm = const Value.absent(),
+    Value<double?> chestCm = const Value.absent(),
+    Value<double?> leftBicepCm = const Value.absent(),
+    Value<double?> rightBicepCm = const Value.absent(),
+    Value<double?> leftForearmCm = const Value.absent(),
+    Value<double?> rightForearmCm = const Value.absent(),
+    Value<double?> abdomenCm = const Value.absent(),
+    Value<double?> waistCm = const Value.absent(),
+    Value<double?> hipsCm = const Value.absent(),
+    Value<double?> leftThighCm = const Value.absent(),
+    Value<double?> rightThighCm = const Value.absent(),
+    Value<double?> leftCalfCm = const Value.absent(),
+    Value<double?> rightCalfCm = const Value.absent(),
+    DateTime? updatedAt,
+  }) => BodyMeasurement(
+    id: id ?? this.id,
+    measuredAt: measuredAt ?? this.measuredAt,
+    weightKg: weightKg.present ? weightKg.value : this.weightKg,
+    fatPercent: fatPercent.present ? fatPercent.value : this.fatPercent,
+    neckCm: neckCm.present ? neckCm.value : this.neckCm,
+    shoulderCm: shoulderCm.present ? shoulderCm.value : this.shoulderCm,
+    chestCm: chestCm.present ? chestCm.value : this.chestCm,
+    leftBicepCm: leftBicepCm.present ? leftBicepCm.value : this.leftBicepCm,
+    rightBicepCm: rightBicepCm.present ? rightBicepCm.value : this.rightBicepCm,
+    leftForearmCm: leftForearmCm.present
+        ? leftForearmCm.value
+        : this.leftForearmCm,
+    rightForearmCm: rightForearmCm.present
+        ? rightForearmCm.value
+        : this.rightForearmCm,
+    abdomenCm: abdomenCm.present ? abdomenCm.value : this.abdomenCm,
+    waistCm: waistCm.present ? waistCm.value : this.waistCm,
+    hipsCm: hipsCm.present ? hipsCm.value : this.hipsCm,
+    leftThighCm: leftThighCm.present ? leftThighCm.value : this.leftThighCm,
+    rightThighCm: rightThighCm.present ? rightThighCm.value : this.rightThighCm,
+    leftCalfCm: leftCalfCm.present ? leftCalfCm.value : this.leftCalfCm,
+    rightCalfCm: rightCalfCm.present ? rightCalfCm.value : this.rightCalfCm,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  BodyMeasurement copyWithCompanion(BodyMeasurementsCompanion data) {
+    return BodyMeasurement(
+      id: data.id.present ? data.id.value : this.id,
+      measuredAt: data.measuredAt.present
+          ? data.measuredAt.value
+          : this.measuredAt,
+      weightKg: data.weightKg.present ? data.weightKg.value : this.weightKg,
+      fatPercent: data.fatPercent.present
+          ? data.fatPercent.value
+          : this.fatPercent,
+      neckCm: data.neckCm.present ? data.neckCm.value : this.neckCm,
+      shoulderCm: data.shoulderCm.present
+          ? data.shoulderCm.value
+          : this.shoulderCm,
+      chestCm: data.chestCm.present ? data.chestCm.value : this.chestCm,
+      leftBicepCm: data.leftBicepCm.present
+          ? data.leftBicepCm.value
+          : this.leftBicepCm,
+      rightBicepCm: data.rightBicepCm.present
+          ? data.rightBicepCm.value
+          : this.rightBicepCm,
+      leftForearmCm: data.leftForearmCm.present
+          ? data.leftForearmCm.value
+          : this.leftForearmCm,
+      rightForearmCm: data.rightForearmCm.present
+          ? data.rightForearmCm.value
+          : this.rightForearmCm,
+      abdomenCm: data.abdomenCm.present ? data.abdomenCm.value : this.abdomenCm,
+      waistCm: data.waistCm.present ? data.waistCm.value : this.waistCm,
+      hipsCm: data.hipsCm.present ? data.hipsCm.value : this.hipsCm,
+      leftThighCm: data.leftThighCm.present
+          ? data.leftThighCm.value
+          : this.leftThighCm,
+      rightThighCm: data.rightThighCm.present
+          ? data.rightThighCm.value
+          : this.rightThighCm,
+      leftCalfCm: data.leftCalfCm.present
+          ? data.leftCalfCm.value
+          : this.leftCalfCm,
+      rightCalfCm: data.rightCalfCm.present
+          ? data.rightCalfCm.value
+          : this.rightCalfCm,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BodyMeasurement(')
+          ..write('id: $id, ')
+          ..write('measuredAt: $measuredAt, ')
+          ..write('weightKg: $weightKg, ')
+          ..write('fatPercent: $fatPercent, ')
+          ..write('neckCm: $neckCm, ')
+          ..write('shoulderCm: $shoulderCm, ')
+          ..write('chestCm: $chestCm, ')
+          ..write('leftBicepCm: $leftBicepCm, ')
+          ..write('rightBicepCm: $rightBicepCm, ')
+          ..write('leftForearmCm: $leftForearmCm, ')
+          ..write('rightForearmCm: $rightForearmCm, ')
+          ..write('abdomenCm: $abdomenCm, ')
+          ..write('waistCm: $waistCm, ')
+          ..write('hipsCm: $hipsCm, ')
+          ..write('leftThighCm: $leftThighCm, ')
+          ..write('rightThighCm: $rightThighCm, ')
+          ..write('leftCalfCm: $leftCalfCm, ')
+          ..write('rightCalfCm: $rightCalfCm, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    measuredAt,
+    weightKg,
+    fatPercent,
+    neckCm,
+    shoulderCm,
+    chestCm,
+    leftBicepCm,
+    rightBicepCm,
+    leftForearmCm,
+    rightForearmCm,
+    abdomenCm,
+    waistCm,
+    hipsCm,
+    leftThighCm,
+    rightThighCm,
+    leftCalfCm,
+    rightCalfCm,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BodyMeasurement &&
+          other.id == this.id &&
+          other.measuredAt == this.measuredAt &&
+          other.weightKg == this.weightKg &&
+          other.fatPercent == this.fatPercent &&
+          other.neckCm == this.neckCm &&
+          other.shoulderCm == this.shoulderCm &&
+          other.chestCm == this.chestCm &&
+          other.leftBicepCm == this.leftBicepCm &&
+          other.rightBicepCm == this.rightBicepCm &&
+          other.leftForearmCm == this.leftForearmCm &&
+          other.rightForearmCm == this.rightForearmCm &&
+          other.abdomenCm == this.abdomenCm &&
+          other.waistCm == this.waistCm &&
+          other.hipsCm == this.hipsCm &&
+          other.leftThighCm == this.leftThighCm &&
+          other.rightThighCm == this.rightThighCm &&
+          other.leftCalfCm == this.leftCalfCm &&
+          other.rightCalfCm == this.rightCalfCm &&
+          other.updatedAt == this.updatedAt);
+}
+
+class BodyMeasurementsCompanion extends UpdateCompanion<BodyMeasurement> {
+  final Value<int> id;
+  final Value<DateTime> measuredAt;
+  final Value<double?> weightKg;
+  final Value<double?> fatPercent;
+  final Value<double?> neckCm;
+  final Value<double?> shoulderCm;
+  final Value<double?> chestCm;
+  final Value<double?> leftBicepCm;
+  final Value<double?> rightBicepCm;
+  final Value<double?> leftForearmCm;
+  final Value<double?> rightForearmCm;
+  final Value<double?> abdomenCm;
+  final Value<double?> waistCm;
+  final Value<double?> hipsCm;
+  final Value<double?> leftThighCm;
+  final Value<double?> rightThighCm;
+  final Value<double?> leftCalfCm;
+  final Value<double?> rightCalfCm;
+  final Value<DateTime> updatedAt;
+  const BodyMeasurementsCompanion({
+    this.id = const Value.absent(),
+    this.measuredAt = const Value.absent(),
+    this.weightKg = const Value.absent(),
+    this.fatPercent = const Value.absent(),
+    this.neckCm = const Value.absent(),
+    this.shoulderCm = const Value.absent(),
+    this.chestCm = const Value.absent(),
+    this.leftBicepCm = const Value.absent(),
+    this.rightBicepCm = const Value.absent(),
+    this.leftForearmCm = const Value.absent(),
+    this.rightForearmCm = const Value.absent(),
+    this.abdomenCm = const Value.absent(),
+    this.waistCm = const Value.absent(),
+    this.hipsCm = const Value.absent(),
+    this.leftThighCm = const Value.absent(),
+    this.rightThighCm = const Value.absent(),
+    this.leftCalfCm = const Value.absent(),
+    this.rightCalfCm = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  BodyMeasurementsCompanion.insert({
+    this.id = const Value.absent(),
+    required DateTime measuredAt,
+    this.weightKg = const Value.absent(),
+    this.fatPercent = const Value.absent(),
+    this.neckCm = const Value.absent(),
+    this.shoulderCm = const Value.absent(),
+    this.chestCm = const Value.absent(),
+    this.leftBicepCm = const Value.absent(),
+    this.rightBicepCm = const Value.absent(),
+    this.leftForearmCm = const Value.absent(),
+    this.rightForearmCm = const Value.absent(),
+    this.abdomenCm = const Value.absent(),
+    this.waistCm = const Value.absent(),
+    this.hipsCm = const Value.absent(),
+    this.leftThighCm = const Value.absent(),
+    this.rightThighCm = const Value.absent(),
+    this.leftCalfCm = const Value.absent(),
+    this.rightCalfCm = const Value.absent(),
+    required DateTime updatedAt,
+  }) : measuredAt = Value(measuredAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<BodyMeasurement> custom({
+    Expression<int>? id,
+    Expression<DateTime>? measuredAt,
+    Expression<double>? weightKg,
+    Expression<double>? fatPercent,
+    Expression<double>? neckCm,
+    Expression<double>? shoulderCm,
+    Expression<double>? chestCm,
+    Expression<double>? leftBicepCm,
+    Expression<double>? rightBicepCm,
+    Expression<double>? leftForearmCm,
+    Expression<double>? rightForearmCm,
+    Expression<double>? abdomenCm,
+    Expression<double>? waistCm,
+    Expression<double>? hipsCm,
+    Expression<double>? leftThighCm,
+    Expression<double>? rightThighCm,
+    Expression<double>? leftCalfCm,
+    Expression<double>? rightCalfCm,
+    Expression<DateTime>? updatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (measuredAt != null) 'measured_at': measuredAt,
+      if (weightKg != null) 'weight_kg': weightKg,
+      if (fatPercent != null) 'fat_percent': fatPercent,
+      if (neckCm != null) 'neck_cm': neckCm,
+      if (shoulderCm != null) 'shoulder_cm': shoulderCm,
+      if (chestCm != null) 'chest_cm': chestCm,
+      if (leftBicepCm != null) 'left_bicep_cm': leftBicepCm,
+      if (rightBicepCm != null) 'right_bicep_cm': rightBicepCm,
+      if (leftForearmCm != null) 'left_forearm_cm': leftForearmCm,
+      if (rightForearmCm != null) 'right_forearm_cm': rightForearmCm,
+      if (abdomenCm != null) 'abdomen_cm': abdomenCm,
+      if (waistCm != null) 'waist_cm': waistCm,
+      if (hipsCm != null) 'hips_cm': hipsCm,
+      if (leftThighCm != null) 'left_thigh_cm': leftThighCm,
+      if (rightThighCm != null) 'right_thigh_cm': rightThighCm,
+      if (leftCalfCm != null) 'left_calf_cm': leftCalfCm,
+      if (rightCalfCm != null) 'right_calf_cm': rightCalfCm,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    });
+  }
+
+  BodyMeasurementsCompanion copyWith({
+    Value<int>? id,
+    Value<DateTime>? measuredAt,
+    Value<double?>? weightKg,
+    Value<double?>? fatPercent,
+    Value<double?>? neckCm,
+    Value<double?>? shoulderCm,
+    Value<double?>? chestCm,
+    Value<double?>? leftBicepCm,
+    Value<double?>? rightBicepCm,
+    Value<double?>? leftForearmCm,
+    Value<double?>? rightForearmCm,
+    Value<double?>? abdomenCm,
+    Value<double?>? waistCm,
+    Value<double?>? hipsCm,
+    Value<double?>? leftThighCm,
+    Value<double?>? rightThighCm,
+    Value<double?>? leftCalfCm,
+    Value<double?>? rightCalfCm,
+    Value<DateTime>? updatedAt,
+  }) {
+    return BodyMeasurementsCompanion(
+      id: id ?? this.id,
+      measuredAt: measuredAt ?? this.measuredAt,
+      weightKg: weightKg ?? this.weightKg,
+      fatPercent: fatPercent ?? this.fatPercent,
+      neckCm: neckCm ?? this.neckCm,
+      shoulderCm: shoulderCm ?? this.shoulderCm,
+      chestCm: chestCm ?? this.chestCm,
+      leftBicepCm: leftBicepCm ?? this.leftBicepCm,
+      rightBicepCm: rightBicepCm ?? this.rightBicepCm,
+      leftForearmCm: leftForearmCm ?? this.leftForearmCm,
+      rightForearmCm: rightForearmCm ?? this.rightForearmCm,
+      abdomenCm: abdomenCm ?? this.abdomenCm,
+      waistCm: waistCm ?? this.waistCm,
+      hipsCm: hipsCm ?? this.hipsCm,
+      leftThighCm: leftThighCm ?? this.leftThighCm,
+      rightThighCm: rightThighCm ?? this.rightThighCm,
+      leftCalfCm: leftCalfCm ?? this.leftCalfCm,
+      rightCalfCm: rightCalfCm ?? this.rightCalfCm,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (measuredAt.present) {
+      map['measured_at'] = Variable<DateTime>(measuredAt.value);
+    }
+    if (weightKg.present) {
+      map['weight_kg'] = Variable<double>(weightKg.value);
+    }
+    if (fatPercent.present) {
+      map['fat_percent'] = Variable<double>(fatPercent.value);
+    }
+    if (neckCm.present) {
+      map['neck_cm'] = Variable<double>(neckCm.value);
+    }
+    if (shoulderCm.present) {
+      map['shoulder_cm'] = Variable<double>(shoulderCm.value);
+    }
+    if (chestCm.present) {
+      map['chest_cm'] = Variable<double>(chestCm.value);
+    }
+    if (leftBicepCm.present) {
+      map['left_bicep_cm'] = Variable<double>(leftBicepCm.value);
+    }
+    if (rightBicepCm.present) {
+      map['right_bicep_cm'] = Variable<double>(rightBicepCm.value);
+    }
+    if (leftForearmCm.present) {
+      map['left_forearm_cm'] = Variable<double>(leftForearmCm.value);
+    }
+    if (rightForearmCm.present) {
+      map['right_forearm_cm'] = Variable<double>(rightForearmCm.value);
+    }
+    if (abdomenCm.present) {
+      map['abdomen_cm'] = Variable<double>(abdomenCm.value);
+    }
+    if (waistCm.present) {
+      map['waist_cm'] = Variable<double>(waistCm.value);
+    }
+    if (hipsCm.present) {
+      map['hips_cm'] = Variable<double>(hipsCm.value);
+    }
+    if (leftThighCm.present) {
+      map['left_thigh_cm'] = Variable<double>(leftThighCm.value);
+    }
+    if (rightThighCm.present) {
+      map['right_thigh_cm'] = Variable<double>(rightThighCm.value);
+    }
+    if (leftCalfCm.present) {
+      map['left_calf_cm'] = Variable<double>(leftCalfCm.value);
+    }
+    if (rightCalfCm.present) {
+      map['right_calf_cm'] = Variable<double>(rightCalfCm.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BodyMeasurementsCompanion(')
+          ..write('id: $id, ')
+          ..write('measuredAt: $measuredAt, ')
+          ..write('weightKg: $weightKg, ')
+          ..write('fatPercent: $fatPercent, ')
+          ..write('neckCm: $neckCm, ')
+          ..write('shoulderCm: $shoulderCm, ')
+          ..write('chestCm: $chestCm, ')
+          ..write('leftBicepCm: $leftBicepCm, ')
+          ..write('rightBicepCm: $rightBicepCm, ')
+          ..write('leftForearmCm: $leftForearmCm, ')
+          ..write('rightForearmCm: $rightForearmCm, ')
+          ..write('abdomenCm: $abdomenCm, ')
+          ..write('waistCm: $waistCm, ')
+          ..write('hipsCm: $hipsCm, ')
+          ..write('leftThighCm: $leftThighCm, ')
+          ..write('rightThighCm: $rightThighCm, ')
+          ..write('leftCalfCm: $leftCalfCm, ')
+          ..write('rightCalfCm: $rightCalfCm, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -6638,6 +7730,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $GoalsTable goals = $GoalsTable(this);
   late final $NutritionLogsTable nutritionLogs = $NutritionLogsTable(this);
   late final $DailyCheckinsTable dailyCheckins = $DailyCheckinsTable(this);
+  late final $BodyMeasurementsTable bodyMeasurements = $BodyMeasurementsTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -6655,6 +7750,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     goals,
     nutritionLogs,
     dailyCheckins,
+    bodyMeasurements,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -10850,6 +11946,494 @@ typedef $$DailyCheckinsTableProcessedTableManager =
       DailyCheckin,
       PrefetchHooks Function()
     >;
+typedef $$BodyMeasurementsTableCreateCompanionBuilder =
+    BodyMeasurementsCompanion Function({
+      Value<int> id,
+      required DateTime measuredAt,
+      Value<double?> weightKg,
+      Value<double?> fatPercent,
+      Value<double?> neckCm,
+      Value<double?> shoulderCm,
+      Value<double?> chestCm,
+      Value<double?> leftBicepCm,
+      Value<double?> rightBicepCm,
+      Value<double?> leftForearmCm,
+      Value<double?> rightForearmCm,
+      Value<double?> abdomenCm,
+      Value<double?> waistCm,
+      Value<double?> hipsCm,
+      Value<double?> leftThighCm,
+      Value<double?> rightThighCm,
+      Value<double?> leftCalfCm,
+      Value<double?> rightCalfCm,
+      required DateTime updatedAt,
+    });
+typedef $$BodyMeasurementsTableUpdateCompanionBuilder =
+    BodyMeasurementsCompanion Function({
+      Value<int> id,
+      Value<DateTime> measuredAt,
+      Value<double?> weightKg,
+      Value<double?> fatPercent,
+      Value<double?> neckCm,
+      Value<double?> shoulderCm,
+      Value<double?> chestCm,
+      Value<double?> leftBicepCm,
+      Value<double?> rightBicepCm,
+      Value<double?> leftForearmCm,
+      Value<double?> rightForearmCm,
+      Value<double?> abdomenCm,
+      Value<double?> waistCm,
+      Value<double?> hipsCm,
+      Value<double?> leftThighCm,
+      Value<double?> rightThighCm,
+      Value<double?> leftCalfCm,
+      Value<double?> rightCalfCm,
+      Value<DateTime> updatedAt,
+    });
+
+class $$BodyMeasurementsTableFilterComposer
+    extends Composer<_$AppDatabase, $BodyMeasurementsTable> {
+  $$BodyMeasurementsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get measuredAt => $composableBuilder(
+    column: $table.measuredAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get weightKg => $composableBuilder(
+    column: $table.weightKg,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get fatPercent => $composableBuilder(
+    column: $table.fatPercent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get neckCm => $composableBuilder(
+    column: $table.neckCm,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get shoulderCm => $composableBuilder(
+    column: $table.shoulderCm,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get chestCm => $composableBuilder(
+    column: $table.chestCm,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get leftBicepCm => $composableBuilder(
+    column: $table.leftBicepCm,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get rightBicepCm => $composableBuilder(
+    column: $table.rightBicepCm,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get leftForearmCm => $composableBuilder(
+    column: $table.leftForearmCm,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get rightForearmCm => $composableBuilder(
+    column: $table.rightForearmCm,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get abdomenCm => $composableBuilder(
+    column: $table.abdomenCm,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get waistCm => $composableBuilder(
+    column: $table.waistCm,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get hipsCm => $composableBuilder(
+    column: $table.hipsCm,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get leftThighCm => $composableBuilder(
+    column: $table.leftThighCm,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get rightThighCm => $composableBuilder(
+    column: $table.rightThighCm,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get leftCalfCm => $composableBuilder(
+    column: $table.leftCalfCm,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get rightCalfCm => $composableBuilder(
+    column: $table.rightCalfCm,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$BodyMeasurementsTableOrderingComposer
+    extends Composer<_$AppDatabase, $BodyMeasurementsTable> {
+  $$BodyMeasurementsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get measuredAt => $composableBuilder(
+    column: $table.measuredAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get weightKg => $composableBuilder(
+    column: $table.weightKg,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get fatPercent => $composableBuilder(
+    column: $table.fatPercent,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get neckCm => $composableBuilder(
+    column: $table.neckCm,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get shoulderCm => $composableBuilder(
+    column: $table.shoulderCm,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get chestCm => $composableBuilder(
+    column: $table.chestCm,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get leftBicepCm => $composableBuilder(
+    column: $table.leftBicepCm,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get rightBicepCm => $composableBuilder(
+    column: $table.rightBicepCm,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get leftForearmCm => $composableBuilder(
+    column: $table.leftForearmCm,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get rightForearmCm => $composableBuilder(
+    column: $table.rightForearmCm,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get abdomenCm => $composableBuilder(
+    column: $table.abdomenCm,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get waistCm => $composableBuilder(
+    column: $table.waistCm,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get hipsCm => $composableBuilder(
+    column: $table.hipsCm,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get leftThighCm => $composableBuilder(
+    column: $table.leftThighCm,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get rightThighCm => $composableBuilder(
+    column: $table.rightThighCm,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get leftCalfCm => $composableBuilder(
+    column: $table.leftCalfCm,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get rightCalfCm => $composableBuilder(
+    column: $table.rightCalfCm,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$BodyMeasurementsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $BodyMeasurementsTable> {
+  $$BodyMeasurementsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get measuredAt => $composableBuilder(
+    column: $table.measuredAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get weightKg =>
+      $composableBuilder(column: $table.weightKg, builder: (column) => column);
+
+  GeneratedColumn<double> get fatPercent => $composableBuilder(
+    column: $table.fatPercent,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get neckCm =>
+      $composableBuilder(column: $table.neckCm, builder: (column) => column);
+
+  GeneratedColumn<double> get shoulderCm => $composableBuilder(
+    column: $table.shoulderCm,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get chestCm =>
+      $composableBuilder(column: $table.chestCm, builder: (column) => column);
+
+  GeneratedColumn<double> get leftBicepCm => $composableBuilder(
+    column: $table.leftBicepCm,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get rightBicepCm => $composableBuilder(
+    column: $table.rightBicepCm,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get leftForearmCm => $composableBuilder(
+    column: $table.leftForearmCm,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get rightForearmCm => $composableBuilder(
+    column: $table.rightForearmCm,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get abdomenCm =>
+      $composableBuilder(column: $table.abdomenCm, builder: (column) => column);
+
+  GeneratedColumn<double> get waistCm =>
+      $composableBuilder(column: $table.waistCm, builder: (column) => column);
+
+  GeneratedColumn<double> get hipsCm =>
+      $composableBuilder(column: $table.hipsCm, builder: (column) => column);
+
+  GeneratedColumn<double> get leftThighCm => $composableBuilder(
+    column: $table.leftThighCm,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get rightThighCm => $composableBuilder(
+    column: $table.rightThighCm,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get leftCalfCm => $composableBuilder(
+    column: $table.leftCalfCm,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get rightCalfCm => $composableBuilder(
+    column: $table.rightCalfCm,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$BodyMeasurementsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $BodyMeasurementsTable,
+          BodyMeasurement,
+          $$BodyMeasurementsTableFilterComposer,
+          $$BodyMeasurementsTableOrderingComposer,
+          $$BodyMeasurementsTableAnnotationComposer,
+          $$BodyMeasurementsTableCreateCompanionBuilder,
+          $$BodyMeasurementsTableUpdateCompanionBuilder,
+          (
+            BodyMeasurement,
+            BaseReferences<
+              _$AppDatabase,
+              $BodyMeasurementsTable,
+              BodyMeasurement
+            >,
+          ),
+          BodyMeasurement,
+          PrefetchHooks Function()
+        > {
+  $$BodyMeasurementsTableTableManager(
+    _$AppDatabase db,
+    $BodyMeasurementsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BodyMeasurementsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BodyMeasurementsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BodyMeasurementsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<DateTime> measuredAt = const Value.absent(),
+                Value<double?> weightKg = const Value.absent(),
+                Value<double?> fatPercent = const Value.absent(),
+                Value<double?> neckCm = const Value.absent(),
+                Value<double?> shoulderCm = const Value.absent(),
+                Value<double?> chestCm = const Value.absent(),
+                Value<double?> leftBicepCm = const Value.absent(),
+                Value<double?> rightBicepCm = const Value.absent(),
+                Value<double?> leftForearmCm = const Value.absent(),
+                Value<double?> rightForearmCm = const Value.absent(),
+                Value<double?> abdomenCm = const Value.absent(),
+                Value<double?> waistCm = const Value.absent(),
+                Value<double?> hipsCm = const Value.absent(),
+                Value<double?> leftThighCm = const Value.absent(),
+                Value<double?> rightThighCm = const Value.absent(),
+                Value<double?> leftCalfCm = const Value.absent(),
+                Value<double?> rightCalfCm = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => BodyMeasurementsCompanion(
+                id: id,
+                measuredAt: measuredAt,
+                weightKg: weightKg,
+                fatPercent: fatPercent,
+                neckCm: neckCm,
+                shoulderCm: shoulderCm,
+                chestCm: chestCm,
+                leftBicepCm: leftBicepCm,
+                rightBicepCm: rightBicepCm,
+                leftForearmCm: leftForearmCm,
+                rightForearmCm: rightForearmCm,
+                abdomenCm: abdomenCm,
+                waistCm: waistCm,
+                hipsCm: hipsCm,
+                leftThighCm: leftThighCm,
+                rightThighCm: rightThighCm,
+                leftCalfCm: leftCalfCm,
+                rightCalfCm: rightCalfCm,
+                updatedAt: updatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required DateTime measuredAt,
+                Value<double?> weightKg = const Value.absent(),
+                Value<double?> fatPercent = const Value.absent(),
+                Value<double?> neckCm = const Value.absent(),
+                Value<double?> shoulderCm = const Value.absent(),
+                Value<double?> chestCm = const Value.absent(),
+                Value<double?> leftBicepCm = const Value.absent(),
+                Value<double?> rightBicepCm = const Value.absent(),
+                Value<double?> leftForearmCm = const Value.absent(),
+                Value<double?> rightForearmCm = const Value.absent(),
+                Value<double?> abdomenCm = const Value.absent(),
+                Value<double?> waistCm = const Value.absent(),
+                Value<double?> hipsCm = const Value.absent(),
+                Value<double?> leftThighCm = const Value.absent(),
+                Value<double?> rightThighCm = const Value.absent(),
+                Value<double?> leftCalfCm = const Value.absent(),
+                Value<double?> rightCalfCm = const Value.absent(),
+                required DateTime updatedAt,
+              }) => BodyMeasurementsCompanion.insert(
+                id: id,
+                measuredAt: measuredAt,
+                weightKg: weightKg,
+                fatPercent: fatPercent,
+                neckCm: neckCm,
+                shoulderCm: shoulderCm,
+                chestCm: chestCm,
+                leftBicepCm: leftBicepCm,
+                rightBicepCm: rightBicepCm,
+                leftForearmCm: leftForearmCm,
+                rightForearmCm: rightForearmCm,
+                abdomenCm: abdomenCm,
+                waistCm: waistCm,
+                hipsCm: hipsCm,
+                leftThighCm: leftThighCm,
+                rightThighCm: rightThighCm,
+                leftCalfCm: leftCalfCm,
+                rightCalfCm: rightCalfCm,
+                updatedAt: updatedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$BodyMeasurementsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $BodyMeasurementsTable,
+      BodyMeasurement,
+      $$BodyMeasurementsTableFilterComposer,
+      $$BodyMeasurementsTableOrderingComposer,
+      $$BodyMeasurementsTableAnnotationComposer,
+      $$BodyMeasurementsTableCreateCompanionBuilder,
+      $$BodyMeasurementsTableUpdateCompanionBuilder,
+      (
+        BodyMeasurement,
+        BaseReferences<_$AppDatabase, $BodyMeasurementsTable, BodyMeasurement>,
+      ),
+      BodyMeasurement,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -10878,4 +12462,6 @@ class $AppDatabaseManager {
       $$NutritionLogsTableTableManager(_db, _db.nutritionLogs);
   $$DailyCheckinsTableTableManager get dailyCheckins =>
       $$DailyCheckinsTableTableManager(_db, _db.dailyCheckins);
+  $$BodyMeasurementsTableTableManager get bodyMeasurements =>
+      $$BodyMeasurementsTableTableManager(_db, _db.bodyMeasurements);
 }

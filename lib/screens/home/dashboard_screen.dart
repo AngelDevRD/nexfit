@@ -12,6 +12,7 @@ import '../calendar/calendar_screen.dart';
 import '../coach/coach_chat_screen.dart';
 import '../gamification/gamification_screen.dart';
 import '../goals/goals_screen.dart';
+import '../measurements/measurements_screen.dart';
 import '../nutrition/nutrition_screen.dart';
 import '../recovery/recovery_screen.dart';
 import '../../features/pose/pose_analysis_screen.dart';
@@ -240,6 +241,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             onTap: () => Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (_) => const GoalsScreen(),
+                              ),
+                            ),
+                          ),
+                          _FeatureTile(
+                            icon: Icons.straighten,
+                            iconBg: AppColors.surfaceContainerHighest,
+                            iconColor: AppColors.onSurfaceVariant,
+                            label: 'Medidas',
+                            value: 'Historial corporal',
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const MeasurementsScreen(),
                               ),
                             ),
                           ),

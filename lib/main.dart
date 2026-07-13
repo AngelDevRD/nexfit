@@ -20,6 +20,7 @@ import 'core/sync/sync_engine.dart';
 import 'core/theme.dart';
 import 'providers/auth_provider.dart';
 import 'providers/theme_provider.dart';
+import 'repositories/body_measurement_repository.dart';
 import 'repositories/exercise_repository.dart';
 import 'repositories/gamification_repository.dart';
 import 'repositories/goal_repository.dart';
@@ -94,6 +95,7 @@ class _AppGymAppState extends State<AppGymApp> {
   late final StatsRepository _statsRepository;
   late final GamificationRepository _gamificationRepository;
   late final ExerciseRepository _exerciseRepository;
+  late final BodyMeasurementRepository _bodyMeasurementRepository;
   SocialRepository? _socialRepository;
   late final SyncEngine _syncEngine;
   late final ThemeProvider _themeProvider;
@@ -116,6 +118,7 @@ class _AppGymAppState extends State<AppGymApp> {
     _statsRepository = StatsRepository(_db);
     _gamificationRepository = GamificationRepository(_db);
     _exerciseRepository = ExerciseRepository(_db);
+    _bodyMeasurementRepository = BodyMeasurementRepository(_db);
 
     final supabase = widget.supabaseClient;
     _socialRepository = supabase != null ? SocialRepository(supabase) : null;
@@ -159,6 +162,9 @@ class _AppGymAppState extends State<AppGymApp> {
         Provider<StatsRepository>.value(value: _statsRepository),
         Provider<GamificationRepository>.value(value: _gamificationRepository),
         Provider<ExerciseRepository>.value(value: _exerciseRepository),
+        Provider<BodyMeasurementRepository>.value(
+          value: _bodyMeasurementRepository,
+        ),
         Provider<SocialRepository?>.value(value: _socialRepository),
         ChangeNotifierProvider<ThemeProvider>.value(value: _themeProvider),
       ],
