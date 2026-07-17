@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../models/exercise.dart';
 import '../../models/workout.dart';
+import '../../repositories/active_workout_repository.dart';
+import '../../repositories/personal_records_service.dart';
 import '../../repositories/workout_repository.dart';
 import '../exercises/exercise_picker_screen.dart';
 import 'rest_timer_banner.dart';
@@ -20,25 +22,37 @@ class ActiveWorkoutScreen extends StatefulWidget {
   State<ActiveWorkoutScreen> createState() => _ActiveWorkoutScreenState();
 }
 
-class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
+class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen>
+    with WidgetsBindingObserver {
   late final WorkoutRepository _repository;
+  late final ActiveWorkoutRepository _activeRepository;
   WorkoutSession? _session;
-  int? _restSeconds;
+  DateTime? _restEndsAt;
   bool _finishing = false;
-  List<PersonalRecord>? _newRecords;
+  List<ResolvedRecord>? _newRecords;
   Timer? _elapsedTimer;
   Duration _elapsed = Duration.zero;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _repository = context.read<WorkoutRepository>();
+    _activeRepository = context.read<ActiveWorkoutRepository>();
     _load();
   }
 
   Future<void> _load() async {
     final session = await _repository.get(widget.sessionId);
-    setState(() => _session = session);
+    // El descanso persiste como instante absoluto en el draft -> si la app se
+    // cerró a mitad de un descanso, al reabrir se restaura el mismo estado
+    // (RestTimerBanner recalcula el restante contra `DateTime.now()`).
+    final restEndsAt = await _activeRepository.restEndsAt();
+    if (!mounted) return;
+    setState(() {
+      _session = session;
+      _restEndsAt = restEndsAt;
+    });
     _elapsedTimer ??= Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
       setState(() => _elapsed = DateTime.now().difference(session.startedAt));
@@ -46,7 +60,18 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Al volver del background, el `Timer` puede haber quedado pausado por el
+    // SO -- se recalcula el elapsed/descanso de inmediato en vez de esperar
+    // hasta el próximo tick, para que la UI no se vea "congelada" un segundo.
+    if (state == AppLifecycleState.resumed && _session != null) {
+      setState(() => _elapsed = DateTime.now().difference(_session!.startedAt));
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _elapsedTimer?.cancel();
     super.dispose();
   }
@@ -95,11 +120,7 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
     );
     if (result == null) return;
 
-    final previousRecordIds = <int>{
-      for (final r in await _repository.sessionRecords(widget.sessionId)) r.id,
-    };
-
-    await _repository.addSet(widget.sessionId, {
+    final outcome = await _repository.addSet(widget.sessionId, {
       'exercise_id': exercise.id,
       'set_number': setNumber,
       'weight_kg': result.weightKg,
@@ -114,24 +135,45 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
 
     await _load();
 
-    if (!result.isWarmup) {
-      final newRecords = await _repository.sessionRecords(widget.sessionId);
-      final freshRecords = newRecords
-          .where((r) => !previousRecordIds.contains(r.id))
-          .toList();
-      if (freshRecords.isNotEmpty && mounted) {
-        setState(() => _newRecords = freshRecords);
-      }
+    // Los récords nuevos los reporta `addSet` directamente (detección por
+    // upsert). Ya no se difumina por id contra un snapshot previo, que fallaba
+    // cuando el récord actualizaba una fila existente en vez de crear una.
+    if (outcome.newRecords.isNotEmpty && mounted) {
+      setState(() => _newRecords = outcome.newRecords);
     }
 
+    final restEndsAt = DateTime.now().add(
+      Duration(seconds: result.restSeconds),
+    );
+    await _activeRepository.updateProgress(
+      currentExerciseId: exercise.id,
+      currentSetNumber: setNumber,
+      restEndsAt: restEndsAt,
+    );
     if (mounted) {
-      setState(() => _restSeconds = result.restSeconds);
+      setState(() => _restEndsAt = restEndsAt);
+    }
+  }
+
+  Future<void> _extendRest(int seconds) async {
+    final current = _restEndsAt ?? DateTime.now();
+    final extended = current.add(Duration(seconds: seconds));
+    await _activeRepository.updateProgress(restEndsAt: extended);
+    if (mounted) {
+      setState(() => _restEndsAt = extended);
+    }
+  }
+
+  Future<void> _dismissRest() async {
+    await _activeRepository.updateProgress(clearRest: true);
+    if (mounted) {
+      setState(() => _restEndsAt = null);
     }
   }
 
   Future<void> _finish() async {
     setState(() => _finishing = true);
-    await _repository.finishSession(widget.sessionId);
+    await _activeRepository.finish(widget.sessionId);
     if (mounted) {
       Navigator.of(context).popUntil((route) => route.isFirst);
     }
@@ -270,14 +312,14 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
               ),
             ],
           ),
-          if (_restSeconds != null)
+          if (_restEndsAt != null)
             Positioned(
               bottom: 88,
               right: AppSpacing.md,
               child: RestTimerBanner(
-                key: ValueKey(DateTime.now().millisecondsSinceEpoch),
-                seconds: _restSeconds!,
-                onDismiss: () => setState(() => _restSeconds = null),
+                endsAt: _restEndsAt!,
+                onDismiss: _dismissRest,
+                onAddSeconds: _extendRest,
               ),
             ),
         ],
@@ -287,7 +329,7 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
 }
 
 class _RecordBanner extends StatelessWidget {
-  final List<PersonalRecord> records;
+  final List<ResolvedRecord> records;
   final VoidCallback onDismiss;
 
   const _RecordBanner({required this.records, required this.onDismiss});

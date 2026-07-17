@@ -78,9 +78,18 @@ class Validators {
     switch (field) {
       case CanonicalField.exerciseName:
       case CanonicalField.notes:
+      case CanonicalField.sessionTitle:
+      case CanonicalField.setType:
+        // Texto crudo. `setType` se interpreta en el ImportEngine (warmup ->
+        // isWarmup, dropset/failure -> techniques); acá solo se preserva.
         return text;
 
+      case CanonicalField.supersetId:
+        return _positiveInt(field, text, rowIndex, issues);
+
       case CanonicalField.date:
+      case CanonicalField.startTime:
+      case CanonicalField.endTime:
         final date = _toDateTime(rawValue, text);
         if (date == null) {
           issues.add(
@@ -169,9 +178,15 @@ class Validators {
   String? _duplicateKey(Map<CanonicalField, dynamic> values) {
     final name = values[CanonicalField.exerciseName];
     if (name == null) return null;
-    final date = values[CanonicalField.date];
+    // La fecha que identifica la sesión puede venir como `date` o como
+    // `startTime` (Hevy usa esta última). Incluir el título evita marcar como
+    // duplicado el mismo set_index de ejercicios repetidos en sesiones
+    // distintas.
+    final when =
+        values[CanonicalField.startTime] ?? values[CanonicalField.date];
+    final title = values[CanonicalField.sessionTitle];
     final setNumber = values[CanonicalField.setNumber];
-    if (date == null && setNumber == null) return null;
-    return '$name|$date|$setNumber';
+    if (when == null && setNumber == null) return null;
+    return '$name|$title|$when|$setNumber';
   }
 }

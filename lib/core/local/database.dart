@@ -54,6 +54,16 @@ class RoutineExercises extends Table {
   IntColumn get targetRepsMax => integer().withDefault(const Constant(12))();
   IntColumn get targetRestSeconds =>
       integer().withDefault(const Constant(90))();
+  // Peso objetivo planificado (kg). Null = sin objetivo definido.
+  RealColumn get targetWeightKg => real().nullable()();
+  // Tipo de serie planificado: 'normal' | 'superset' | 'dropset' | 'giant_set'
+  // | 'myo_reps' | 'rest_pause' | 'warm_up' | 'back_off' | 'failure'. Es el
+  // tipo *planeado* del ejercicio en la rutina; distinto de
+  // `WorkoutSets.techniques`, que registra lo *ejecutado*.
+  TextColumn get setType => text().withDefault(const Constant('normal'))();
+  TextColumn get tempo => text().nullable()();
+  RealColumn get targetRpe => real().nullable()();
+  IntColumn get targetRir => integer().nullable()();
   TextColumn get notes => text().nullable()();
 }
 
@@ -62,6 +72,9 @@ class WorkoutSessions extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get serverId => text().nullable()();
   IntColumn get routineId => integer().nullable()();
+  // Nombre del entrenamiento (ej. "Viernes pierna volumen"). Lo trae el export
+  // de Hevy en la columna `title`; null para sesiones creadas a mano.
+  TextColumn get title => text().nullable()();
   DateTimeColumn get startedAt => dateTime()();
   DateTimeColumn get endedAt => dateTime().nullable()();
   TextColumn get notes => text().nullable()();
@@ -91,9 +104,21 @@ class WorkoutSets extends Table {
   TextColumn get notes => text().nullable()();
 }
 
+// Bitácora de récords personales: UNA fila por cada vez que un set superó el
+// máximo previo del ejercicio (progresión). No es única por (ejercicio, tipo)
+// a propósito -> la serie temporal alimenta `recordPrediction` (regresión
+// lineal sobre la progresión). Para mostrar "el récord vigente" se agrupa al
+// máximo por ejercicio en la capa de presentación, no se colapsa la historia.
+//
+// El bug que se corrige (docs/PLAN_ENTRENAMIENTO_V2.md §0.2) no eran las filas
+// en sí, sino que al importar quedaban con `achievedAt = ahora` y por eso
+// `sessionRecords` (que filtraba por fecha) las colgaba todas de la última
+// sesión. Ahora `achievedAt` es la fecha real de la sesión y `sessionId`
+// referencia la sesión donde se logró.
 class PersonalRecords extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get exerciseId => integer().nullable()();
+  IntColumn get sessionId => integer().nullable()();
   TextColumn get recordType => text()();
   RealColumn get value => real()();
   RealColumn get previousValue => real().nullable()();
@@ -206,6 +231,30 @@ class BodyMeasurements extends Table {
   DateTimeColumn get updatedAt => dateTime()();
 }
 
+// Borrador del entrenamiento en curso: fila única (id fijo = 1) que persiste
+// el estado de la UI de la sesión activa para poder restaurarla tal cual tras
+// cerrar/reabrir la app. NO es la fuente de verdad de la duración ni del
+// descanso: esos se derivan siempre de timestamps absolutos
+// (`WorkoutSessions.startedAt`, `restEndsAt`), nunca de un contador. Acá solo
+// vive lo que el usuario tipeó y no está todavía guardado como set.
+class ActiveWorkoutDrafts extends Table {
+  IntColumn get id => integer().withDefault(const Constant(1))();
+  IntColumn get sessionId => integer()();
+  IntColumn get currentExerciseId => integer().nullable()();
+  IntColumn get currentSetNumber => integer().nullable()();
+  // Instante en que termina el descanso en curso (absoluto). Null = sin
+  // descanso activo. El widget solo repinta; el cálculo es `restEndsAt - now`.
+  DateTimeColumn get restEndsAt => dateTime().nullable()();
+  // Valores tipeados aún no persistidos como set (pesos, reps, notas,
+  // supersets, dropsets) serializados como JSON. Esquema libre: es un
+  // borrador de UI, no un modelo de dominio sincronizable.
+  TextColumn get draftJson => text().withDefault(const Constant('{}'))();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     Exercises,
@@ -221,6 +270,7 @@ class BodyMeasurements extends Table {
     NutritionLogs,
     DailyCheckins,
     BodyMeasurements,
+    ActiveWorkoutDrafts,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -230,7 +280,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -287,6 +337,24 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 5) {
         await m.createTable(bodyMeasurements);
+      }
+      if (from < 6) {
+        // Sistema de entrenamiento v2 (ver docs/PLAN_ENTRENAMIENTO_V2.md).
+        await m.addColumn(workoutSessions, workoutSessions.title);
+        await m.addColumn(routineExercises, routineExercises.targetWeightKg);
+        await m.addColumn(routineExercises, routineExercises.setType);
+        await m.addColumn(routineExercises, routineExercises.tempo);
+        await m.addColumn(routineExercises, routineExercises.targetRpe);
+        await m.addColumn(routineExercises, routineExercises.targetRir);
+        await m.createTable(activeWorkoutDrafts);
+        // `PersonalRecords` viejo está contaminado (una fila por cada
+        // progresión histórica, todas con `achievedAt` = momento de la
+        // importación) y no tiene la clave única ni `sessionId`. No se puede
+        // deduplicar preservando la verdad histórica -> se descarta y se
+        // recrea vacío con el esquema nuevo. `PersonalRecordsService.rebuildAll`
+        // (Fase 2) lo repuebla replayando los sets en orden cronológico.
+        await m.deleteTable('personal_records');
+        await m.createTable(personalRecords);
       }
     },
   );

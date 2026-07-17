@@ -3,15 +3,23 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../core/theme.dart';
+import '../../repositories/active_workout_repository.dart';
 
+/// Descanso entre series. El tiempo restante se deriva siempre de [endsAt]
+/// (instante absoluto, persistido en `ActiveWorkoutDrafts`) contra la hora
+/// actual -- nunca de un contador que decrece: así, si la app se cierra y se
+/// reabre a mitad del descanso, el tiempo restante sigue siendo correcto. El
+/// `Timer` de acá adentro solo repinta cada segundo, no lleva la cuenta.
 class RestTimerBanner extends StatefulWidget {
-  final int seconds;
+  final DateTime endsAt;
   final VoidCallback onDismiss;
+  final ValueChanged<int> onAddSeconds;
 
   const RestTimerBanner({
     super.key,
-    required this.seconds,
+    required this.endsAt,
     required this.onDismiss,
+    required this.onAddSeconds,
   });
 
   @override
@@ -19,31 +27,34 @@ class RestTimerBanner extends StatefulWidget {
 }
 
 class _RestTimerBannerState extends State<RestTimerBanner> {
-  late int _remaining;
   Timer? _timer;
+  late Duration _remaining;
 
   @override
   void initState() {
     super.initState();
-    _remaining = widget.seconds;
+    _remaining = remainingRest(widget.endsAt, DateTime.now());
     _startTimer();
+  }
+
+  @override
+  void didUpdateWidget(RestTimerBanner oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.endsAt != widget.endsAt) {
+      _remaining = remainingRest(widget.endsAt, DateTime.now());
+    }
   }
 
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        _remaining--;
-      });
-      if (_remaining <= 0) {
+      final remaining = remainingRest(widget.endsAt, DateTime.now());
+      setState(() => _remaining = remaining);
+      if (remaining == Duration.zero) {
         timer.cancel();
         widget.onDismiss();
       }
     });
-  }
-
-  void _addSeconds(int amount) {
-    setState(() => _remaining += amount);
   }
 
   @override
@@ -54,8 +65,14 @@ class _RestTimerBannerState extends State<RestTimerBanner> {
 
   @override
   Widget build(BuildContext context) {
-    final minutes = (_remaining.abs() ~/ 60).toString().padLeft(2, '0');
-    final seconds = (_remaining.abs() % 60).toString().padLeft(2, '0');
+    final minutes = _remaining.inMinutes
+        .remainder(60)
+        .toString()
+        .padLeft(2, '0');
+    final seconds = _remaining.inSeconds
+        .remainder(60)
+        .toString()
+        .padLeft(2, '0');
     return Material(
       color: Colors.transparent,
       child: Container(
@@ -104,7 +121,7 @@ class _RestTimerBannerState extends State<RestTimerBanner> {
               borderRadius: BorderRadius.circular(AppRadius.full),
               child: InkWell(
                 borderRadius: BorderRadius.circular(AppRadius.full),
-                onTap: () => _addSeconds(30),
+                onTap: () => widget.onAddSeconds(30),
                 child: const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   child: Text(

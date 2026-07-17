@@ -78,25 +78,55 @@ class WorkoutSession {
 class WorkoutSessionSummary {
   final int id;
   final int? routineId;
+  final String? title;
   final DateTime startedAt;
   final DateTime? endedAt;
+  final double totalVolumeKg;
+  final int exerciseCount;
+  final int setCount;
 
   WorkoutSessionSummary({
     required this.id,
     this.routineId,
+    this.title,
     required this.startedAt,
     this.endedAt,
+    this.totalVolumeKg = 0,
+    this.exerciseCount = 0,
+    this.setCount = 0,
   });
+
+  /// Duración real del entrenamiento (`ended_at - started_at`), o `null` si la
+  /// sesión sigue en curso o el `ended_at` es claramente corrupto (más de 12 h,
+  /// típico de sesiones importadas con el bug viejo). Nunca devuelve un valor
+  /// absurdo: en la duda, `null` y la UI muestra "—".
+  Duration? get duration {
+    if (endedAt == null) return null;
+    final d = endedAt!.difference(startedAt);
+    if (d.isNegative || d.inHours > 12) return null;
+    return d;
+  }
 
   factory WorkoutSessionSummary.fromJson(Map<String, dynamic> json) =>
       WorkoutSessionSummary(
         id: json['id'],
         routineId: json['routine_id'],
+        title: json['title'],
         startedAt: DateTime.parse(json['started_at']),
         endedAt: json['ended_at'] != null
             ? DateTime.parse(json['ended_at'])
             : null,
       );
+}
+
+/// Formatea una duración como "1 h 12 min" / "48 min" / "—" (nunca en miles de
+/// minutos). Pura, para poder testearla sin widgets.
+String formatWorkoutDuration(Duration? d) {
+  if (d == null) return '—';
+  final h = d.inHours;
+  final m = d.inMinutes.remainder(60);
+  if (h > 0) return '$h h $m min';
+  return '$m min';
 }
 
 class PersonalRecord {

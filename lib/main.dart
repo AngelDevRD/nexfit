@@ -20,6 +20,7 @@ import 'core/sync/sync_engine.dart';
 import 'core/theme.dart';
 import 'providers/auth_provider.dart';
 import 'providers/theme_provider.dart';
+import 'repositories/active_workout_repository.dart';
 import 'repositories/body_measurement_repository.dart';
 import 'repositories/exercise_repository.dart';
 import 'repositories/gamification_repository.dart';
@@ -89,6 +90,7 @@ class _AppGymAppState extends State<AppGymApp> {
   late final AuthProvider _authProvider;
   late final RoutineRepository _routineRepository;
   late final WorkoutRepository _workoutRepository;
+  late final ActiveWorkoutRepository _activeWorkoutRepository;
   late final GoalRepository _goalRepository;
   late final NutritionRepository _nutritionRepository;
   late final RecoveryRepository _recoveryRepository;
@@ -112,6 +114,7 @@ class _AppGymAppState extends State<AppGymApp> {
       ..tryAutoLogin();
     _routineRepository = RoutineRepository(_db);
     _workoutRepository = WorkoutRepository(_db);
+    _activeWorkoutRepository = ActiveWorkoutRepository(_db, _workoutRepository);
     _goalRepository = GoalRepository(_db);
     _nutritionRepository = NutritionRepository(_db);
     _recoveryRepository = RecoveryRepository(_db);
@@ -156,6 +159,9 @@ class _AppGymAppState extends State<AppGymApp> {
         Provider<ProfileRepository>.value(value: _profileRepository),
         Provider<RoutineRepository>.value(value: _routineRepository),
         Provider<WorkoutRepository>.value(value: _workoutRepository),
+        Provider<ActiveWorkoutRepository>.value(
+          value: _activeWorkoutRepository,
+        ),
         Provider<GoalRepository>.value(value: _goalRepository),
         Provider<NutritionRepository>.value(value: _nutritionRepository),
         Provider<RecoveryRepository>.value(value: _recoveryRepository),

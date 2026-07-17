@@ -19,7 +19,9 @@ class _HistoryListScreenState extends State<HistoryListScreen> {
   List<WorkoutSessionSummary> _sessions = [];
   bool _loading = true;
   String? _muscleGroup;
-  final _dateFormat = DateFormat('dd/MM/yyyy HH:mm');
+  // Solo fecha, sin hora: la tarjeta muestra el día del entrenamiento
+  // (10/07/2026), no "10/07/2026 00:00".
+  final _dateFormat = DateFormat('dd/MM/yyyy');
 
   @override
   void initState() {
@@ -138,6 +140,23 @@ class _HistoryListScreenState extends State<HistoryListScreen> {
   }
 }
 
+class _Metric extends StatelessWidget {
+  final String icon;
+  final String label;
+
+  const _Metric({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      '$icon $label',
+      style: Theme.of(
+        context,
+      ).textTheme.labelMedium?.copyWith(color: AppColors.onSurfaceVariant),
+    );
+  }
+}
+
 class _MuscleChip extends StatelessWidget {
   final String label;
   final Color color;
@@ -233,23 +252,54 @@ class _SessionCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        dateFormat.format(session.startedAt.toLocal()),
+                        session.title?.isNotEmpty == true
+                            ? session.title!
+                            : dateFormat.format(session.startedAt.toLocal()),
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        finished
-                            ? 'Duración: ${session.endedAt!.difference(session.startedAt).inMinutes} min'
-                            : 'En curso',
-                        style: Theme.of(context).textTheme.labelMedium
-                            ?.copyWith(
-                              color: finished
-                                  ? AppColors.onSurfaceVariant
-                                  : AppColors.secondary,
+                      if (session.title?.isNotEmpty == true) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          dateFormat.format(session.startedAt.toLocal()),
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(color: AppColors.onSurfaceVariant),
+                        ),
+                      ],
+                      const SizedBox(height: 8),
+                      if (finished)
+                        Wrap(
+                          spacing: AppSpacing.md,
+                          runSpacing: 4,
+                          children: [
+                            _Metric(
+                              icon: '⏱',
+                              label: formatWorkoutDuration(session.duration),
                             ),
-                      ),
+                            _Metric(
+                              icon: '🏋',
+                              label:
+                                  '${session.totalVolumeKg.toStringAsFixed(0)} kg',
+                            ),
+                            _Metric(
+                              icon: '💪',
+                              label: '${session.exerciseCount} ej.',
+                            ),
+                            _Metric(
+                              icon: '📊',
+                              label: '${session.setCount} series',
+                            ),
+                          ],
+                        )
+                      else
+                        Text(
+                          'En curso',
+                          style: Theme.of(context).textTheme.labelMedium
+                              ?.copyWith(color: AppColors.secondary),
+                        ),
                     ],
                   ),
                 ),

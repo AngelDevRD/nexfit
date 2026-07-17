@@ -57,6 +57,14 @@ legacy/backend_fastapi/*.db
 
 # Backend inteligente (Fase 4, docs/FASE_4_DISENO.md)
 backend_ia/.env
+
+# Backend actual (FastAPI/Supabase) -- entorno local, no se versiona
+backend/.env
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/.pytest_cache/
+backend/*.db
 backend_ia/__pycache__/
 backend_ia/**/__pycache__/
 backend_ia/.pytest_cache/

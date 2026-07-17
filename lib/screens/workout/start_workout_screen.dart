@@ -3,8 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme.dart';
 import '../../models/routine.dart';
+import '../../repositories/active_workout_repository.dart';
 import '../../repositories/routine_repository.dart';
-import '../../repositories/workout_repository.dart';
 import 'active_workout_screen.dart';
 
 class StartWorkoutScreen extends StatefulWidget {
@@ -22,18 +22,40 @@ class _StartWorkoutScreenState extends State<StartWorkoutScreen> {
   @override
   void initState() {
     super.initState();
-    context.read<RoutineRepository>().list().then((routines) {
-      setState(() {
-        _routines = routines;
-        _loading = false;
-      });
+    _init();
+  }
+
+  Future<void> _init() async {
+    final activeWorkoutRepository = context.read<ActiveWorkoutRepository>();
+    final routineRepository = context.read<RoutineRepository>();
+
+    // Si ya hay un entrenamiento activo (la app se cerró a mitad de una
+    // sesión), se resume directo en vez de ofrecer iniciar uno nuevo: solo
+    // puede existir un entrenamiento en curso a la vez.
+    final activeId = await activeWorkoutRepository.currentSessionId();
+    if (!mounted) return;
+    if (activeId != null) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => ActiveWorkoutScreen(sessionId: activeId),
+        ),
+      );
+      return;
+    }
+
+    final routines = await routineRepository.list();
+    if (!mounted) return;
+    setState(() {
+      _routines = routines;
+      _loading = false;
     });
   }
 
-  Future<void> _start({int? routineId}) async {
+  Future<void> _start({int? routineId, String? title}) async {
     setState(() => _starting = true);
-    final session = await context.read<WorkoutRepository>().startSession(
+    final session = await context.read<ActiveWorkoutRepository>().begin(
       routineId: routineId,
+      title: title,
     );
     if (!mounted) return;
     Navigator.of(context).pushReplacement(

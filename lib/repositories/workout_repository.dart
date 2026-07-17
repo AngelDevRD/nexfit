@@ -5,6 +5,7 @@ import 'package:drift/drift.dart';
 import '../core/local/database.dart' as local;
 import '../models/exercise.dart';
 import '../models/workout.dart';
+import 'personal_records_service.dart';
 
 /// Reemplaza a `WorkoutService` como punto de acceso de las screens: lee y
 /// escribe contra la base local. Cada mutación marca `dirty=true` en la
@@ -22,12 +23,14 @@ import '../models/workout.dart';
 /// tonelaje semanal/mensual), pero cubre el caso principal sin necesitar red.
 class WorkoutRepository {
   final local.AppDatabase db;
+  final PersonalRecordsService _records;
 
-  WorkoutRepository(this.db);
+  WorkoutRepository(this.db) : _records = PersonalRecordsService(db);
 
   Future<WorkoutSession> startSession({
     int? routineId,
     DateTime? startedAt,
+    String? title,
   }) async {
     final now = DateTime.now();
     final start = startedAt ?? now;
@@ -36,6 +39,7 @@ class WorkoutRepository {
         .insert(
           local.WorkoutSessionsCompanion.insert(
             routineId: Value(routineId),
+            title: Value(title),
             startedAt: start,
             updatedAt: now,
           ),
@@ -71,13 +75,21 @@ class WorkoutRepository {
     );
   }
 
-  Future<WorkoutSession> finishSession(int sessionId) async {
+  /// Cierra la sesión. [endedAt] permite fijar la hora real de fin (la trae el
+  /// export de Hevy en `end_time`); si se omite, se usa el momento actual, que
+  /// es lo correcto para una sesión que se termina en vivo desde la UI. Nunca
+  /// se usa `DateTime.now()` para datos importados -- ese era el bug que hacía
+  /// "duración = momento de importar - medianoche".
+  Future<WorkoutSession> finishSession(
+    int sessionId, {
+    DateTime? endedAt,
+  }) async {
     final now = DateTime.now();
     await (db.update(
       db.workoutSessions,
     )..where((t) => t.id.equals(sessionId))).write(
       local.WorkoutSessionsCompanion(
-        endedAt: Value(now),
+        endedAt: Value(endedAt ?? now),
         updatedAt: Value(now),
         dirty: const Value(true),
       ),
@@ -85,7 +97,14 @@ class WorkoutRepository {
     return get(sessionId);
   }
 
-  Future<WorkoutSet> addSet(int sessionId, Map<String, dynamic> payload) async {
+  /// Inserta un set y evalúa récords. Devuelve el set creado y los récords
+  /// nuevos que ese set haya roto (peso y/o reps), para que la UI los muestre.
+  /// La detección la hace [PersonalRecordsService] con upsert sobre la clave
+  /// única (exerciseId, recordType) -> no acumula duplicados.
+  Future<({WorkoutSet set, List<ResolvedRecord> newRecords})> addSet(
+    int sessionId,
+    Map<String, dynamic> payload,
+  ) async {
     final exerciseId = payload['exercise_id'] as int;
     final weightKg = (payload['weight_kg'] as num).toDouble();
     final reps = payload['reps'] as int;
@@ -104,6 +123,8 @@ class WorkoutRepository {
             rir: Value(payload['rir'] as int?),
             restSeconds: Value(payload['rest_seconds'] as int?),
             techniques: Value(jsonEncode(payload['techniques'] ?? const [])),
+            supersetGroupId: Value(payload['superset_group_id'] as int?),
+            tempo: Value(payload['tempo'] as String?),
             isWarmup: Value(isWarmup),
             notes: Value(payload['notes'] as String?),
           ),
@@ -121,14 +142,25 @@ class WorkoutRepository {
         );
 
     await _markSessionDirty(sessionId);
+
+    var newRecords = const <ResolvedRecord>[];
     if (!isWarmup) {
-      await _checkPersonalRecords(exerciseId, weightKg, reps);
+      final session = await (db.select(
+        db.workoutSessions,
+      )..where((t) => t.id.equals(sessionId))).getSingle();
+      newRecords = await _records.evaluateSet(
+        exerciseId: exerciseId,
+        weightKg: weightKg,
+        reps: reps,
+        sessionId: sessionId,
+        achievedAt: session.startedAt,
+      );
     }
 
     final row = await (db.select(
       db.workoutSets,
     )..where((t) => t.id.equals(setId))).getSingle();
-    return _toWorkoutSet(row);
+    return (set: await _toWorkoutSet(row), newRecords: newRecords);
   }
 
   Future<WorkoutSet> updateSet(int setId, Map<String, dynamic> payload) async {
@@ -213,15 +245,15 @@ class WorkoutRepository {
     await _markSessionDirty(set.sessionId);
   }
 
+  /// Récords logrados en una sesión. Filtra por `sessionId` (columna agregada
+  /// en el esquema v6), no por `achievedAt >= startedAt` como antes: aquel
+  /// filtro colgaba de una sesión todos los récords con fecha posterior, y tras
+  /// una importación (donde `achievedAt` era el momento de importar) atribuía
+  /// cientos de récords históricos a la última sesión importada.
   Future<List<PersonalRecord>> sessionRecords(int sessionId) async {
-    final session = await (db.select(
-      db.workoutSessions,
-    )..where((t) => t.id.equals(sessionId))).getSingle();
-    final rows =
-        await (db.select(db.personalRecords)..where(
-              (t) => t.achievedAt.isBiggerOrEqualValue(session.startedAt),
-            ))
-            .get();
+    final rows = await (db.select(
+      db.personalRecords,
+    )..where((t) => t.sessionId.equals(sessionId))).get();
     return rows
         .map(
           (r) => PersonalRecord(
@@ -256,37 +288,54 @@ class WorkoutRepository {
       query.where((t) => t.startedAt.isSmallerOrEqualValue(dateTo));
     }
     final rows = await query.get();
+    if (rows.isEmpty) return const [];
 
-    var summaries = rows
-        .map(
-          (r) => WorkoutSessionSummary(
-            id: r.id,
-            routineId: r.routineId,
-            startedAt: r.startedAt,
-            endedAt: r.endedAt,
-          ),
-        )
-        .toList();
+    // Sets de todas las sesiones devueltas en UNA sola consulta, y el catálogo
+    // de ejercicios una vez -> se evita el N+1 (antes: una query por sesión más
+    // una por set para resolver el grupo muscular).
+    final sessionIds = rows.map((r) => r.id).toList();
+    final setRows = await (db.select(
+      db.workoutSets,
+    )..where((t) => t.sessionId.isIn(sessionIds))).get();
+    final exercises = await db.select(db.exercises).get();
+    final muscleById = {for (final e in exercises) e.id: e.muscleGroup};
 
-    if (exerciseId != null || muscleGroup != null) {
-      final filtered = <WorkoutSessionSummary>[];
-      for (final summary in summaries) {
-        final setRows = await (db.select(
-          db.workoutSets,
-        )..where((t) => t.sessionId.equals(summary.id))).get();
-        for (final set in setRows) {
-          if (exerciseId != null && set.exerciseId != exerciseId) continue;
-          final exercise = await (db.select(
-            db.exercises,
-          )..where((t) => t.id.equals(set.exerciseId))).getSingleOrNull();
-          if (muscleGroup != null && exercise?.muscleGroup != muscleGroup) {
-            continue;
-          }
-          filtered.add(summary);
-          break;
-        }
+    final setsBySession = <int, List<local.WorkoutSet>>{};
+    for (final set in setRows) {
+      setsBySession.putIfAbsent(set.sessionId, () => []).add(set);
+    }
+
+    final summaries = <WorkoutSessionSummary>[];
+    for (final r in rows) {
+      final sets = setsBySession[r.id] ?? const [];
+
+      if (exerciseId != null && !sets.any((s) => s.exerciseId == exerciseId)) {
+        continue;
       }
-      summaries = filtered;
+      if (muscleGroup != null &&
+          !sets.any((s) => muscleById[s.exerciseId] == muscleGroup)) {
+        continue;
+      }
+
+      var volume = 0.0;
+      final distinctExercises = <int>{};
+      for (final s in sets) {
+        distinctExercises.add(s.exerciseId);
+        if (!s.isWarmup) volume += s.weightKg * s.reps;
+      }
+
+      summaries.add(
+        WorkoutSessionSummary(
+          id: r.id,
+          routineId: r.routineId,
+          title: r.title,
+          startedAt: r.startedAt,
+          endedAt: r.endedAt,
+          totalVolumeKg: volume,
+          exerciseCount: distinctExercises.length,
+          setCount: sets.length,
+        ),
+      );
     }
 
     return summaries;
@@ -303,58 +352,9 @@ class WorkoutRepository {
     );
   }
 
-  Future<void> _checkPersonalRecords(
-    int exerciseId,
-    double weightKg,
-    int reps,
-  ) async {
-    final past =
-        await (db.select(db.workoutSets)..where(
-              (t) => t.exerciseId.equals(exerciseId) & t.isWarmup.equals(false),
-            ))
-            .get();
-    if (past.length <= 1) return; // el set recién insertado ya está en `past`
-
-    final previousSets = past
-        .where((s) => s.weightKg != weightKg || s.reps != reps)
-        .toList();
-    if (previousSets.isEmpty) return;
-
-    final prevMaxWeight = previousSets
-        .map((s) => s.weightKg)
-        .fold<double>(0, (a, b) => a > b ? a : b);
-    final prevMaxReps = previousSets
-        .map((s) => s.reps)
-        .fold<int>(0, (a, b) => a > b ? a : b);
-
-    final now = DateTime.now();
-    if (weightKg > prevMaxWeight) {
-      await db
-          .into(db.personalRecords)
-          .insert(
-            local.PersonalRecordsCompanion.insert(
-              exerciseId: Value(exerciseId),
-              recordType: 'max_weight',
-              value: weightKg,
-              previousValue: Value(prevMaxWeight),
-              achievedAt: now,
-            ),
-          );
-    }
-    if (reps > prevMaxReps) {
-      await db
-          .into(db.personalRecords)
-          .insert(
-            local.PersonalRecordsCompanion.insert(
-              exerciseId: Value(exerciseId),
-              recordType: 'max_reps',
-              value: reps.toDouble(),
-              previousValue: Value(prevMaxReps.toDouble()),
-              achievedAt: now,
-            ),
-          );
-    }
-  }
+  /// Reconstruye la tabla de récords desde los sets guardados. Lo llama la
+  /// importación (Fase 4) tras escribir todo el historial de una vez.
+  Future<void> rebuildPersonalRecords() => _records.rebuildAll();
 
   Future<WorkoutSet> _toWorkoutSet(local.WorkoutSet row) async {
     final exerciseRow = await (db.select(

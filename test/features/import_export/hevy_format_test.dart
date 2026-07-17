@@ -73,12 +73,15 @@ void main() {
     );
   }
 
-  test('mapea exercise_title/start_time/set_index a los campos canonicos', () {
+  test('mapea las columnas de Hevy a los campos canonicos correctos', () {
     final mapping = AutoMapper().map(hevyDataset().columns);
 
     expect(mapping.fieldFor('exercise_title'), CanonicalField.exerciseName);
-    expect(mapping.fieldFor('start_time'), CanonicalField.date);
+    expect(mapping.fieldFor('title'), CanonicalField.sessionTitle);
+    expect(mapping.fieldFor('start_time'), CanonicalField.startTime);
+    expect(mapping.fieldFor('end_time'), CanonicalField.endTime);
     expect(mapping.fieldFor('set_index'), CanonicalField.setNumber);
+    expect(mapping.fieldFor('set_type'), CanonicalField.setType);
     expect(mapping.fieldFor('weight_kg'), CanonicalField.weightKg);
     expect(mapping.fieldFor('reps'), CanonicalField.reps);
   });
@@ -96,21 +99,31 @@ void main() {
     },
   );
 
-  test('la fecha en espanol abreviado se parsea al dia/mes/hora correctos', () {
+  test(
+    'start_time/end_time en espanol abreviado se parsean como hora real',
+    () {
+      final dataset = hevyDataset();
+      final mapping = AutoMapper().map(dataset.columns);
+      final validated = Validators().validate(dataset, mapping);
+
+      final start =
+          validated.first.values[CanonicalField.startTime] as DateTime;
+      final end = validated.first.values[CanonicalField.endTime] as DateTime;
+      expect(start, DateTime(2026, 7, 10, 15, 44));
+      expect(end, DateTime(2026, 7, 10, 16, 46));
+      // La duración real es 1 h 2 min, no miles de minutos.
+      expect(end.difference(start), const Duration(minutes: 62));
+    },
+  );
+
+  test('set_type se preserva como texto crudo para el ImportEngine', () {
     final dataset = hevyDataset();
     final mapping = AutoMapper().map(dataset.columns);
     final validated = Validators().validate(dataset, mapping);
 
-    final date = validated.first.values[CanonicalField.date] as DateTime;
-    expect(date, DateTime(2026, 7, 10, 15, 44));
-  });
-
-  test('set_type "warmup" marca la serie como calentamiento', () {
-    final dataset = hevyDataset();
-    final mapping = AutoMapper().map(dataset.columns);
-    final validated = Validators().validate(dataset, mapping);
-
-    expect(validated[0].values[CanonicalField.isWarmup], false);
-    expect(validated[1].values[CanonicalField.isWarmup], true);
+    // La interpretación (warmup -> isWarmup, dropset -> technique) ya no ocurre
+    // en la validación sino en el ImportEngine; acá solo se conserva el valor.
+    expect(validated[0].values[CanonicalField.setType], 'normal');
+    expect(validated[1].values[CanonicalField.setType], 'warmup');
   });
 }

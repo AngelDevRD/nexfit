@@ -5,7 +5,19 @@
 enum CanonicalField {
   exerciseName,
   date,
+  // Hora de inicio / fin del entrenamiento (Hevy: `start_time` / `end_time`).
+  // La duración real es `endTime - startTime`; antes se descartaban y la
+  // duración salía disparatada (ver docs/PLAN_ENTRENAMIENTO_V2.md §0.1).
+  startTime,
+  endTime,
+  // Nombre del entrenamiento (Hevy: `title`). Agrupa filas en sesiones.
+  sessionTitle,
   setNumber,
+  // Tipo de serie (Hevy: `set_type` = normal|warmup|dropset|failure). Antes se
+  // colapsaba a un bool `isWarmup`, perdiendo dropsets y failures en silencio.
+  setType,
+  // Id de superserie dentro de la sesión (Hevy: `superset_id`).
+  supersetId,
   weightKg,
   reps,
   rpe,

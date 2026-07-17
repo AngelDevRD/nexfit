@@ -25,13 +25,21 @@ class ImportEngine {
 
   Future<ImportResult> import(List<ValidatedRecord> records) async {
     final importable = records.where((r) => !r.hasErrors).toList();
-    final groups = <DateTime, List<ValidatedRecord>>{};
+
+    // Agrupa por (título, hora de inicio) en vez de por día calendario: así
+    // dos entrenamientos del mismo día no se fusionan, y cada sesión conserva
+    // su hora real de inicio/fin (antes se truncaba a medianoche -> la duración
+    // salía en miles de minutos, ver docs/PLAN_ENTRENAMIENTO_V2.md §0.1).
+    final groups = <String, List<ValidatedRecord>>{};
+    final groupOrder = <String>[];
     for (final record in importable) {
-      final date = record.values[CanonicalField.date] as DateTime?;
-      final day = date == null
-          ? DateTime.now()
-          : DateTime(date.year, date.month, date.day);
-      groups.putIfAbsent(day, () => []).add(record);
+      final start =
+          record.values[CanonicalField.startTime] as DateTime? ??
+          record.values[CanonicalField.date] as DateTime?;
+      final title = record.values[CanonicalField.sessionTitle] as String?;
+      final key = '${title ?? ''}|${start?.toIso8601String() ?? 'sin-fecha'}';
+      if (!groups.containsKey(key)) groupOrder.add(key);
+      groups.putIfAbsent(key, () => []).add(record);
     }
 
     final outcomes = <ImportOutcome>[
@@ -46,14 +54,27 @@ class ImportEngine {
     var sessionsCreated = 0;
     var setsCreated = 0;
 
-    for (final entry in groups.entries) {
+    for (final key in groupOrder) {
+      final group = groups[key]!;
+      final first = group.first.values;
+      final start =
+          first[CanonicalField.startTime] as DateTime? ??
+          first[CanonicalField.date] as DateTime? ??
+          DateTime.now();
+      final end = first[CanonicalField.endTime] as DateTime?;
+      final title = first[CanonicalField.sessionTitle] as String?;
+
       final session = await workoutRepository.startSession(
-        startedAt: entry.key,
+        startedAt: start,
+        title: title,
       );
       sessionsCreated++;
       var setIndex = 0;
+      // Los ids de superserie de Hevy son globales al archivo; se remapean a
+      // ids locales por sesión para no colisionar entre sesiones distintas.
+      final supersetRemap = <int, int>{};
 
-      for (final record in entry.value) {
+      for (final record in group) {
         final exerciseName =
             record.values[CanonicalField.exerciseName] as String?;
         final exerciseId = exerciseName == null
@@ -72,6 +93,16 @@ class ImportEngine {
         }
 
         setIndex++;
+        final setType = (record.values[CanonicalField.setType] as String?)
+            ?.toLowerCase();
+        final rawSuperset = record.values[CanonicalField.supersetId] as int?;
+        final supersetGroupId = rawSuperset == null
+            ? null
+            : supersetRemap.putIfAbsent(
+                rawSuperset,
+                () => supersetRemap.length + 1,
+              );
+
         await workoutRepository.addSet(session.id, {
           'exercise_id': exerciseId,
           'set_number': record.values[CanonicalField.setNumber] ?? setIndex,
@@ -80,20 +111,54 @@ class ImportEngine {
           'rpe': record.values[CanonicalField.rpe],
           'rir': record.values[CanonicalField.rir],
           'rest_seconds': record.values[CanonicalField.restSeconds],
-          'is_warmup': record.values[CanonicalField.isWarmup] ?? false,
+          'is_warmup': _isWarmup(
+            setType,
+            record.values[CanonicalField.isWarmup],
+          ),
+          'techniques': _techniquesFor(setType),
+          'superset_group_id': supersetGroupId,
           'notes': record.values[CanonicalField.notes],
         });
         setsCreated++;
         outcomes.add(ImportOutcome(rowIndex: record.rowIndex, imported: true));
       }
 
-      await workoutRepository.finishSession(session.id);
+      // Fija la hora de fin real del CSV (o null si no vino -> la UI muestra
+      // "—", nunca DateTime.now() para datos importados).
+      await workoutRepository.finishSession(session.id, endedAt: end);
     }
+
+    // Reconstruye los récords una sola vez, replayando todo el historial ya
+    // escrito en orden cronológico. Es más rápido y correcto que evaluar PR
+    // set por set durante la importación (que además dejaba `achievedAt` mal).
+    await workoutRepository.rebuildPersonalRecords();
 
     return ImportResult(
       sessionsCreated: sessionsCreated,
       setsCreated: setsCreated,
       outcomes: outcomes,
     );
+  }
+
+  /// `set_type` de Hevy -> flag de calentamiento. `warmup` es calentamiento;
+  /// el resto (normal/dropset/failure) no. Cae al valor mapeado de `isWarmup`
+  /// si no hubo columna `set_type`.
+  bool _isWarmup(String? setType, dynamic isWarmupValue) {
+    if (setType != null) return setType == 'warmup';
+    return isWarmupValue as bool? ?? false;
+  }
+
+  /// `set_type` de Hevy -> técnicas ejecutadas. `dropset`/`failure` se guardan
+  /// en `techniques` (ya existen en `availableTechniques`); `normal`/`warmup`
+  /// no aportan técnica.
+  List<String> _techniquesFor(String? setType) {
+    switch (setType) {
+      case 'dropset':
+        return const ['drop_set'];
+      case 'failure':
+        return const ['to_failure'];
+      default:
+        return const [];
+    }
   }
 }
