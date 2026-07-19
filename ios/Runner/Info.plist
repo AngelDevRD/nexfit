@@ -26,6 +26,14 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>NexFit usa la camara para detectar tu postura durante los ejercicios.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>NexFit necesita acceso a tus fotos para importar o compartir datos de entrenamiento.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>NexFit lee datos de salud (pasos, calorias, ritmo cardiaco) para mostrar tu progreso.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>NexFit guarda en Salud los entrenamientos que registras en la app.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

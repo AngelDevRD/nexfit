@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/app_updater.dart';
 import '../exercises/exercise_list_screen.dart';
 import '../history/history_list_screen.dart';
 import '../profile/profile_screen.dart';
@@ -15,6 +16,21 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Despues del primer frame para no bloquear el arranque, y aqui (en vez
+    // de en main.dart) porque este es el primer widget con un BuildContext
+    // real montado bajo el Navigator/Overlay del MaterialApp: main.dart solo
+    // decide que pantalla mostrar segun el estado de auth (splash/login/home),
+    // asi que su propio context no sirve para abrir un dialogo con showDialog.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        AppUpdater.checkForUpdate(context, slug: 'nexfit');
+      }
+    });
+  }
 
   // Dashboard e Historial muestran datos que cambian desde otras pantallas
   // (un entrenamiento recien finalizado, XP/racha actualizada). Como el
