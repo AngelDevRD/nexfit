@@ -30,8 +30,8 @@ class SocialRepository {
 
   Future<List<ChallengeSummary>> listMine() async {
     final rows = await client
-        .from('challenges')
-        .select('*, challenge_participants(count)')
+        .from('nexfit_challenges')
+        .select('*, nexfit_challenge_participants(count)')
         .order('created_at');
 
     final summaries = (rows as List)
@@ -43,13 +43,13 @@ class SocialRepository {
 
   Future<ChallengeDetail> detail(String id) async {
     final row = await client
-        .from('challenges')
-        .select('*, challenge_participants(count)')
+        .from('nexfit_challenges')
+        .select('*, nexfit_challenge_participants(count)')
         .eq('id', id)
         .single();
 
     final leaderboardRows = await client.rpc(
-      'challenge_leaderboard',
+      'nexfit_challenge_leaderboard',
       params: {'p_challenge_id': id},
     );
 
@@ -92,7 +92,7 @@ class SocialRepository {
   }) async {
     final userId = _userId;
     final created = await client
-        .from('challenges')
+        .from('nexfit_challenges')
         .insert({
           'owner_id': userId,
           'name': name,
@@ -106,7 +106,7 @@ class SocialRepository {
         .single();
     final challengeId = created['id'] as String;
 
-    await client.from('challenge_participants').insert({
+    await client.from('nexfit_challenge_participants').insert({
       'challenge_id': challengeId,
       'user_id': userId,
     });
@@ -116,23 +116,23 @@ class SocialRepository {
 
   Future<String> join(String inviteCode) async {
     final challengeId = await client.rpc(
-      'join_challenge_by_code',
+      'nexfit_join_challenge_by_code',
       params: {'p_code': inviteCode},
     );
     return challengeId as String;
   }
 
   Future<void> leave(String id) => client
-      .from('challenge_participants')
+      .from('nexfit_challenge_participants')
       .delete()
       .eq('challenge_id', id)
       .eq('user_id', _userId);
 
   Future<void> remove(String id) =>
-      client.from('challenges').delete().eq('id', id);
+      client.from('nexfit_challenges').delete().eq('id', id);
 
   ChallengeSummary _toSummary(Map<String, dynamic> row) {
-    final participants = row['challenge_participants'] as List?;
+    final participants = row['nexfit_challenge_participants'] as List?;
     final count = participants != null && participants.isNotEmpty
         ? (participants.first['count'] as num).toInt()
         : 0;

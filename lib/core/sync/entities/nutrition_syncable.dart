@@ -27,7 +27,7 @@ class NutritionSyncable implements SyncableEntity {
     for (final log in dirty) {
       final dateStr = log.logDate.toIso8601String().split('T').first;
       final upserted = await client
-          .from('nutrition_logs')
+          .from('nexfit_nutrition_logs')
           .upsert({
             'user_id': userId,
             'log_date': dateStr,

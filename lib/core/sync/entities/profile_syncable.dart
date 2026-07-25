@@ -27,7 +27,7 @@ class ProfileSyncable implements SyncableEntity {
             .getSingleOrNull();
     if (row == null) return;
 
-    await client.from('profiles').upsert({
+    await client.from('nexfit_profiles').upsert({
       'id': userId,
       'name': row.name,
       'age': row.age,

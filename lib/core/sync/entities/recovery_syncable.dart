@@ -26,7 +26,7 @@ class RecoverySyncable implements SyncableEntity {
     for (final checkin in dirty) {
       final dateStr = checkin.checkinDate.toIso8601String().split('T').first;
       final upserted = await client
-          .from('daily_checkins')
+          .from('nexfit_daily_checkins')
           .upsert({
             'user_id': userId,
             'checkin_date': dateStr,

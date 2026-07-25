@@ -47,7 +47,7 @@ class RoutineSyncable implements SyncableEntity {
     String userId,
   ) async {
     final createdRoutine = await client
-        .from('routines')
+        .from('nexfit_routines')
         .insert({
           'user_id': userId,
           'name': routine.name,
@@ -65,7 +65,7 @@ class RoutineSyncable implements SyncableEntity {
 
     for (final day in days) {
       final createdDay = await client
-          .from('routine_days')
+          .from('nexfit_routine_days')
           .insert({
             'routine_id': routineServerId,
             'day_index': day.dayIndex,
@@ -82,12 +82,12 @@ class RoutineSyncable implements SyncableEntity {
       exercises.sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
 
       if (exercises.isNotEmpty) {
-        await client.from('routine_exercises').insert([
+        await client.from('nexfit_routine_exercises').insert([
           for (final ex in exercises)
             {
               'routine_day_id': dayServerId,
               'exercise_id': ex.exerciseId,
-              'order': ex.orderIndex,
+              'order_index': ex.orderIndex,
               'target_sets': ex.targetSets,
               'target_reps_min': ex.targetRepsMin,
               'target_reps_max': ex.targetRepsMax,
@@ -109,7 +109,7 @@ class RoutineSyncable implements SyncableEntity {
   Future<void> _pushDelete(AppDatabase db, Routine routine) async {
     if (routine.serverId != null) {
       // Cascade en Supabase se encarga de routine_days/routine_exercises.
-      await client.from('routines').delete().eq('id', routine.serverId!);
+      await client.from('nexfit_routines').delete().eq('id', routine.serverId!);
     }
     await (db.delete(db.routines)..where((t) => t.id.equals(routine.id))).go();
   }

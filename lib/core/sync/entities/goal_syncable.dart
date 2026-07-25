@@ -27,14 +27,14 @@ class GoalSyncable implements SyncableEntity {
     for (final goal in dirty) {
       if (goal.deleted) {
         if (goal.serverId != null) {
-          await client.from('goals').delete().eq('id', goal.serverId!);
+          await client.from('nexfit_goals').delete().eq('id', goal.serverId!);
         }
         await (db.delete(db.goals)..where((t) => t.id.equals(goal.id))).go();
         continue;
       }
       if (goal.serverId == null) {
         final created = await client
-            .from('goals')
+            .from('nexfit_goals')
             .insert({
               'user_id': userId,
               'title': goal.title,

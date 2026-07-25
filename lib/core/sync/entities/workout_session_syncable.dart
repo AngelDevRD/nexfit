@@ -59,7 +59,7 @@ class WorkoutSessionSyncable implements SyncableEntity {
         serverId = await _pushStart(db, session, userId, serverRoutineId);
       } else if (session.endedAt != null) {
         await client
-            .from('workout_sessions')
+            .from('nexfit_workout_sessions')
             .update({'ended_at': session.endedAt!.toIso8601String()})
             .eq('id', serverId);
       }
@@ -77,7 +77,7 @@ class WorkoutSessionSyncable implements SyncableEntity {
     String? serverRoutineId,
   ) async {
     final created = await client
-        .from('workout_sessions')
+        .from('nexfit_workout_sessions')
         .insert({
           'user_id': userId,
           'routine_id': serverRoutineId,
@@ -98,7 +98,7 @@ class WorkoutSessionSyncable implements SyncableEntity {
     if (session.serverId != null) {
       // Cascade en Supabase se encarga de workout_sets.
       await client
-          .from('workout_sessions')
+          .from('nexfit_workout_sessions')
           .delete()
           .eq('id', session.serverId!);
     }
@@ -124,7 +124,7 @@ class WorkoutSessionSyncable implements SyncableEntity {
       switch (pending.op) {
         case 'insert':
           final createdSet = await client
-              .from('workout_sets')
+              .from('nexfit_workout_sets')
               .insert({'session_id': serverSessionId, ...payload})
               .select()
               .single();
@@ -139,7 +139,7 @@ class WorkoutSessionSyncable implements SyncableEntity {
         case 'update':
           if (pending.serverSetId != null) {
             await client
-                .from('workout_sets')
+                .from('nexfit_workout_sets')
                 .update(payload)
                 .eq('id', pending.serverSetId!);
           }
@@ -147,7 +147,7 @@ class WorkoutSessionSyncable implements SyncableEntity {
         case 'delete':
           if (pending.serverSetId != null) {
             await client
-                .from('workout_sets')
+                .from('nexfit_workout_sets')
                 .delete()
                 .eq('id', pending.serverSetId!);
           }

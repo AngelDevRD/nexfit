@@ -1,21 +1,11 @@
 /// Credenciales del proyecto Supabase ("AppGym", ver
-/// `docs/ARQUITECTURA_BACKEND.md`). La URL y la publishable key no son
-/// secretas -- están protegidas por RLS, no por ocultarlas -- así que se
-/// pueden bundlear como default. Se pueden sobreescribir en build time
-/// (staging/otro proyecto) con:
-///   flutter build apk --dart-define=SUPABASE_URL=... --dart-define=SUPABASE_PUBLISHABLE_KEY=...
+/// `docs/ARQUITECTURA_BACKEND.md`), inyectadas en build time (AG-CORE-004:
+/// las claves nunca van en el código):
+///   flutter build apk --dart-define=SUPABASE_URL=... --dart-define=SUPABASE_ANON_KEY=...
+///
+/// Sin estas variables `Supabase.initialize` falla -- main.dart ya lo captura
+/// y cae a [UnavailableAuthRepository], la app sigue arrancando sin auth.
 class SupabaseConfig {
-  static const _urlOverride = String.fromEnvironment('SUPABASE_URL');
-  static const _keyOverride = String.fromEnvironment(
-    'SUPABASE_PUBLISHABLE_KEY',
-  );
-
-  static const _defaultUrl = 'https://vywkyuuuxpovoevwdewh.supabase.co';
-  static const _defaultPublishableKey =
-      'sb_publishable_7WFuSgZYH5KOLzoL2OO7zw_DusXo8C3';
-
-  static String get url => _urlOverride.isNotEmpty ? _urlOverride : _defaultUrl;
-
-  static String get publishableKey =>
-      _keyOverride.isNotEmpty ? _keyOverride : _defaultPublishableKey;
+  static const url = String.fromEnvironment('SUPABASE_URL');
+  static const publishableKey = String.fromEnvironment('SUPABASE_ANON_KEY');
 }
