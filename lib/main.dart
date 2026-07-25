@@ -19,6 +19,7 @@ import 'core/sync/entities/workout_session_syncable.dart';
 import 'core/sync/sync_engine.dart';
 import 'core/theme.dart';
 import 'providers/auth_provider.dart';
+import 'providers/sync_settings_provider.dart';
 import 'providers/theme_provider.dart';
 import 'repositories/active_workout_repository.dart';
 import 'repositories/body_measurement_repository.dart';
@@ -101,11 +102,14 @@ class _AppGymAppState extends State<AppGymApp> {
   SocialRepository? _socialRepository;
   late final SyncEngine _syncEngine;
   late final ThemeProvider _themeProvider;
+  late final SyncSettingsProvider _syncSettingsProvider;
 
   @override
   void initState() {
     super.initState();
     _themeProvider = ThemeProvider();
+    _syncSettingsProvider = SyncSettingsProvider()
+      ..addListener(_onSyncFrequencyChanged);
 
     _db = AppDatabase();
     seedExercisesIfEmpty(_db);
@@ -131,6 +135,7 @@ class _AppGymAppState extends State<AppGymApp> {
     // local y necesita el serverId ya resuelto para mandarse al servidor.
     _syncEngine = SyncEngine(
       db: _db,
+      backupInterval: _syncSettingsProvider.frequency.interval,
       entities: supabase == null
           ? const []
           : [
@@ -144,8 +149,13 @@ class _AppGymAppState extends State<AppGymApp> {
     )..start();
   }
 
+  void _onSyncFrequencyChanged() {
+    _syncEngine.updateInterval(_syncSettingsProvider.frequency.interval);
+  }
+
   @override
   void dispose() {
+    _syncSettingsProvider.removeListener(_onSyncFrequencyChanged);
     _syncEngine.dispose();
     super.dispose();
   }
@@ -173,6 +183,9 @@ class _AppGymAppState extends State<AppGymApp> {
         ),
         Provider<SocialRepository?>.value(value: _socialRepository),
         ChangeNotifierProvider<ThemeProvider>.value(value: _themeProvider),
+        ChangeNotifierProvider<SyncSettingsProvider>.value(
+          value: _syncSettingsProvider,
+        ),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) => MaterialApp(

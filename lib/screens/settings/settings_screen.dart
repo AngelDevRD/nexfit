@@ -6,6 +6,7 @@ import '../../core/local/database.dart';
 import '../../core/theme.dart';
 import '../../features/import_export/export_screen.dart';
 import '../../features/import_export/import_preview_screen.dart';
+import '../../providers/sync_settings_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../services/data_export_service.dart';
 import '../../services/data_import_service.dart';
@@ -96,6 +97,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
+    final syncSettings = context.watch<SyncSettingsProvider>();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -132,6 +134,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
               selected: {themeProvider.mode},
               onSelectionChanged: (selection) =>
                   themeProvider.setMode(selection.first),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Text('Sincronización', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: AppSpacing.sm),
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceContainer,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Tus datos siempre se guardan primero en el teléfono. Esto '
+                  'solo define cada cuánto se suben a la nube.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                DropdownButtonFormField<SyncFrequency>(
+                  initialValue: syncSettings.frequency,
+                  decoration: const InputDecoration(
+                    labelText: 'Frecuencia de sync',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: SyncFrequency.values
+                      .map(
+                        (f) => DropdownMenuItem(
+                          value: f,
+                          child: Text(f.label),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (f) {
+                    if (f != null) syncSettings.setFrequency(f);
+                  },
+                ),
+              ],
             ),
           ),
           const SizedBox(height: AppSpacing.lg),

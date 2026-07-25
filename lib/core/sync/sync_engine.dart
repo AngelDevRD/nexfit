@@ -13,7 +13,7 @@ import 'syncable.dart';
 class SyncEngine {
   final AppDatabase db;
   final List<SyncableEntity> entities;
-  final Duration backupInterval;
+  Duration backupInterval;
 
   SyncEngine({
     required this.db,
@@ -34,6 +34,15 @@ class SyncEngine {
     _backupTimer = Timer.periodic(backupInterval, (_) => syncNow());
     // Intento inicial al arrancar la app (por si ya hay conexión).
     syncNow();
+  }
+
+  /// Reinicia el timer periódico con un nuevo intervalo (ej. el usuario
+  /// cambió la frecuencia en Ajustes). No afecta al listener de conectividad.
+  void updateInterval(Duration newInterval) {
+    if (newInterval == backupInterval) return;
+    backupInterval = newInterval;
+    _backupTimer?.cancel();
+    _backupTimer = Timer.periodic(backupInterval, (_) => syncNow());
   }
 
   void dispose() {
