@@ -47,7 +47,10 @@ jobs:
           path: build/app/outputs/flutter-apk/app-release.apk
 
   build-windows:
-    runs-on: windows-latest
+    # windows-latest ya trae MSVC 14.51 (VS 2026), que elimino los headers
+    # <experimental/coroutine> que usan flutter_inappwebview_windows y otros
+    # plugins nativos -- windows-2022 todavia trae el toolchain compatible.
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
 
