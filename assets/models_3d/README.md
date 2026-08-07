@@ -1,61 +1,35 @@
-# Modelos 3D de ejercicios — cómo agregar assets
+# Animaciones de ejercicios — fuente de datos
 
-La app carga los modelos 3D **desde esta carpeta** (100% offline una vez que
-están acá). Por licencia, los archivos los descargás vos (Mixamo pide cuenta de
-Adobe; sus assets son gratis y de uso comercial, pero hay que bajarlos desde tu
-cuenta). La app ya está preparada: **soltás el archivo con el nombre correcto acá,
-recompilás, y aparece solo** en la pestaña 3D del ejercicio.
+**Se reemplazó el enfoque anterior (modelos 3D `.glb` vía Mixamo).** Ahora la
+fuente de animaciones/datos de ejercicios es el dataset gratuito:
 
-## Convención de nombres (obligatoria)
+> https://github.com/hasaneyldrm/exercises-dataset
 
-```
-assets/models_3d/<slug>_male.glb     ← modelo masculino + animación del ejercicio
-assets/models_3d/<slug>_female.glb   ← modelo femenino + animación del ejercicio
-```
+920+ ejercicios con GIF animado, thumbnail 180×180, grupos musculares, equipo
+e instrucciones en 6 idiomas (`data/exercises.json` del repo, ~17 MB).
 
-El `<slug>` es el identificador del ejercicio (ej: `press-banca-con-barra`,
-`sentadilla-con-barra`, `dominadas`). Está en el catálogo
-(`assets/data/exercises.json`, campo `slug`).
+## Licencia — leer antes de usar
 
-Ejemplos:
-```
-assets/models_3d/press-banca-con-barra_male.glb
-assets/models_3d/press-banca-con-barra_female.glb
-assets/models_3d/sentadilla-con-barra_male.glb
-```
+- **Datos** (nombres, categorías, músculos, instrucciones, estructura): **MIT**.
+  Libre de usar/modificar, ver `LICENSE` del repo origen.
+- **Media** (GIFs y thumbnails en `images/` y `videos/`): **© Gym visual**
+  (https://gymvisual.com/), incluida en ese repo con permiso explícito del
+  titular, bajo estas condiciones obligatorias:
+  - Solo se puede usar/redistribuir a **180×180** de resolución.
+  - Toda pantalla que muestre esa media debe llevar la atribución
+    **"© Gym visual — https://gymvisual.com/"** visible.
+  - Clonar ese repo **no** da licencia propia sobre la media — los términos
+    del titular (https://gymvisual.com/content/3-terms-and-conditions-of-use)
+    son la referencia final; ante duda, no redistribuir a mayor resolución.
 
-Si un archivo no está, la app muestra un placeholder “Modelo 3D no disponible”
-para ese ejercicio; el resto sigue funcionando.
+## Pendiente (no implementado en esta sesión)
 
-## Cómo obtener cada archivo en Mixamo (gratis, uso comercial)
+La integración real (descargar `exercises.json`, mapear al modelo `Exercise`
+de la app por `slug`, reemplazar el visor 3D en
+`lib/features/exercise_3d/exercise_3d_view.dart` por un visor de GIF con
+atribución visible) queda para una sesión aparte — es un cambio de varias
+pantallas y del pipeline de assets, fuera del límite de 3 archivos por sesión.
 
-1. Entrá a https://www.mixamo.com (cuenta de Adobe gratuita).
-2. **Characters:** elegí un personaje masculino y uno femenino (ej: “Y Bot”/“X Bot”
-   o un personaje realista del catálogo).
-3. **Animations:** buscá la animación del ejercicio (ej: “squat”, “push up”).
-   ⚠️ Mixamo tiene mocap general, **no tiene todos los ejercicios de gym con
-   nombre exacto**. Para los que no estén, hay que crear/adaptar la animación en
-   Blender (eso queda fuera de la app).
-4. Con la animación aplicada al personaje, **Download** con estos ajustes:
-   - Format: **glTF Binary (.glb)**
-   - Skin: **With Skin**
-   - Frames per Second: 30
-   - Keyframe Reduction: none o uniforme
-5. Renombrá el `.glb` a `<slug>_male.glb` (o `_female.glb`) y ponelo en esta carpeta.
-6. Recompilá la app (`flutter build apk ...`). Listo.
-
-## Recomendaciones de peso (para que sea liviano y ande en gama baja)
-
-- Objetivo: **< 5 MB por archivo**. Si pesa más, reducí en Blender (decimate) o
-  usá keyframe reduction en Mixamo.
-- Texturas PBR opcionales; para músculos alcanza con color base.
-
-## Nota sobre el resaltado de músculos
-
-El resaltado (primario rojo intenso / secundario rojo claro) se hace con un
-**mapa muscular 2D** dentro de la app (pestaña “Músculos”), usando los datos de
-`primary_muscles`/`secondary_muscles` que ya tiene cada ejercicio. Recolorear
-músculos **sobre el modelo 3D animado** requeriría un modelo con cada músculo
-como malla separada (los de Mixamo son una sola malla), así que el 3D muestra la
-animación y el resaltado va en el mapa 2D. Si conseguís un modelo anatómico
-segmentado por músculos, la arquitectura queda lista para engancharlo.
+Esta carpeta (`assets/models_3d/`) y el código del visor 3D actual
+(`Exercise3DView`, dependencia `flutter_3d_controller`) siguen intactos hasta
+que se haga esa migración.

@@ -5,6 +5,7 @@ import '../../core/theme.dart';
 import '../../models/exercise.dart';
 import '../../repositories/exercise_repository.dart';
 import '../../widgets/exercise_thumb.dart';
+import '../../widgets/muscle_group_filter.dart';
 import 'exercise_detail_screen.dart';
 
 class ExerciseListScreen extends StatefulWidget {
@@ -48,6 +49,16 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
         _loading = false;
       });
     }
+  }
+
+  Future<void> _openMuscleGroupSheet() async {
+    final selected = await showMuscleGroupFilterSheet(
+      context,
+      current: _selectedMuscleGroup,
+    );
+    if (!mounted) return;
+    setState(() => _selectedMuscleGroup = selected);
+    _load();
   }
 
   List<ExerciseSummary> get _filtered {
@@ -113,7 +124,15 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
                 decoration: InputDecoration(
                   hintText: 'Buscar ejercicios...',
                   prefixIcon: const Icon(Icons.search),
-                  suffixIcon: const Icon(Icons.tune, color: AppColors.primary),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      Icons.tune,
+                      color: _selectedMuscleGroup != null
+                          ? AppColors.primary
+                          : AppColors.onSurfaceVariant,
+                    ),
+                    onPressed: _openMuscleGroupSheet,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppRadius.md),
                     borderSide: BorderSide.none,
@@ -121,36 +140,30 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
                 ),
               ),
             ),
-            SizedBox(
-              height: 44,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                children: [
-                  _MuscleChip(
-                    label: 'Todos',
-                    color: AppColors.onSurfaceVariant,
-                    selected: _selectedMuscleGroup == null,
+            if (_selectedMuscleGroup != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.md,
+                  0,
+                  AppSpacing.md,
+                  AppSpacing.sm,
+                ),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: MuscleChip(
+                    label: _selectedMuscleGroup!,
+                    color:
+                        muscleGroupColors[_selectedMuscleGroup] ??
+                        AppColors.onSurfaceVariant,
+                    selected: true,
                     onTap: () {
                       setState(() => _selectedMuscleGroup = null);
                       _load();
                     },
+                    trailingIcon: Icons.close,
                   ),
-                  ...muscleGroupColors.entries.map(
-                    (entry) => _MuscleChip(
-                      label: entry.key,
-                      color: entry.value,
-                      selected: _selectedMuscleGroup == entry.key,
-                      onTap: () {
-                        setState(() => _selectedMuscleGroup = entry.key);
-                        _load();
-                      },
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
             Expanded(
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
@@ -182,58 +195,6 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
                     ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MuscleChip extends StatelessWidget {
-  final String label;
-  final Color color;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _MuscleChip({
-    required this.label,
-    required this.color,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-      child: Material(
-        color: selected
-            ? color.withValues(alpha: 0.15)
-            : AppColors.surfaceContainer,
-        borderRadius: BorderRadius.circular(AppRadius.full),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppRadius.full),
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: 8,
-            ),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppRadius.full),
-              border: Border.all(
-                color: selected
-                    ? color.withValues(alpha: 0.4)
-                    : AppColors.outlineVariant,
-              ),
-            ),
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: selected ? color : AppColors.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
         ),
       ),
     );

@@ -203,8 +203,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         children: [
                           _FeatureTile(
                             icon: Icons.restaurant,
-                            iconBg: AppColors.tertiaryContainer,
-                            iconColor: AppColors.onTertiaryContainer,
+                            iconBg: AppColors.surfaceContainerHighest,
+                            iconColor: AppColors.primary,
                             label: 'Nutrición',
                             value: 'Registro diario',
                             onTap: () => Navigator.of(context).push(
@@ -216,7 +216,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           _FeatureTile(
                             icon: Icons.bedtime,
                             iconBg: AppColors.surfaceContainerHighest,
-                            iconColor: AppColors.secondary,
+                            iconColor: AppColors.primary,
                             label: 'Recuperación',
                             value: 'Check-in de hoy',
                             onTap: () => Navigator.of(context).push(
@@ -247,7 +247,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           _FeatureTile(
                             icon: Icons.straighten,
                             iconBg: AppColors.surfaceContainerHighest,
-                            iconColor: AppColors.onSurfaceVariant,
+                            iconColor: AppColors.primary,
                             label: 'Medidas',
                             value: 'Historial corporal',
                             onTap: () => Navigator.of(context).push(
@@ -259,7 +259,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           _FeatureTile(
                             icon: Icons.calendar_month,
                             iconBg: AppColors.surfaceContainerHighest,
-                            iconColor: AppColors.onSurfaceVariant,
+                            iconColor: AppColors.primary,
                             label: 'Calendario',
                             value: 'Descarga y planes',
                             onTap: () => Navigator.of(context).push(
@@ -271,7 +271,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           _FeatureTile(
                             icon: Icons.emoji_events,
                             iconBg: AppColors.surfaceContainerHighest,
-                            iconColor: AppColors.secondaryContainer,
+                            iconColor: AppColors.primary,
                             label: 'Logros',
                             value: 'Nivel y medallas',
                             onTap: () => Navigator.of(context).push(
@@ -295,7 +295,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           _FeatureTile(
                             icon: Icons.bar_chart,
                             iconBg: AppColors.surfaceContainerHighest,
-                            iconColor: AppColors.tertiary,
+                            iconColor: AppColors.primary,
                             label: 'Estadísticas',
                             value: 'Progreso y récords',
                             onTap: () => Navigator.of(context).push(
@@ -307,7 +307,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           _FeatureTile(
                             icon: Icons.groups,
                             iconBg: AppColors.surfaceContainerHighest,
-                            iconColor: AppColors.secondaryContainer,
+                            iconColor: AppColors.primary,
                             label: 'Retos',
                             value: 'Competí con amigos',
                             onTap: () => Navigator.of(context).push(
@@ -319,7 +319,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           _FeatureTile(
                             icon: Icons.watch,
                             iconBg: AppColors.surfaceContainerHighest,
-                            iconColor: AppColors.tertiary,
+                            iconColor: AppColors.primary,
                             label: 'Wearables',
                             value: 'Pasos, pulso y sueño',
                             onTap: () => Navigator.of(context).push(
@@ -331,7 +331,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           _FeatureTile(
                             icon: Icons.videocam,
                             iconBg: AppColors.surfaceContainerHighest,
-                            iconColor: AppColors.danger,
+                            iconColor: AppColors.primary,
                             label: 'Análisis de técnica',
                             value: 'Cuenta reps con la cámara',
                             onTap: () => Navigator.of(context).push(

@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../../core/local/database.dart';
 import '../../core/theme.dart';
 import '../../models/exercise.dart';
+import '../../widgets/exercise_thumb.dart';
+import '../../widgets/muscle_group_filter.dart';
 
 class ExercisePickerScreen extends StatefulWidget {
   const ExercisePickerScreen({super.key});
@@ -16,6 +18,7 @@ class _ExercisePickerScreenState extends State<ExercisePickerScreen> {
   List<ExerciseSummary> _exercises = [];
   bool _loading = true;
   String _search = '';
+  String? _selectedMuscleGroup;
 
   @override
   void initState() {
@@ -46,11 +49,26 @@ class _ExercisePickerScreenState extends State<ExercisePickerScreen> {
   }
 
   List<ExerciseSummary> get _filtered {
-    if (_search.trim().isEmpty) return _exercises;
-    final query = _search.trim().toLowerCase();
-    return _exercises
-        .where((e) => e.name.toLowerCase().contains(query))
-        .toList();
+    var result = _exercises;
+    if (_selectedMuscleGroup != null) {
+      result = result
+          .where((e) => e.muscleGroup == _selectedMuscleGroup)
+          .toList();
+    }
+    if (_search.trim().isNotEmpty) {
+      final query = _search.trim().toLowerCase();
+      result = result.where((e) => e.name.toLowerCase().contains(query)).toList();
+    }
+    return result;
+  }
+
+  Future<void> _openMuscleGroupSheet() async {
+    final selected = await showMuscleGroupFilterSheet(
+      context,
+      current: _selectedMuscleGroup,
+    );
+    if (!mounted) return;
+    setState(() => _selectedMuscleGroup = selected);
   }
 
   @override
@@ -74,6 +92,15 @@ class _ExercisePickerScreenState extends State<ExercisePickerScreen> {
                     decoration: InputDecoration(
                       hintText: 'Buscar ejercicios...',
                       prefixIcon: const Icon(Icons.search),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          Icons.tune,
+                          color: _selectedMuscleGroup != null
+                              ? AppColors.primary
+                              : AppColors.onSurfaceVariant,
+                        ),
+                        onPressed: _openMuscleGroupSheet,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(AppRadius.md),
                         borderSide: BorderSide.none,
@@ -81,6 +108,28 @@ class _ExercisePickerScreenState extends State<ExercisePickerScreen> {
                     ),
                   ),
                 ),
+                if (_selectedMuscleGroup != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.md,
+                      0,
+                      AppSpacing.md,
+                      AppSpacing.sm,
+                    ),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: MuscleChip(
+                        label: _selectedMuscleGroup!,
+                        color:
+                            muscleGroupColors[_selectedMuscleGroup] ??
+                            AppColors.onSurfaceVariant,
+                        selected: true,
+                        onTap: () =>
+                            setState(() => _selectedMuscleGroup = null),
+                        trailingIcon: Icons.close,
+                      ),
+                    ),
+                  ),
                 Expanded(
                   child: _filtered.isEmpty
                       ? const Center(
@@ -130,15 +179,7 @@ class _PickerCard extends StatelessWidget {
             padding: const EdgeInsets.all(AppSpacing.md),
             child: Row(
               children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                  ),
-                  child: Icon(Icons.fitness_center, color: color),
-                ),
+                ExerciseThumb(slug: exercise.slug, color: color),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Column(

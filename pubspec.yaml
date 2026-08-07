@@ -48,6 +48,8 @@ flutter:
   uses-material-design: true
   assets:
     - assets/data/exercises.json
+    - assets/data/gymvisual_animations.json
+    - assets/animations/gymvisual/
     - assets/models_3d/
     - assets/images/exercises/
     - assets/icon/icon.png

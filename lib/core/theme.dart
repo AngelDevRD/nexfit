@@ -153,7 +153,7 @@ class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: AppColors.surfaceContainer,
-        indicatorColor: AppColors.secondaryContainer,
+        indicatorColor: AppColors.primaryContainer,
         elevation: 0,
       ),
       filledButtonTheme: FilledButtonThemeData(

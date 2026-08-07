@@ -1,0 +1,50 @@
+{
+  "press-banca-barra": {
+    "gif_path": "assets/animations/gymvisual/press-banca-barra.gif"
+  },
+  "press-inclinado-mancuernas": {
+    "gif_path": "assets/animations/gymvisual/press-inclinado-mancuernas.gif"
+  },
+  "aperturas-mancuernas": {
+    "gif_path": "assets/animations/gymvisual/aperturas-mancuernas.gif"
+  },
+  "fondos-paralelas": {
+    "gif_path": "assets/animations/gymvisual/fondos-paralelas.gif"
+  },
+  "dominadas": {
+    "gif_path": "assets/animations/gymvisual/dominadas.gif"
+  },
+  "remo-barra": {
+    "gif_path": "assets/animations/gymvisual/remo-barra.gif"
+  },
+  "jalon-al-pecho": {
+    "gif_path": "assets/animations/gymvisual/jalon-al-pecho.gif"
+  },
+  "peso-muerto-convencional": {
+    "gif_path": "assets/animations/gymvisual/peso-muerto-convencional.gif"
+  },
+  "press-militar": {
+    "gif_path": "assets/animations/gymvisual/press-militar.gif"
+  },
+  "elevaciones-laterales": {
+    "gif_path": "assets/animations/gymvisual/elevaciones-laterales.gif"
+  },
+  "curl-barra": {
+    "gif_path": "assets/animations/gymvisual/curl-barra.gif"
+  },
+  "curl-martillo": {
+    "gif_path": "assets/animations/gymvisual/curl-martillo.gif"
+  },
+  "press-frances": {
+    "gif_path": "assets/animations/gymvisual/press-frances.gif"
+  },
+  "sentadilla-barra": {
+    "gif_path": "assets/animations/gymvisual/sentadilla-barra.gif"
+  },
+  "peso-muerto-rumano": {
+    "gif_path": "assets/animations/gymvisual/peso-muerto-rumano.gif"
+  },
+  "hip-thrust": {
+    "gif_path": "assets/animations/gymvisual/hip-thrust.gif"
+  }
+}

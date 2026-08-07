@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/exercise_animation/widgets/exercise_animation_screen.dart';
 import '../../core/theme.dart';
-import '../../features/exercise_3d/exercise_3d_view.dart';
 import '../../models/exercise.dart';
 import '../../repositories/exercise_repository.dart';
 import '../../widgets/exercise_thumb.dart';
@@ -106,14 +106,14 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
           FilledButton.tonalIcon(
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) => Exercise3DView(
-                  slug: exercise.slug,
+                builder: (_) => ExerciseAnimationScreen(
+                  exerciseSlug: exercise.slug,
                   exerciseName: exercise.name,
                 ),
               ),
             ),
-            icon: const Icon(Icons.view_in_ar_outlined),
-            label: const Text('Ver en 3D'),
+            icon: const Icon(Icons.play_circle_outline),
+            label: const Text('Ver animación'),
           ),
           const SizedBox(height: AppSpacing.lg),
           Material(

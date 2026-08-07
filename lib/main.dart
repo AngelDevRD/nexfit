@@ -7,6 +7,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/auth/auth_repository.dart';
 import 'core/auth/supabase_auth_repository.dart';
 import 'core/auth/unavailable_auth_repository.dart';
+import 'core/exercise_animation/animation_repository.dart';
+import 'core/exercise_animation/providers/custom_animation_provider.dart';
+import 'core/exercise_animation/providers/gym_visual_provider.dart';
 import 'core/local/database.dart';
 import 'core/local/local_bootstrap.dart';
 import 'core/supabase_config.dart';
@@ -98,6 +101,12 @@ class _AppGymAppState extends State<AppGymApp> {
   late final StatsRepository _statsRepository;
   late final GamificationRepository _gamificationRepository;
   late final ExerciseRepository _exerciseRepository;
+  // Composition root de las fuentes de animación: acá (y solo acá) se elige
+  // qué proveedores existen y en qué orden se prueban. GymVisualProvider es
+  // temporal -- el día que se reemplace, este es el único lugar que cambia.
+  final _animationRepository = AnimationRepository(
+    providers: [CustomAnimationProvider(), GymVisualProvider()],
+  );
   late final BodyMeasurementRepository _bodyMeasurementRepository;
   SocialRepository? _socialRepository;
   late final SyncEngine _syncEngine;
@@ -178,6 +187,7 @@ class _AppGymAppState extends State<AppGymApp> {
         Provider<StatsRepository>.value(value: _statsRepository),
         Provider<GamificationRepository>.value(value: _gamificationRepository),
         Provider<ExerciseRepository>.value(value: _exerciseRepository),
+        Provider<AnimationRepository>.value(value: _animationRepository),
         Provider<BodyMeasurementRepository>.value(
           value: _bodyMeasurementRepository,
         ),
