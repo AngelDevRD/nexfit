@@ -27,7 +27,7 @@ class UnavailableAuthRepository implements AuthRepository {
     required String password,
     required String name,
   }) async {
-    throw Exception(_message);
+    throw AuthFailure(_message);
   }
 
   @override
@@ -35,7 +35,7 @@ class UnavailableAuthRepository implements AuthRepository {
     required String email,
     required String password,
   }) async {
-    throw Exception(_message);
+    throw AuthFailure(_message);
   }
 
   @override
@@ -43,6 +43,6 @@ class UnavailableAuthRepository implements AuthRepository {
 
   @override
   Future<void> resetPassword({required String email}) async {
-    throw Exception(_message);
+    throw AuthFailure(_message);
   }
 }

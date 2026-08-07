@@ -13,6 +13,27 @@ class SupabaseAuthRepository implements AuthRepository {
 
   SupabaseAuthRepository(this._client);
 
+  /// Traduce los mensajes de Supabase Auth (siempre en inglés) a algo
+  /// mostrable. Este es el único lugar de la app que conoce el texto exacto
+  /// que devuelve Supabase -- si el día de mañana cambia de proveedor, esta
+  /// traducción se va con este archivo.
+  Never _rethrowAsFailure(sb.AuthException e) {
+    final msg = e.message.toLowerCase();
+    if (msg.contains('email not confirmed')) {
+      throw AuthFailure(
+        'Tu email todavía no fue confirmado. Revisá tu bandeja de entrada '
+        '(y spam) y hacé click en el link que te enviamos.',
+      );
+    }
+    if (msg.contains('invalid login credentials')) {
+      throw AuthFailure('Email o contraseña incorrectos.');
+    }
+    if (msg.contains('user already registered')) {
+      throw AuthFailure('Ya existe una cuenta con ese email.');
+    }
+    throw AuthFailure('No se pudo completar la operación. Intentá de nuevo.');
+  }
+
   AppUser? _toAppUser(sb.User? user) {
     if (user == null) return null;
     final metadataName = user.userMetadata?['name'] as String?;
@@ -51,16 +72,20 @@ class SupabaseAuthRepository implements AuthRepository {
     required String password,
     required String name,
   }) async {
-    final res = await _client.auth.signUp(
-      email: email,
-      password: password,
-      data: {'name': name},
-    );
-    final user = _toAppUser(res.user);
-    if (user == null) {
-      throw sb.AuthException('No se pudo completar el registro.');
+    try {
+      final res = await _client.auth.signUp(
+        email: email,
+        password: password,
+        data: {'name': name},
+      );
+      final user = _toAppUser(res.user);
+      if (user == null) {
+        throw AuthFailure('No se pudo completar el registro.');
+      }
+      return user;
+    } on sb.AuthException catch (e) {
+      _rethrowAsFailure(e);
     }
-    return user;
   }
 
   @override
@@ -68,21 +93,30 @@ class SupabaseAuthRepository implements AuthRepository {
     required String email,
     required String password,
   }) async {
-    final res = await _client.auth.signInWithPassword(
-      email: email,
-      password: password,
-    );
-    final user = _toAppUser(res.user);
-    if (user == null) {
-      throw sb.AuthException('Credenciales inválidas.');
+    try {
+      final res = await _client.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+      final user = _toAppUser(res.user);
+      if (user == null) {
+        throw AuthFailure('Email o contraseña incorrectos.');
+      }
+      return user;
+    } on sb.AuthException catch (e) {
+      _rethrowAsFailure(e);
     }
-    return user;
   }
 
   @override
   Future<void> logout() => _client.auth.signOut();
 
   @override
-  Future<void> resetPassword({required String email}) =>
-      _client.auth.resetPasswordForEmail(email);
+  Future<void> resetPassword({required String email}) async {
+    try {
+      await _client.auth.resetPasswordForEmail(email);
+    } on sb.AuthException catch (e) {
+      _rethrowAsFailure(e);
+    }
+  }
 }

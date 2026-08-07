@@ -2,6 +2,20 @@ import '../../models/user.dart';
 
 enum AuthStatus { unknown, authenticated, unauthenticated }
 
+/// Error de autenticación con mensaje ya traducido para el usuario. Cada
+/// implementación de [AuthRepository] es responsable de traducir sus propias
+/// excepciones (de Supabase, Firebase, etc.) a este tipo antes de que
+/// lleguen a `AuthProvider`/las pantallas -- así nunca se filtra un mensaje
+/// técnico ni el nombre del proveedor real.
+class AuthFailure implements Exception {
+  final String message;
+
+  AuthFailure(this.message);
+
+  @override
+  String toString() => message;
+}
+
 /// Contrato único de autenticación (Fase 1 de `docs/ARQUITECTURA_BACKEND.md`).
 /// `AuthProvider` y las pantallas dependen solo de esta interfaz -- nunca
 /// saben si el proveedor real es Supabase, FastAPI, Firebase u otro. Cambiar
