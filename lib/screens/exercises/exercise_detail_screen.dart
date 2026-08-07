@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/exercise_animation/widgets/exercise_animation_screen.dart';
+import '../../core/exercise_animation/animation_repository.dart';
+import '../../core/exercise_animation/exercise_animation.dart';
+import '../../core/exercise_animation/widgets/exercise_animation_viewer.dart';
 import '../../core/theme.dart';
 import '../../models/exercise.dart';
 import '../../repositories/exercise_repository.dart';
-import '../../widgets/exercise_thumb.dart';
 
 class ExerciseDetailScreen extends StatefulWidget {
   final int exerciseId;
@@ -18,15 +19,21 @@ class ExerciseDetailScreen extends StatefulWidget {
 
 class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   Exercise? _exercise;
+  ExerciseAnimation? _animation;
   String? _error;
 
   @override
   void initState() {
     super.initState();
+    final animationRepository = context.read<AnimationRepository>();
     context
         .read<ExerciseRepository>()
         .get(widget.exerciseId)
-        .then((e) => setState(() => _exercise = e))
+        .then((e) {
+          setState(() => _exercise = e);
+          return animationRepository.getAnimation(e.slug);
+        })
+        .then((a) => setState(() => _animation = a))
         .catchError((e) => setState(() => _error = e.toString()));
   }
 
@@ -64,56 +71,39 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
           AppSpacing.xl,
         ),
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ExerciseThumb(slug: exercise.slug, color: color),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      exercise.name,
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 4),
-                    Wrap(
-                      spacing: AppSpacing.sm,
-                      runSpacing: 4,
-                      children: [
-                        _Pill(label: exercise.muscleGroup, color: color),
-                        _Pill(
-                          label:
-                              difficultyLabels[exercise.difficulty] ??
-                              exercise.difficulty,
-                          color: difficultyColor,
-                        ),
-                        _Pill(
-                          label: exercise.movementType == 'compound'
-                              ? 'Compuesto'
-                              : 'Aislamiento',
-                          color: AppColors.onSurfaceVariant,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          FilledButton.tonalIcon(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => ExerciseAnimationScreen(
-                  exerciseSlug: exercise.slug,
-                  exerciseName: exercise.name,
-                ),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            child: AspectRatio(
+              aspectRatio: 1,
+              child: Container(
+                color: AppColors.surfaceContainer,
+                child: _animation == null
+                    ? const Center(child: CircularProgressIndicator())
+                    : ExerciseAnimationViewer(animation: _animation!),
               ),
             ),
-            icon: const Icon(Icons.play_circle_outline),
-            label: const Text('Ver animación'),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Text(exercise.name, style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 4),
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: 4,
+            children: [
+              _Pill(label: exercise.muscleGroup, color: color),
+              _Pill(
+                label:
+                    difficultyLabels[exercise.difficulty] ??
+                    exercise.difficulty,
+                color: difficultyColor,
+              ),
+              _Pill(
+                label: exercise.movementType == 'compound'
+                    ? 'Compuesto'
+                    : 'Aislamiento',
+                color: AppColors.onSurfaceVariant,
+              ),
+            ],
           ),
           const SizedBox(height: AppSpacing.lg),
           Material(
