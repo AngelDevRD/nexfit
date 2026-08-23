@@ -4,6 +4,3 @@ macos/** linguist-generated
 windows/** linguist-generated
 linux/** linguist-generated
 web/** linguist-generated
-backend_ia/** linguist-vendored
-legacy/** linguist-vendored
-design/** linguist-generated
