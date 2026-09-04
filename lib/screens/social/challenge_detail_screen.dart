@@ -164,7 +164,12 @@ class _InviteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        boxShadow: AppGlow.primary,
+      ),
+      child: Material(
       color: AppColors.primaryContainer,
       borderRadius: BorderRadius.circular(AppRadius.lg),
       child: Padding(
@@ -206,6 +211,7 @@ class _InviteCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

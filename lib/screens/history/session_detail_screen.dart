@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../models/workout.dart';
 import '../../repositories/workout_repository.dart';
+import '../../widgets/empty_state.dart';
+import '../../widgets/exercise_thumb.dart';
 
 class SessionDetailScreen extends StatefulWidget {
   final int sessionId;
@@ -18,26 +20,52 @@ class SessionDetailScreen extends StatefulWidget {
 class _SessionDetailScreenState extends State<SessionDetailScreen> {
   WorkoutSession? _session;
   List<PersonalRecord> _records = [];
+  bool _loading = true;
+  String? _error;
   final _dateFormat = DateFormat('dd/MM/yyyy HH:mm');
 
   @override
   void initState() {
     super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     final repository = context.read<WorkoutRepository>();
-    Future.wait([
-      repository.get(widget.sessionId),
-      repository.sessionRecords(widget.sessionId),
-    ]).then((results) {
+    try {
+      final results = await Future.wait([
+        repository.get(widget.sessionId),
+        repository.sessionRecords(widget.sessionId),
+      ]);
+      if (!mounted) return;
       setState(() {
         _session = results[0] as WorkoutSession;
         _records = results[1] as List<PersonalRecord>;
+        _loading = false;
       });
-    });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_session == null) {
+    if (_error != null) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(),
+        body: Center(child: EmptyState.error(message: _error!, onRetry: _load)),
+      );
+    }
+    if (_loading || _session == null) {
       return const Scaffold(
         backgroundColor: AppColors.background,
         body: Center(child: CircularProgressIndicator()),
@@ -174,14 +202,11 @@ class _ExerciseSetsCard extends StatelessWidget {
             padding: const EdgeInsets.all(AppSpacing.md),
             child: Row(
               children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                  ),
-                  child: Icon(Icons.fitness_center, color: color, size: 20),
+                ExerciseThumb(
+                  slug: sets.first.exercise.slug,
+                  color: color,
+                  muscleGroup: muscleGroup,
+                  size: 40,
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(

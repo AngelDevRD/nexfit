@@ -10,7 +10,16 @@ import '../exercise_animation.dart';
 class ExerciseAnimationViewer extends StatelessWidget {
   final ExerciseAnimation animation;
 
-  const ExerciseAnimationViewer({super.key, required this.animation});
+  /// false cuando la pantalla que lo embebe ya muestra la atribución en otro
+  /// lugar (ver `ExerciseDetailScreen`, que la mueve al pie de la pantalla
+  /// para no taparla con los botones de "Animación"/"Ver en 3D").
+  final bool showAttribution;
+
+  const ExerciseAnimationViewer({
+    super.key,
+    required this.animation,
+    this.showAttribution = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +27,7 @@ class ExerciseAnimationViewer extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Expanded(child: _renderer(context)),
-        if (animation.attribution != null)
+        if (showAttribution && animation.attribution != null)
           Padding(
             padding: const EdgeInsets.symmetric(
               vertical: AppSpacing.xs,
@@ -81,23 +90,32 @@ class _UnsupportedFormat extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.movie_creation_outlined,
-              size: 64,
-              color: AppColors.onSurfaceVariant,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              'Formato ${animationType.name} aún no soportado por el visor',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+        // D4: `FittedBox` -- este cartel vive dentro de un área de alto fijo
+        // (el visor de animación del detalle de ejercicio); con el texto
+        // escalado al 200% el ícono + el texto ya no entraban y desbordaban
+        // en vertical. Achicar proporcionalmente en vez de romper el layout
+        // es aceptable acá porque es contenido decorativo/informativo, no
+        // un control.
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.movie_creation_outlined,
+                size: 64,
                 color: AppColors.onSurfaceVariant,
               ),
-            ),
-          ],
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                'Formato ${animationType.name} aún no soportado por el visor',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -112,23 +130,28 @@ class _Placeholder extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.fitness_center,
-              size: 64,
-              color: AppColors.onSurfaceVariant,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              'Animación no disponible para este ejercicio',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+        // D4: ver la nota en `_UnsupportedFormat` -- mismo desborde vertical
+        // a 200% de escala de texto, mismo fix.
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.fitness_center,
+                size: 64,
                 color: AppColors.onSurfaceVariant,
               ),
-            ),
-          ],
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                'Animación no disponible para este ejercicio',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

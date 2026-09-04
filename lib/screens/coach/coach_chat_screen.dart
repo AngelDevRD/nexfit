@@ -115,21 +115,34 @@ class _CoachChatBodyState extends State<_CoachChatBody> {
         title: Row(
           children: [
             Container(
-              width: 32,
-              height: 32,
-              decoration: const BoxDecoration(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: LinearGradient(
+                gradient: const LinearGradient(
                   colors: [
                     AppColors.primaryContainer,
                     AppColors.tertiaryContainer,
                   ],
                 ),
+                boxShadow: AppGlow.primary,
               ),
               child: const Icon(Icons.smart_toy, color: Colors.white, size: 18),
             ),
             const SizedBox(width: AppSpacing.sm),
-            const Text('Gemelo Digital'),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Gemelo Digital'),
+                Text(
+                  'Tu Coach IA',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -162,9 +175,30 @@ class _CoachChatBodyState extends State<_CoachChatBody> {
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(AppSpacing.md),
-              itemCount: coach.messages.length,
+              itemCount: coach.messages.length + 1,
               itemBuilder: (context, index) {
-                final message = coach.messages[index];
+                if (index == 0) {
+                  return Center(
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.sm,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceContainerHigh,
+                        borderRadius: BorderRadius.circular(AppRadius.full),
+                      ),
+                      child: Text(
+                        'Hoy',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: AppColors.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  );
+                }
+                final message = coach.messages[index - 1];
                 return _ChatBubble(message: message);
               },
             ),

@@ -179,7 +179,11 @@ class _PickerCard extends StatelessWidget {
             padding: const EdgeInsets.all(AppSpacing.md),
             child: Row(
               children: [
-                ExerciseThumb(slug: exercise.slug, color: color),
+                ExerciseThumb(
+                  slug: exercise.slug,
+                  color: color,
+                  muscleGroup: exercise.muscleGroup,
+                ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Column(
