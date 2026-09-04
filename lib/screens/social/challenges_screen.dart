@@ -6,6 +6,10 @@ import '../../models/social.dart';
 import '../../repositories/social_repository.dart';
 import 'challenge_detail_screen.dart';
 
+/// N5: siempre vive dentro de [ProgresoHubScreen]. El "unirse con código" ya
+/// no cuelga de un AppBar transparente fantasma (`toolbarHeight: 44`) --
+/// vive en el encabezado del propio contenido, como cualquier otra acción de
+/// una pantalla embebida.
 class ChallengesScreen extends StatefulWidget {
   const ChallengesScreen({super.key});
 
@@ -113,11 +117,26 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Retos'),
-        actions: [
+    final fab = FloatingActionButton.extended(
+      onPressed: _create,
+      icon: const Icon(Icons.add),
+      label: const Text('Crear reto'),
+    );
+    final header = Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.sm,
+        AppSpacing.sm,
+        0,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Tus retos',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+          ),
           IconButton(
             onPressed: _join,
             icon: const Icon(Icons.group_add),
@@ -125,35 +144,43 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _create,
-        icon: const Icon(Icons.add),
-        label: const Text('Crear reto'),
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-          ? Center(child: Text(_error!))
-          : RefreshIndicator(
-              onRefresh: _load,
-              child: _challenges.isEmpty
-                  ? _EmptyState(onJoin: _join, onCreate: _create)
-                  : ListView(
-                      padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.md,
-                        AppSpacing.md,
-                        AppSpacing.md,
-                        96,
-                      ),
-                      children: [
-                        for (final c in _challenges)
-                          _ChallengeCard(
-                            challenge: c,
-                            onTap: () => _openDetail(c.id),
+    );
+    final body = Column(
+      children: [
+        header,
+        Expanded(
+          child: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : _error != null
+              ? Center(child: Text(_error!))
+              : RefreshIndicator(
+                  onRefresh: _load,
+                  child: _challenges.isEmpty
+                      ? _EmptyState(onJoin: _join, onCreate: _create)
+                      : ListView(
+                          padding: const EdgeInsets.fromLTRB(
+                            AppSpacing.md,
+                            AppSpacing.md,
+                            AppSpacing.md,
+                            96,
                           ),
-                      ],
-                    ),
-            ),
+                          children: [
+                            for (final c in _challenges)
+                              _ChallengeCard(
+                                challenge: c,
+                                onTap: () => _openDetail(c.id),
+                              ),
+                          ],
+                        ),
+                ),
+        ),
+      ],
+    );
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      floatingActionButton: fab,
+      body: body,
     );
   }
 }

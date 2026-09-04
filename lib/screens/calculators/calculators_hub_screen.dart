@@ -6,6 +6,8 @@ import 'body_composition_screen.dart';
 import 'nutrition_calculator_screen.dart';
 import 'fat_loss_rate_screen.dart';
 
+/// N5: siempre vive dentro de [CuerpoHubScreen] -- el hub provee
+/// Scaffold/AppBar, esta pantalla solo devuelve contenido.
 class CalculatorsHubScreen extends StatelessWidget {
   const CalculatorsHubScreen({super.key});
 
@@ -46,44 +48,8 @@ class CalculatorsHubScreen extends StatelessWidget {
       ),
     ];
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
+    final content = Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.md,
-                AppSpacing.sm,
-                AppSpacing.md,
-                AppSpacing.md,
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.primaryContainer,
-                    ),
-                    child: const Icon(
-                      Icons.calculate,
-                      color: AppColors.onPrimaryContainer,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: Text(
-                      'Calculadoras',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
-              ),
-            ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(
@@ -97,23 +63,25 @@ class CalculatorsHubScreen extends StatelessWidget {
                     'Herramientas',
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
-                  const SizedBox(height: AppSpacing.md),
-                  GridView.count(
-                    crossAxisCount: 2,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    mainAxisSpacing: AppSpacing.md,
-                    crossAxisSpacing: AppSpacing.md,
-                    childAspectRatio: 1.1,
-                    children: [for (final item in items) _CalcTile(item: item)],
+                  Text(
+                    'Métricas de precisión para tu rendimiento y objetivos.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                    ),
                   ),
+                  const SizedBox(height: AppSpacing.md),
+                  for (final item in items)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                      child: _CalcTile(item: item),
+                    ),
                 ],
               ),
             ),
           ],
-        ),
-      ),
-    );
+        );
+
+    return content;
   }
 }
 
@@ -154,31 +122,29 @@ class _CalcTile extends StatelessWidget {
           padding: const EdgeInsets.all(AppSpacing.md),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: 40,
-                height: 40,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   color: item.iconBg,
                   borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
-                child: Icon(item.icon, color: item.iconColor, size: 20),
+                child: Icon(item.icon, color: item.iconColor, size: 22),
               ),
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: AppSpacing.md),
               Text(
                 item.title,
-                style: Theme.of(context).textTheme.labelLarge,
-                maxLines: 2,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 4),
               Text(
                 item.subtitle,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: AppColors.onSurfaceVariant,
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),

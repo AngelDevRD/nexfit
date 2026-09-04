@@ -8,6 +8,8 @@ import '../../widgets/exercise_thumb.dart';
 import '../../widgets/muscle_group_filter.dart';
 import 'exercise_detail_screen.dart';
 
+/// N5: siempre vive dentro de [EntrenarHubScreen] (nunca standalone) -- el
+/// hub provee Scaffold/AppBar/fondo, esta pantalla solo devuelve contenido.
 class ExerciseListScreen extends StatefulWidget {
   const ExerciseListScreen({super.key});
 
@@ -71,48 +73,9 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.md,
-                AppSpacing.sm,
-                AppSpacing.md,
-                0,
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.primaryContainer,
-                    ),
-                    child: const Icon(
-                      Icons.fitness_center,
-                      color: AppColors.onPrimaryContainer,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: Text(
-                      'NexFit',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
+    final content = Column(
+      children: [
+        Padding(
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.md,
                 AppSpacing.md,
@@ -179,15 +142,6 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
                           AppSpacing.lg,
                         ),
                         children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: AppSpacing.sm,
-                            ),
-                            child: Text(
-                              'Ejercicios',
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
-                          ),
                           for (final exercise in _filtered)
                             _ExerciseCard(exercise: exercise),
                         ],
@@ -195,9 +149,9 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
                     ),
             ),
           ],
-        ),
-      ),
-    );
+        );
+
+    return content;
   }
 }
 
@@ -230,7 +184,11 @@ class _ExerciseCard extends StatelessWidget {
             padding: const EdgeInsets.all(AppSpacing.md),
             child: Row(
               children: [
-                ExerciseThumb(slug: exercise.slug, color: color),
+                ExerciseThumb(
+                  slug: exercise.slug,
+                  color: color,
+                  muscleGroup: exercise.muscleGroup,
+                ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Column(

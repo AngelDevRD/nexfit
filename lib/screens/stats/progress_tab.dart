@@ -6,6 +6,7 @@ import '../../core/theme.dart';
 import '../../models/exercise.dart';
 import '../../models/stats.dart';
 import '../../repositories/stats_repository.dart';
+import '../../widgets/empty_state.dart';
 import '../exercises/exercise_picker_screen.dart';
 
 class ProgressTab extends StatefulWidget {
@@ -19,24 +20,38 @@ class _ProgressTabState extends State<ProgressTab> {
   ExerciseSummary? _selected;
   List<ExerciseProgressEntry> _entries = [];
   bool _loading = false;
+  String? _error;
 
   Future<void> _pickExercise() async {
     final exercise = await Navigator.of(context).push<ExerciseSummary>(
       MaterialPageRoute(builder: (_) => const ExercisePickerScreen()),
     );
     if (exercise == null || !mounted) return;
+    await _loadFor(exercise);
+  }
+
+  Future<void> _loadFor(ExerciseSummary exercise) async {
     setState(() {
       _selected = exercise;
       _loading = true;
+      _error = null;
     });
-    final entries = await context.read<StatsRepository>().exerciseProgress(
-      exercise.id,
-    );
-    if (!mounted) return;
-    setState(() {
-      _entries = entries;
-      _loading = false;
-    });
+    try {
+      final entries = await context.read<StatsRepository>().exerciseProgress(
+        exercise.id,
+      );
+      if (!mounted) return;
+      setState(() {
+        _entries = entries;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
   }
 
   @override
@@ -74,14 +89,21 @@ class _ProgressTabState extends State<ProgressTab> {
           ),
           const SizedBox(height: AppSpacing.lg),
           if (_loading) const Center(child: CircularProgressIndicator()),
-          if (!_loading && _selected != null && _entries.isEmpty)
-            Text(
-              'Sin entrenamientos registrados para este ejercicio todavía.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.onSurfaceVariant,
-              ),
+          if (!_loading && _error != null)
+            EmptyState.error(
+              message: _error!,
+              onRetry: () => _loadFor(_selected!),
             ),
-          if (!_loading && _entries.isNotEmpty)
+          if (!_loading &&
+              _error == null &&
+              _selected != null &&
+              _entries.isEmpty)
+            const EmptyState(
+              icon: Icons.show_chart,
+              message:
+                  'Sin entrenamientos registrados para este ejercicio todavía.',
+            ),
+          if (!_loading && _error == null && _entries.isNotEmpty)
             Expanded(
               child: Container(
                 padding: const EdgeInsets.fromLTRB(
@@ -109,10 +131,7 @@ class _ProgressTabState extends State<ProgressTab> {
                           reservedSize: 36,
                           getTitlesWidget: (value, meta) => Text(
                             value.toInt().toString(),
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: AppColors.onSurfaceVariant,
-                            ),
+                            style: AppTypography.chartAxisLabel,
                           ),
                         ),
                       ),
@@ -129,10 +148,7 @@ class _ProgressTabState extends State<ProgressTab> {
                               padding: const EdgeInsets.only(top: 8),
                               child: Text(
                                 '${date.day}/${date.month}',
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  color: AppColors.onSurfaceVariant,
-                                ),
+                                style: AppTypography.chartAxisLabel,
                               ),
                             );
                           },

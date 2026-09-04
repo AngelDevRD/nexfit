@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../models/stats.dart';
 import '../../repositories/stats_repository.dart';
+import '../../widgets/empty_state.dart';
 
 class TonnageTab extends StatefulWidget {
   const TonnageTab({super.key});
@@ -17,6 +18,7 @@ class _TonnageTabState extends State<TonnageTab> {
   String _period = 'week';
   List<TonnagePeriodEntry> _entries = [];
   bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -25,15 +27,25 @@ class _TonnageTabState extends State<TonnageTab> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
-    final entries = await context.read<StatsRepository>().tonnage(
-      period: _period,
-      periods: 12,
-    );
     setState(() {
-      _entries = entries;
-      _loading = false;
+      _loading = true;
+      _error = null;
     });
+    try {
+      final entries = await context.read<StatsRepository>().tonnage(
+        period: _period,
+        periods: 12,
+      );
+      setState(() {
+        _entries = entries;
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
   }
 
   @override
@@ -72,7 +84,22 @@ class _TonnageTabState extends State<TonnageTab> {
           const SizedBox(height: AppSpacing.lg),
           if (_loading)
             const Expanded(child: Center(child: CircularProgressIndicator())),
-          if (!_loading)
+          if (!_loading && _error != null)
+            Expanded(
+              child: Center(
+                child: EmptyState.error(message: _error!, onRetry: _load),
+              ),
+            ),
+          if (!_loading && _error == null && _entries.isEmpty)
+            const Expanded(
+              child: Center(
+                child: EmptyState(
+                  icon: Icons.bar_chart_outlined,
+                  message: 'Sin entrenamientos registrados en este período.',
+                ),
+              ),
+            ),
+          if (!_loading && _error == null && _entries.isNotEmpty)
             Expanded(
               child: Container(
                 padding: const EdgeInsets.fromLTRB(
@@ -101,10 +128,7 @@ class _TonnageTabState extends State<TonnageTab> {
                           reservedSize: 36,
                           getTitlesWidget: (value, meta) => Text(
                             value.toInt().toString(),
-                            style: const TextStyle(
-                              fontSize: 9,
-                              color: AppColors.onSurfaceVariant,
-                            ),
+                            style: AppTypography.chartAxisLabel,
                           ),
                         ),
                       ),
@@ -121,10 +145,7 @@ class _TonnageTabState extends State<TonnageTab> {
                               padding: const EdgeInsets.only(top: 8),
                               child: Text(
                                 '${date.day}/${date.month}',
-                                style: const TextStyle(
-                                  fontSize: 9,
-                                  color: AppColors.onSurfaceVariant,
-                                ),
+                                style: AppTypography.chartAxisLabel,
                               ),
                             );
                           },

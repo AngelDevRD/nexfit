@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme.dart';
+import '../../core/units.dart';
 import '../../models/exercise.dart';
 import '../../models/stats.dart';
+import '../../providers/weight_unit_provider.dart';
 import '../../repositories/stats_repository.dart';
 import '../exercises/exercise_picker_screen.dart';
 
@@ -130,6 +132,7 @@ class _StandardCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final levelColor = colorForLevel(standard.level);
+    final weightUnit = context.watch<WeightUnitProvider>().unit;
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
@@ -146,7 +149,8 @@ class _StandardCard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            '${standard.liftKg} kg (${standard.ratio}x tu peso corporal)',
+            '${formatWeight(standard.liftKg, weightUnit)} '
+            '(${standard.ratio}x tu peso corporal)',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -198,6 +202,7 @@ class _PredictionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final weightUnit = context.watch<WeightUnitProvider>().unit;
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
@@ -219,8 +224,10 @@ class _PredictionCard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            'Si mantenés este ritmo, probablemente levantarás ${prediction.predictedKg} kg '
-            'dentro de ${prediction.weeksAhead} semanas (actual: ${prediction.currentBestKg} kg).',
+            'Si mantenés este ritmo, probablemente levantarás '
+            '${formatWeight(prediction.predictedKg, weightUnit)} '
+            'dentro de ${prediction.weeksAhead} semanas '
+            '(actual: ${formatWeight(prediction.currentBestKg, weightUnit)}).',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
         ],

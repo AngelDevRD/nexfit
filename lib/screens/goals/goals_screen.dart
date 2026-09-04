@@ -5,8 +5,13 @@ import '../../core/theme.dart';
 import '../../models/exercise.dart';
 import '../../models/goal.dart';
 import '../../repositories/goal_repository.dart';
+import '../../widgets/empty_state.dart';
 import '../exercises/exercise_picker_screen.dart';
 
+/// N5: siempre vive dentro de [ProgresoHubScreen]. El hub provee
+/// Scaffold/AppBar/fondo; acá solo queda un `Scaffold` transparente para
+/// poder posicionar el FAB "+" -- el único patrón que sigue necesitando un
+/// `Scaffold` propio (ver N5 en la auditoría), nunca con AppBar.
 class GoalsScreen extends StatefulWidget {
   const GoalsScreen({super.key});
 
@@ -18,6 +23,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
   late final GoalRepository _repository;
   List<Goal> _goals = [];
   bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -27,12 +33,22 @@ class _GoalsScreenState extends State<GoalsScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
-    final goals = await _repository.list();
     setState(() {
-      _goals = goals;
-      _loading = false;
+      _loading = true;
+      _error = null;
     });
+    try {
+      final goals = await _repository.list();
+      setState(() {
+        _goals = goals;
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
   }
 
   Future<void> _openCreateDialog() async {
@@ -45,58 +61,138 @@ class _GoalsScreenState extends State<GoalsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Objetivos')),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.primaryContainer,
-        foregroundColor: AppColors.onPrimaryContainer,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-        ),
-        onPressed: _openCreateDialog,
-        child: const Icon(Icons.add),
+    final fab = FloatingActionButton(
+      backgroundColor: AppColors.primaryContainer,
+      foregroundColor: AppColors.onPrimaryContainer,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
-      body: _loading
+      onPressed: _openCreateDialog,
+      child: const Icon(Icons.add),
+    );
+    final body = _loading
           ? const Center(child: CircularProgressIndicator())
+          : _error != null
+          ? Center(
+              child: EmptyState.error(message: _error!, onRetry: _load),
+            )
           : RefreshIndicator(
               onRefresh: _load,
               child: _goals.isEmpty
                   ? ListView(
                       children: [
-                        Padding(
-                          padding: const EdgeInsets.all(AppSpacing.lg),
-                          child: Text(
-                            'Sin objetivos todavía.',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(color: AppColors.onSurfaceVariant),
-                          ),
+                        const SizedBox(height: 80),
+                        EmptyState(
+                          icon: Icons.flag_outlined,
+                          message: 'Sin objetivos todavía.',
+                          actionLabel: 'Crear objetivo',
+                          onAction: _openCreateDialog,
                         ),
                       ],
                     )
-                  : ListView.builder(
+                  : ListView(
                       padding: const EdgeInsets.fromLTRB(
                         AppSpacing.md,
                         AppSpacing.md,
                         AppSpacing.md,
                         96,
                       ),
-                      itemCount: _goals.length,
-                      itemBuilder: (context, index) {
-                        final goal = _goals[index];
-                        return _GoalCard(
-                          goal: goal,
-                          onDelete: () async {
-                            await _repository.delete(goal.id);
-                            _load();
-                          },
-                        );
-                      },
+                      children: [
+                        _OverallProgressCard(goals: _goals),
+                        const SizedBox(height: AppSpacing.lg),
+                        Text(
+                          'Tus objetivos',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        for (final goal in _goals)
+                          _GoalCard(
+                            goal: goal,
+                            onDelete: () async {
+                              await _repository.delete(goal.id);
+                              _load();
+                            },
+                          ),
+                      ],
                     ),
-            ),
+            );
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      floatingActionButton: fab,
+      body: body,
     );
   }
 }
+
+class _OverallProgressCard extends StatelessWidget {
+  final List<Goal> goals;
+
+  const _OverallProgressCard({required this.goals});
+
+  @override
+  Widget build(BuildContext context) {
+    final overall = goals.isEmpty
+        ? 0.0
+        : goals.map((g) => g.progressPct).reduce((a, b) => a + b) / goals.length;
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainer,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Progreso general',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+              Text(
+                '${overall.toStringAsFixed(0)}% Completado',
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: AppColors.secondary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.full),
+            child: LinearProgressIndicator(
+              value: overall / 100,
+              minHeight: 10,
+              backgroundColor: AppColors.surfaceContainerHighest,
+              color: AppColors.secondary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            goals.isEmpty
+                ? 'Creá tu primer objetivo para empezar a medir tu progreso.'
+                : 'Estás en camino de alcanzar tus metas. ¡Seguí así!',
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+IconData _goalIcon(String metric) => switch (metric) {
+  'exercise_max_weight' => Icons.fitness_center,
+  'exercise_max_reps' => Icons.repeat,
+  'body_weight_kg' => Icons.monitor_weight_outlined,
+  'body_fat_pct' => Icons.water_drop_outlined,
+  _ => Icons.flag,
+};
 
 class _GoalCard extends StatelessWidget {
   final Goal goal;
@@ -106,32 +202,48 @@ class _GoalCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = goal.achieved ? AppColors.secondary : AppColors.primary;
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: AppColors.surfaceContainer,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border(
-          left: BorderSide(
-            color: goal.achieved ? AppColors.secondary : AppColors.primary,
-            width: 4,
-          ),
-        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: Icon(_goalIcon(goal.metric), color: AppColors.onSurfaceVariant),
+              ),
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
-                child: Text(
-                  goal.title,
-                  style: Theme.of(context).textTheme.titleMedium,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      goal.title,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    Text(
+                      'Meta: ${goal.targetValue} (Actual: ${goal.currentValue})',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              if (goal.achieved)
-                const Icon(Icons.check_circle, color: AppColors.secondary),
               IconButton(
                 icon: const Icon(
                   Icons.delete_outline,
@@ -141,26 +253,36 @@ class _GoalCard extends StatelessWidget {
               ),
             ],
           ),
-          Text(
-            '${goal.currentValue} / ${goal.targetValue}',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant),
-          ),
           const SizedBox(height: AppSpacing.sm),
+          Row(
+            children: [
+              if (goal.achieved) ...[
+                const Icon(Icons.check_circle, size: 16, color: AppColors.secondary),
+                const SizedBox(width: 4),
+              ],
+              Text(
+                goal.achieved ? 'Completado' : 'En curso',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: accent,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '${goal.progressPct.toStringAsFixed(0)}%',
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
           ClipRRect(
             borderRadius: BorderRadius.circular(AppRadius.sm),
             child: LinearProgressIndicator(
               value: goal.progressPct / 100,
               minHeight: 8,
               backgroundColor: AppColors.surfaceContainerHighest,
-              color: goal.achieved ? AppColors.secondary : AppColors.primary,
+              color: accent,
             ),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            '${goal.progressPct.toStringAsFixed(0)}%',
-            style: Theme.of(context).textTheme.labelMedium,
           ),
         ],
       ),

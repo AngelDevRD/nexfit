@@ -5,7 +5,10 @@ import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../models/nutrition.dart';
 import '../../repositories/nutrition_repository.dart';
+import '../../widgets/empty_state.dart';
 
+/// N5: siempre vive dentro de [CuerpoHubScreen] -- el hub provee
+/// Scaffold/AppBar, esta pantalla solo devuelve contenido.
 class NutritionScreen extends StatefulWidget {
   const NutritionScreen({super.key});
 
@@ -17,9 +20,11 @@ class _NutritionScreenState extends State<NutritionScreen> {
   late final NutritionRepository _repository;
   List<NutritionLog> _logs = [];
   bool _loading = true;
+  String? _error;
   final _dateFormat = DateFormat('dd/MM/yyyy');
 
   final _caloriesController = TextEditingController();
+  final _caloriesFocus = FocusNode();
   final _proteinController = TextEditingController();
   final _carbsController = TextEditingController();
   final _fatController = TextEditingController();
@@ -34,12 +39,22 @@ class _NutritionScreenState extends State<NutritionScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
-    final logs = await _repository.list();
     setState(() {
-      _logs = logs;
-      _loading = false;
+      _loading = true;
+      _error = null;
     });
+    try {
+      final logs = await _repository.list();
+      setState(() {
+        _logs = logs;
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
   }
 
   Future<void> _save() async {
@@ -64,6 +79,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
   @override
   void dispose() {
     _caloriesController.dispose();
+    _caloriesFocus.dispose();
     _proteinController.dispose();
     _carbsController.dispose();
     _fatController.dispose();
@@ -73,10 +89,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Nutrición diaria')),
-      body: RefreshIndicator(
+    final body = RefreshIndicator(
         onRefresh: _load,
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.md),
@@ -91,6 +104,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
                 Expanded(
                   child: TextFormField(
                     controller: _caloriesController,
+                    focusNode: _caloriesFocus,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(labelText: 'Calorías'),
                   ),
@@ -156,19 +170,24 @@ class _NutritionScreenState extends State<NutritionScreen> {
                   child: CircularProgressIndicator(),
                 ),
               ),
-            if (!_loading && _logs.isEmpty)
-              Text(
-                'Sin registros todavía.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.onSurfaceVariant,
+            if (!_loading && _error != null)
+              EmptyState.error(message: _error!, onRetry: _load),
+            if (!_loading && _error == null && _logs.isEmpty)
+              EmptyState(
+                icon: Icons.restaurant_outlined,
+                message: 'Sin registros todavía.',
+                actionLabel: 'Registrar hoy',
+                onAction: () => FocusScope.of(context).requestFocus(
+                  _caloriesFocus,
                 ),
               ),
             for (final log in _logs)
               _NutritionLogCard(log: log, dateFormat: _dateFormat),
           ],
         ),
-      ),
-    );
+      );
+
+    return body;
   }
 }
 
@@ -187,46 +206,98 @@ class _NutritionLogCard extends StatelessWidget {
         color: AppColors.surfaceContainer,
         borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.tertiaryContainer.withValues(alpha: 0.4),
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: const Icon(Icons.restaurant, color: AppColors.tertiary),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  dateFormat.format(log.logDate),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainerHighest,
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  '${log.proteinG}g prot · ${log.carbsG}g carb · ${log.fatG}g grasa · ${log.waterMl}ml agua',
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: AppColors.onSurfaceVariant,
+                child: const Icon(
+                  Icons.calendar_today,
+                  size: 16,
+                  color: AppColors.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                dateFormat.format(log.logDate),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _MacroLabel(letter: 'P', value: '${log.proteinG.toStringAsFixed(0)}g'),
+              const SizedBox(width: AppSpacing.md),
+              _MacroLabel(letter: 'C', value: '${log.carbsG.toStringAsFixed(0)}g'),
+              const SizedBox(width: AppSpacing.md),
+              _MacroLabel(letter: 'G', value: '${log.fatG.toStringAsFixed(0)}g'),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.secondary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppRadius.full),
+                  border: Border.all(color: AppColors.secondary.withValues(alpha: 0.3)),
+                  boxShadow: AppGlow.secondary,
+                ),
+                child: Text(
+                  '🔥 ${log.calories.toStringAsFixed(0)} kcal',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: AppColors.secondary,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ],
+              ),
+            ],
+          ),
+          if (log.waterMl > 0) ...[
+            const SizedBox(height: 4),
+            Text(
+              '💧 ${log.waterMl.toStringAsFixed(0)}ml agua',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: AppColors.onSurfaceVariant,
+              ),
             ),
-          ),
-          Text(
-            '${log.calories.toStringAsFixed(0)} kcal',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-          ),
+          ],
         ],
       ),
+    );
+  }
+}
+
+class _MacroLabel extends StatelessWidget {
+  final String letter;
+  final String value;
+
+  const _MacroLabel({required this.letter, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          letter,
+          style: Theme.of(
+            context,
+          ).textTheme.labelSmall?.copyWith(color: AppColors.onSurfaceVariant),
+        ),
+        Text(value, style: Theme.of(context).textTheme.labelLarge),
+      ],
     );
   }
 }

@@ -4,7 +4,10 @@ import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../models/recovery.dart';
 import '../../repositories/recovery_repository.dart';
+import '../../widgets/empty_state.dart';
 
+/// N5: siempre vive dentro de [CuerpoHubScreen] -- el hub provee
+/// Scaffold/AppBar, esta pantalla solo devuelve contenido.
 class RecoveryScreen extends StatefulWidget {
   const RecoveryScreen({super.key});
 
@@ -17,6 +20,8 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
   RecoveryIndex? _index;
   bool _loading = true;
   bool _saving = false;
+  String? _error;
+  final _checkInFormKey = GlobalKey();
 
   double _sleepHours = 8;
   int _fatigue = 5;
@@ -29,12 +34,27 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
-    final index = await _repository.index();
     setState(() {
-      _index = index;
-      _loading = false;
+      _loading = true;
+      _error = null;
     });
+    try {
+      final index = await _repository.index();
+      setState(() {
+        _index = index;
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
+  }
+
+  void _focusCheckInForm() {
+    final context = _checkInFormKey.currentContext;
+    if (context != null) Scrollable.ensureVisible(context);
   }
 
   Future<void> _submit() async {
@@ -55,12 +75,20 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
     }
   }
 
+  IconData _levelBattery(String level) {
+    switch (level) {
+      case 'recovered':
+        return Icons.battery_full;
+      case 'medium':
+        return Icons.battery_5_bar;
+      default:
+        return Icons.battery_2_bar;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Recuperación')),
-      body: RefreshIndicator(
+    final body = RefreshIndicator(
         onRefresh: _load,
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.md),
@@ -72,12 +100,14 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
                   child: CircularProgressIndicator(),
                 ),
               ),
-            if (!_loading && _index == null)
-              Text(
-                'Todavía no registraste tu check-in de hoy.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.onSurfaceVariant,
-                ),
+            if (!_loading && _error != null)
+              EmptyState.error(message: _error!, onRetry: _load),
+            if (!_loading && _error == null && _index == null)
+              EmptyState(
+                icon: Icons.bedtime_outlined,
+                message: 'Todavía no registraste tu check-in de hoy.',
+                actionLabel: 'Hacer check-in',
+                onAction: _focusCheckInForm,
               ),
             if (_index != null)
               Container(
@@ -85,32 +115,62 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
                 decoration: BoxDecoration(
                   color: AppColors.surfaceContainer,
                   borderRadius: BorderRadius.circular(AppRadius.lg),
-                  border: Border(
-                    left: BorderSide(
-                      color: _levelColor(_index!.level),
-                      width: 4,
-                    ),
-                  ),
                 ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Icon(Icons.bedtime, color: _levelColor(_index!.level)),
-                        const SizedBox(width: AppSpacing.sm),
-                        Text(
-                          recoveryLevelLabels[_index!.level] ?? _index!.level,
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                      ],
+                    Icon(
+                      _levelBattery(_index!.level),
+                      size: 56,
+                      color: _levelColor(_index!.level),
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     Text(
-                      '${_index!.recoveryIndex}% de recuperación',
-                      style: Theme.of(context).textTheme.bodyLarge,
+                      '${_index!.recoveryIndex}%',
+                      style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: _levelColor(_index!.level),
+                      ),
                     ),
-                    const SizedBox(height: 4),
+                    Text(
+                      'Índice de Recuperación',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(AppRadius.full),
+                        border: Border.all(
+                          color: _levelColor(_index!.level).withValues(alpha: 0.4),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: _levelColor(_index!.level),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            recoveryLevelLabels[_index!.level] ?? _index!.level,
+                            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                              color: _levelColor(_index!.level),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
                     Text(
                       'Sueño: ${_index!.sleepHours}h · Fatiga percibida: ${_index!.perceivedFatigue}/10',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -127,6 +187,7 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
             ),
             const SizedBox(height: AppSpacing.md),
             Container(
+              key: _checkInFormKey,
               padding: const EdgeInsets.all(AppSpacing.md),
               decoration: BoxDecoration(
                 color: AppColors.surfaceContainer,
@@ -176,7 +237,8 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
             ),
           ],
         ),
-      ),
-    );
+      );
+
+    return body;
   }
 }

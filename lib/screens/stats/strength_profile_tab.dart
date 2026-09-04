@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme.dart';
+import '../../core/units.dart';
 import '../../models/stats.dart';
+import '../../providers/weight_unit_provider.dart';
 import '../../repositories/stats_repository.dart';
+import '../../widgets/empty_state.dart';
 
 class StrengthProfileTab extends StatefulWidget {
   const StrengthProfileTab({super.key});
@@ -16,6 +19,7 @@ class _StrengthProfileTabState extends State<StrengthProfileTab> {
   StrengthProfile? _profile;
   TrainingStreak? _streak;
   bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -24,20 +28,38 @@ class _StrengthProfileTabState extends State<StrengthProfileTab> {
   }
 
   Future<void> _load() async {
-    final repo = context.read<StatsRepository>();
-    final results = await Future.wait([repo.strengthProfile(), repo.streak()]);
     setState(() {
-      _profile = results[0] as StrengthProfile;
-      _streak = results[1] as TrainingStreak;
-      _loading = false;
+      _loading = true;
+      _error = null;
     });
+    final repo = context.read<StatsRepository>();
+    try {
+      final results = await Future.wait([
+        repo.strengthProfile(),
+        repo.streak(),
+      ]);
+      setState(() {
+        _profile = results[0] as StrengthProfile;
+        _streak = results[1] as TrainingStreak;
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_error != null) {
+      return Center(child: EmptyState.error(message: _error!, onRetry: _load));
+    }
     final profile = _profile!;
     final streak = _streak!;
+    final weightUnit = context.watch<WeightUnitProvider>().unit;
 
     return RefreshIndicator(
       onRefresh: _load,
@@ -70,7 +92,7 @@ class _StrengthProfileTabState extends State<StrengthProfileTab> {
             icon: Icons.trending_up,
             iconColor: AppColors.tertiary,
             label: 'Volumen semanal',
-            value: '${profile.weeklyVolumeKg.toStringAsFixed(0)} kg',
+            value: formatWeight(profile.weeklyVolumeKg, weightUnit, decimals: 0),
             fullWidth: true,
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -80,11 +102,9 @@ class _StrengthProfileTabState extends State<StrengthProfileTab> {
           ),
           const SizedBox(height: AppSpacing.sm),
           if (profile.maxStrengthByExercise.isEmpty)
-            Text(
-              'Todavía no registraste series no-calentamiento.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.onSurfaceVariant,
-              ),
+            const EmptyState(
+              icon: Icons.fitness_center,
+              message: 'Todavía no registraste series no-calentamiento.',
             ),
           for (final entry in profile.maxStrengthByExercise)
             Padding(
@@ -103,7 +123,7 @@ class _StrengthProfileTabState extends State<StrengthProfileTab> {
                         ),
                       ),
                       Text(
-                        '${entry.maxWeightKg} kg',
+                        formatWeight(entry.maxWeightKg, weightUnit),
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(color: AppColors.primary),
                       ),
@@ -119,11 +139,9 @@ class _StrengthProfileTabState extends State<StrengthProfileTab> {
           ),
           const SizedBox(height: AppSpacing.sm),
           if (profile.weeklyFrequencyByMuscle.isEmpty)
-            Text(
-              'Sin entrenamientos esta semana.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.onSurfaceVariant,
-              ),
+            const EmptyState(
+              icon: Icons.calendar_today_outlined,
+              message: 'Sin entrenamientos esta semana.',
             ),
           for (final entry in profile.weeklyFrequencyByMuscle)
             Padding(

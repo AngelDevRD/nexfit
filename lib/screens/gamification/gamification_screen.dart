@@ -4,7 +4,11 @@ import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../models/gamification.dart';
 import '../../repositories/gamification_repository.dart';
+import '../../widgets/empty_state.dart';
 
+/// N5: siempre vive dentro de [ProgresoHubScreen] (pestaña "Logros") -- el
+/// hub ya provee Scaffold/AppBar/título, esta pantalla solo devuelve
+/// contenido.
 class GamificationScreen extends StatefulWidget {
   const GamificationScreen({super.key});
 
@@ -14,6 +18,8 @@ class GamificationScreen extends StatefulWidget {
 
 class _GamificationScreenState extends State<GamificationScreen> {
   GamificationProfile? _profile;
+  bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -22,24 +28,35 @@ class _GamificationScreenState extends State<GamificationScreen> {
   }
 
   Future<void> _load() async {
-    final profile = await context.read<GamificationRepository>().profile();
-    setState(() => _profile = profile);
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final profile = await context.read<GamificationRepository>().profile();
+      setState(() {
+        _profile = profile;
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_profile == null) {
-      return const Scaffold(
-        backgroundColor: AppColors.background,
-        body: Center(child: CircularProgressIndicator()),
-      );
+    if (_error != null) {
+      return Center(child: EmptyState.error(message: _error!, onRetry: _load));
+    }
+    if (_loading || _profile == null) {
+      return const Center(child: CircularProgressIndicator());
     }
     final profile = _profile!;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: RefreshIndicator(
+    final content = RefreshIndicator(
           onRefresh: _load,
           child: ListView(
             padding: const EdgeInsets.fromLTRB(
@@ -49,23 +66,6 @@ class _GamificationScreenState extends State<GamificationScreen> {
               AppSpacing.xl,
             ),
             children: [
-              Row(
-                children: [
-                  IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.arrow_back),
-                    color: AppColors.onSurfaceVariant,
-                  ),
-                  Expanded(
-                    child: Text(
-                      'Nivel y logros',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.sm),
               _LevelCard(profile: profile),
               const SizedBox(height: AppSpacing.lg),
               Row(
@@ -105,9 +105,9 @@ class _GamificationScreenState extends State<GamificationScreen> {
                 _AchievementCard(achievement: achievement),
             ],
           ),
-        ),
-      ),
-    );
+        );
+
+    return content;
   }
 }
 
@@ -123,9 +123,6 @@ class _LevelCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceContainer,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: const Border(
-          left: BorderSide(color: AppColors.primary, width: 4),
-        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -138,33 +135,58 @@ class _LevelCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'NIVEL',
+                      'RANGO ACTUAL',
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: AppColors.onSurfaceVariant,
+                        color: AppColors.primary,
+                        letterSpacing: 1,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${profile.level}',
-                      style: Theme.of(context).textTheme.headlineMedium,
+                      'Nivel ${profile.level}',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800),
                     ),
                     Text(
                       levelBandLabels[profile.levelBand] ?? profile.levelBand,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.onSurfaceVariant,
+                        color: AppColors.secondary,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(
-                Icons.military_tech,
-                size: 48,
-                color: AppColors.primary,
+              Container(
+                decoration: BoxDecoration(boxShadow: AppGlow.primary),
+                child: const Icon(
+                  Icons.military_tech,
+                  size: 48,
+                  color: AppColors.primary,
+                ),
               ),
             ],
           ),
           const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Progreso al Nivel ${profile.level + 1}',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ),
+              Text(
+                '${profile.progressPct.toStringAsFixed(0)}%',
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
           ClipRRect(
             borderRadius: BorderRadius.circular(AppRadius.full),
             child: LinearProgressIndicator(
@@ -176,7 +198,7 @@ class _LevelCard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            '${profile.totalXp.toStringAsFixed(0)} XP · faltan ${profile.xpToNextLevel.toStringAsFixed(0)} XP para el siguiente nivel',
+            '${profile.xpToNextLevel.toStringAsFixed(0)} XP restantes',
             style: Theme.of(
               context,
             ).textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant),
@@ -266,14 +288,18 @@ class _AchievementCard extends StatelessWidget {
               Container(
                 width: 48,
                 height: 48,
+                alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  shape: BoxShape.circle,
+                  boxShadow: achievement.unlocked
+                      ? AppGlow.tint(color, opacity: 0.25, blur: 12)
+                      : null,
                 ),
                 child: Icon(
                   achievement.unlocked
                       ? Icons.emoji_events
-                      : Icons.emoji_events_outlined,
+                      : Icons.lock_outline,
                   color: color,
                 ),
               ),

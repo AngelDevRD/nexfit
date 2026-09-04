@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/app_updater.dart';
-import '../exercises/exercise_list_screen.dart';
-import '../history/history_list_screen.dart';
+import '../../core/theme.dart';
+import '../../repositories/active_workout_repository.dart';
+import '../cuerpo/cuerpo_hub_screen.dart';
+import '../entrenar/entrenar_hub_screen.dart';
 import '../profile/profile_screen.dart';
-import '../routines/routine_list_screen.dart';
+import '../progreso/progreso_hub_screen.dart';
+import '../workout/active_workout_screen.dart';
 import 'dashboard_screen.dart';
 
 class HomeShell extends StatefulWidget {
@@ -32,34 +36,67 @@ class _HomeShellState extends State<HomeShell> {
     });
   }
 
-  // Dashboard e Historial muestran datos que cambian desde otras pantallas
-  // (un entrenamiento recien finalizado, XP/racha actualizada). Como el
-  // IndexedStack mantiene vivas las pantallas, solo cargan una vez en su
-  // initState; al reseleccionar su pestaña se recrea el widget (cambia la key)
-  // para que vuelva a consultar la API. El resto de pestañas ya recargan por su
-  // cuenta al volver de un push (p. ej. el constructor de rutinas).
+  // Dashboard muestra datos que cambian desde otras pantallas (un
+  // entrenamiento recien finalizado, XP/racha actualizada). Como el
+  // IndexedStack mantiene vivas las pantallas, solo carga una vez en su
+  // initState; al reseleccionar su tab se recrea el widget (cambia la key)
+  // para que vuelva a consultar la API. Historial ahora recarga por su cuenta
+  // al entrar a esa pestaña dentro de EntrenarHubScreen.
   int _dashboardEpoch = 0;
-  int _historyEpoch = 0;
+
+  // N2: para que las tiles que quedan en el Dashboard (la insignia de XP,
+  // "Ver progreso") lleven a Progreso CAMBIANDO de pestaña -- no apilando una
+  // instancia nueva del hub encima del shell, sin barra inferior. El epoch
+  // fuerza que `ProgresoHubScreen` se reconstruya con el sub-tab pedido
+  // incluso si ya estaba montado en el `IndexedStack`.
+  int _progresoInitialTab = 0;
+  int _progresoEpoch = 0;
 
   void _onDestinationSelected(int i) {
     setState(() {
       if (i == 0) _dashboardEpoch++;
-      if (i == 3) _historyEpoch++;
       _index = i;
+    });
+  }
+
+  void _openProgresoTab(int subTab) {
+    setState(() {
+      _index = 2;
+      _progresoInitialTab = subTab;
+      _progresoEpoch++;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _index,
+      body: Stack(
         children: [
-          DashboardScreen(key: ValueKey('dashboard-$_dashboardEpoch')),
-          const ExerciseListScreen(),
-          const RoutineListScreen(),
-          HistoryListScreen(key: ValueKey('history-$_historyEpoch')),
-          const ProfileScreen(),
+          IndexedStack(
+            index: _index,
+            children: [
+              DashboardScreen(
+                key: ValueKey('dashboard-$_dashboardEpoch'),
+                onOpenProgresoTab: _openProgresoTab,
+              ),
+              const EntrenarHubScreen(),
+              ProgresoHubScreen(
+                key: ValueKey('progreso-$_progresoEpoch'),
+                initialTabIndex: _progresoInitialTab,
+              ),
+              const CuerpoHubScreen(),
+              const ProfileScreen(),
+            ],
+          ),
+          // N3: banner de "entrenamiento en curso" visible en TODO el shell
+          // (no solo en una pestaña) -- antes el único punto de reanudación
+          // era una tarjeta enterrada en Entrenar -> Historial.
+          const Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: _ActiveWorkoutBanner(),
+          ),
         ],
       ),
       bottomNavigationBar: NavigationBar(
@@ -74,25 +111,94 @@ class _HomeShellState extends State<HomeShell> {
           NavigationDestination(
             icon: Icon(Icons.fitness_center_outlined),
             selectedIcon: Icon(Icons.fitness_center),
-            label: 'Ejercicios',
+            label: 'Entrenar',
           ),
           NavigationDestination(
-            icon: Icon(Icons.list_alt_outlined),
-            selectedIcon: Icon(Icons.list_alt),
-            label: 'Rutinas',
+            icon: Icon(Icons.bar_chart_outlined),
+            selectedIcon: Icon(Icons.bar_chart),
+            label: 'Progreso',
           ),
           NavigationDestination(
-            icon: Icon(Icons.history_outlined),
-            selectedIcon: Icon(Icons.history),
-            label: 'Historial',
+            icon: Icon(Icons.favorite_outline),
+            selectedIcon: Icon(Icons.favorite),
+            label: 'Cuerpo',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),
             selectedIcon: Icon(Icons.person),
-            label: 'Perfil',
+            label: 'Cuenta',
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ActiveWorkoutBanner extends StatelessWidget {
+  const _ActiveWorkoutBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final activeRepository = context.watch<ActiveWorkoutRepository>();
+    return StreamBuilder<int?>(
+      stream: activeRepository.watchCurrentSessionId(),
+      builder: (context, snapshot) {
+        final sessionId = snapshot.data;
+        if (sessionId == null) return const SizedBox.shrink();
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => ActiveWorkoutScreen(sessionId: sessionId),
+              ),
+            ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.sm,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                boxShadow: AppGlow.primary,
+              ),
+              child: SafeArea(
+                top: false,
+                bottom: false,
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.fitness_center,
+                      color: AppColors.onPrimary,
+                      size: 18,
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        'Entrenamiento en curso',
+                        style: Theme.of(context).textTheme.labelLarge
+                            ?.copyWith(color: AppColors.onPrimary),
+                      ),
+                    ),
+                    Text(
+                      'Continuar',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: AppColors.onPrimary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right,
+                      color: AppColors.onPrimary,
+                      size: 18,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

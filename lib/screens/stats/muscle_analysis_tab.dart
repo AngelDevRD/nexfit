@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme.dart';
+import '../../core/units.dart';
 import '../../models/stats.dart';
+import '../../providers/weight_unit_provider.dart';
 import '../../repositories/stats_repository.dart';
+import '../../widgets/empty_state.dart';
 
 class MuscleAnalysisTab extends StatefulWidget {
   const MuscleAnalysisTab({super.key});
@@ -15,6 +18,7 @@ class MuscleAnalysisTab extends StatefulWidget {
 class _MuscleAnalysisTabState extends State<MuscleAnalysisTab> {
   List<MuscleVolumeEntry> _entries = [];
   bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -23,16 +27,38 @@ class _MuscleAnalysisTabState extends State<MuscleAnalysisTab> {
   }
 
   Future<void> _load() async {
-    final entries = await context.read<StatsRepository>().muscleAnalysis();
     setState(() {
-      _entries = entries;
-      _loading = false;
+      _loading = true;
+      _error = null;
     });
+    try {
+      final entries = await context.read<StatsRepository>().muscleAnalysis();
+      setState(() {
+        _entries = entries;
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_error != null) {
+      return Center(child: EmptyState.error(message: _error!, onRetry: _load));
+    }
+    if (_entries.isEmpty) {
+      return const Center(
+        child: EmptyState(
+          icon: Icons.donut_large_outlined,
+          message: 'Sin volumen registrado en los últimos 30 días.',
+        ),
+      );
+    }
     final maxVolume = _entries.fold<double>(
       0,
       (max, e) => e.totalVolume > max ? e.totalVolume : max,
@@ -68,6 +94,7 @@ class _MuscleVolumeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final groupColor = muscleGroupColors[entry.muscleGroup] ?? Colors.grey;
     final levelColor = colorForLevel(entry.level);
+    final weightUnit = context.watch<WeightUnitProvider>().unit;
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -96,7 +123,8 @@ class _MuscleVolumeCard extends StatelessWidget {
                 ),
               ),
               Text(
-                '${entry.totalSets} series · ${entry.totalVolume.toStringAsFixed(0)} kg',
+                '${entry.totalSets} series · '
+                '${formatWeight(entry.totalVolume, weightUnit, decimals: 0)}',
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
                   color: AppColors.onSurfaceVariant,
                 ),
