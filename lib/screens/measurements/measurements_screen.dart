@@ -3,15 +3,21 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme.dart';
+import '../../core/units.dart';
 import '../../features/measurements_import/import_measurements_screen.dart';
 import '../../models/body_measurement.dart';
+import '../../providers/weight_unit_provider.dart';
 import '../../repositories/body_measurement_repository.dart';
+import '../../widgets/empty_state.dart';
 
 /// Historial de medidas corporales (peso, % grasa, circunferencias): lista
 /// + alta manual + entrada al importador de archivos
 /// ([ImportMeasurementsScreen]). Solo local (ver comentario en
 /// `BodyMeasurements` en `core/local/database.dart`) -- no sincroniza con
 /// Supabase todavia.
+/// N5: siempre vive dentro de [CuerpoHubScreen]. La acción de importar ya no
+/// cuelga de un AppBar transparente fantasma -- vive en el encabezado del
+/// contenido.
 class MeasurementsScreen extends StatefulWidget {
   const MeasurementsScreen({super.key});
 
@@ -23,6 +29,7 @@ class _MeasurementsScreenState extends State<MeasurementsScreen> {
   late final BodyMeasurementRepository _repository;
   List<BodyMeasurement> _history = [];
   bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -32,12 +39,22 @@ class _MeasurementsScreenState extends State<MeasurementsScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
-    final history = await _repository.history();
     setState(() {
-      _history = history;
-      _loading = false;
+      _loading = true;
+      _error = null;
     });
+    try {
+      final history = await _repository.history();
+      setState(() {
+        _history = history;
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
   }
 
   Future<void> _openImport() async {
@@ -59,11 +76,21 @@ class _MeasurementsScreenState extends State<MeasurementsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Medidas corporales'),
-        actions: [
+    final header = Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.sm,
+        AppSpacing.sm,
+        0,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Medidas corporales',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+          ),
           IconButton(
             onPressed: _openImport,
             icon: const Icon(Icons.file_upload_outlined),
@@ -71,32 +98,40 @@ class _MeasurementsScreenState extends State<MeasurementsScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _openAddForm(),
-        child: const Icon(Icons.add),
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _history.isEmpty
-          ? _EmptyState(onImport: _openImport, onAdd: () => _openAddForm())
-          : RefreshIndicator(
-              onRefresh: _load,
-              child: ListView.builder(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                itemCount: _history.length,
-                itemBuilder: (context, index) {
-                  final entry = _history[index];
-                  final previous = index + 1 < _history.length
-                      ? _history[index + 1]
-                      : null;
-                  return _MeasurementTile(
-                    entry: entry,
-                    previous: previous,
-                    onTap: () => _openAddForm(existing: entry),
-                  );
-                },
-              ),
+    );
+    final list = _loading
+        ? const Center(child: CircularProgressIndicator())
+        : _error != null
+        ? Center(child: EmptyState.error(message: _error!, onRetry: _load))
+        : _history.isEmpty
+        ? _EmptyState(onImport: _openImport, onAdd: () => _openAddForm())
+        : RefreshIndicator(
+            onRefresh: _load,
+            child: ListView.builder(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              itemCount: _history.length,
+              itemBuilder: (context, index) {
+                final entry = _history[index];
+                final previous = index + 1 < _history.length
+                    ? _history[index + 1]
+                    : null;
+                return _MeasurementTile(
+                  entry: entry,
+                  previous: previous,
+                  onTap: () => _openAddForm(existing: entry),
+                );
+              },
             ),
+          );
+    final fab = FloatingActionButton(
+      onPressed: () => _openAddForm(),
+      child: const Icon(Icons.add),
+    );
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      floatingActionButton: fab,
+      body: Column(children: [header, Expanded(child: list)]),
     );
   }
 }
@@ -150,20 +185,22 @@ class _MeasurementTile extends StatelessWidget {
     required this.onTap,
   });
 
-  String? _deltaLabel() {
+  String? _deltaLabel(WeightUnit weightUnit) {
     final current = entry.weightKg;
     final prev = previous?.weightKg;
     if (current == null || prev == null) return null;
-    final delta = current - prev;
-    if (delta.abs() < 0.05) return 'sin cambios';
-    final sign = delta > 0 ? '+' : '';
-    return '$sign${delta.toStringAsFixed(1)} kg vs. anterior';
+    final deltaKg = current - prev;
+    if (deltaKg.abs() < 0.05) return 'sin cambios';
+    final sign = deltaKg > 0 ? '+' : '';
+    return '$sign${kgToDisplay(deltaKg, weightUnit).toStringAsFixed(1)} '
+        '${weightUnit.label} vs. anterior';
   }
 
   @override
   Widget build(BuildContext context) {
+    final weightUnit = context.watch<WeightUnitProvider>().unit;
     final dateLabel = DateFormat('dd/MM/yyyy').format(entry.measuredAt);
-    final delta = _deltaLabel();
+    final delta = _deltaLabel(weightUnit);
 
     return Card(
       color: AppColors.surfaceContainer,
@@ -174,7 +211,7 @@ class _MeasurementTile extends StatelessWidget {
         subtitle: Text(
           [
             if (entry.weightKg != null)
-              '${entry.weightKg!.toStringAsFixed(1)} kg',
+              formatWeight(entry.weightKg!, weightUnit),
             if (entry.fatPercent != null)
               '${entry.fatPercent!.toStringAsFixed(1)}% grasa',
             ?delta,
@@ -202,10 +239,14 @@ class _MeasurementFormSheet extends StatefulWidget {
 class _MeasurementFormSheetState extends State<_MeasurementFormSheet> {
   late DateTime _date;
   late final Map<String, TextEditingController> _controllers;
+  late final WeightUnit _weightUnit;
   bool _saving = false;
 
+  // 'weight_kg' es el único campo en unidad de peso -- el resto son
+  // circunferencias en cm, sin equivalente kg/lb. Su label real ("Peso
+  // (kg)"/"Peso (lb)") se arma en build() con la unidad actual.
   static const _fields = <String, String>{
-    'weight_kg': 'Peso (kg)',
+    'weight_kg': 'Peso',
     'fat_percent': '% grasa',
     'neck_cm': 'Cuello (cm)',
     'shoulder_cm': 'Hombro (cm)',
@@ -226,6 +267,7 @@ class _MeasurementFormSheetState extends State<_MeasurementFormSheet> {
   @override
   void initState() {
     super.initState();
+    _weightUnit = context.read<WeightUnitProvider>().unit;
     final existing = widget.existing;
     _date = existing?.measuredAt ?? DateTime.now();
     _controllers = {
@@ -238,8 +280,12 @@ class _MeasurementFormSheetState extends State<_MeasurementFormSheet> {
 
   double? _valueFor(BodyMeasurement? entry, String key) {
     if (entry == null) return null;
+    if (key == 'weight_kg') {
+      return entry.weightKg == null
+          ? null
+          : kgToDisplay(entry.weightKg!, _weightUnit);
+    }
     return switch (key) {
-      'weight_kg' => entry.weightKg,
       'fat_percent' => entry.fatPercent,
       'neck_cm' => entry.neckCm,
       'shoulder_cm' => entry.shoulderCm,
@@ -282,9 +328,18 @@ class _MeasurementFormSheetState extends State<_MeasurementFormSheet> {
     final fields = <String, double?>{
       for (final entry in _controllers.entries)
         if (entry.value.text.trim().isNotEmpty)
-          entry.key: double.tryParse(
-            entry.value.text.trim().replaceAll(',', '.'),
-          ),
+          entry.key: () {
+            final parsed = double.tryParse(
+              entry.value.text.trim().replaceAll(',', '.'),
+            );
+            if (parsed == null) return null;
+            // El resto de los campos (todos cm) se guardan tal cual -- solo
+            // el peso se ingresó en la unidad elegida y hay que volverlo a
+            // kg antes de escribir (el almacenamiento siempre es en kg).
+            return entry.key == 'weight_kg'
+                ? displayToKg(parsed, _weightUnit)
+                : parsed;
+          }(),
     };
     await widget.repository.upsertForDate(_date, fields);
     if (mounted) Navigator.of(context).pop(true);
@@ -326,7 +381,11 @@ class _MeasurementFormSheetState extends State<_MeasurementFormSheet> {
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
-                        decoration: InputDecoration(labelText: entry.value),
+                        decoration: InputDecoration(
+                          labelText: entry.key == 'weight_kg'
+                              ? '${entry.value} (${_weightUnit.label})'
+                              : entry.value,
+                        ),
                       ),
                     ),
                 ],

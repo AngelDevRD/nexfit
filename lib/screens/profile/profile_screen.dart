@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme.dart';
+import '../../core/units.dart';
 import '../../models/user.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/weight_unit_provider.dart';
 import '../settings/settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -24,12 +26,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _saving = false;
   bool _initialized = false;
 
-  void _initFromUser(AppUser user) {
+  void _initFromUser(AppUser user, WeightUnit weightUnit) {
     if (_initialized) return;
     _initialized = true;
     _ageController.text = user.age?.toString() ?? '';
     _heightController.text = user.heightCm?.toString() ?? '';
-    _weightController.text = user.weightKg?.toString() ?? '';
+    _weightController.text = user.weightKg == null
+        ? ''
+        : kgToDisplay(user.weightKg!, weightUnit).toStringAsFixed(1);
     _bodyFatController.text = user.bodyFatPct?.toString() ?? '';
     _sex = user.sex;
     _goal = user.goal;
@@ -39,14 +43,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _save() async {
     setState(() => _saving = true);
     final auth = context.read<AuthProvider>();
+    final weightUnit = context.read<WeightUnitProvider>().unit;
+    final enteredWeight = double.tryParse(_weightController.text);
     final fields = <String, dynamic>{
       if (_ageController.text.isNotEmpty)
         'age': int.tryParse(_ageController.text),
       if (_sex != null) 'sex': _sex,
       if (_heightController.text.isNotEmpty)
         'height_cm': double.tryParse(_heightController.text),
-      if (_weightController.text.isNotEmpty)
-        'weight_kg': double.tryParse(_weightController.text),
+      // El almacenamiento siempre es en kg -- se vuelve a convertir desde la
+      // unidad elegida antes de guardar (U1).
+      if (enteredWeight != null)
+        'weight_kg': displayToKg(enteredWeight, weightUnit),
       if (_bodyFatController.text.isNotEmpty)
         'body_fat_pct': double.tryParse(_bodyFatController.text),
       if (_goal != null) 'goal': _goal,
@@ -77,7 +85,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final user = auth.user;
-    if (user != null) _initFromUser(user);
+    final weightUnit = context.watch<WeightUnitProvider>().unit;
+    if (user != null) _initFromUser(user, weightUnit);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -135,17 +144,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       child: Row(
                         children: [
-                          CircleAvatar(
-                            radius: 28,
-                            backgroundColor: AppColors.primaryContainer,
-                            child: Text(
-                              user.name.isNotEmpty
-                                  ? user.name[0].toUpperCase()
-                                  : '?',
-                              style: const TextStyle(
-                                color: AppColors.onPrimaryContainer,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 20,
+                          Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: AppColors.primary,
+                                width: 2,
+                              ),
+                            ),
+                            child: CircleAvatar(
+                              radius: 28,
+                              backgroundColor: AppColors.primaryContainer,
+                              child: Text(
+                                user.name.isNotEmpty
+                                    ? user.name[0].toUpperCase()
+                                    : '?',
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(
+                                      color: AppColors.onPrimaryContainer,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                               ),
                             ),
                           ),
@@ -176,9 +195,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.lg),
-                    Text(
-                      'Datos físicos',
-                      style: Theme.of(context).textTheme.titleLarge,
+                    _ProfileSectionTitle(
+                      icon: Icons.badge_outlined,
+                      title: 'Datos físicos',
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Container(
@@ -243,8 +262,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       const TextInputType.numberWithOptions(
                                         decimal: true,
                                       ),
-                                  decoration: const InputDecoration(
-                                    labelText: 'Peso (kg)',
+                                  decoration: InputDecoration(
+                                    labelText: 'Peso (${weightUnit.label})',
                                   ),
                                 ),
                               ),
@@ -264,9 +283,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.lg),
-                    Text(
-                      'Objetivo y experiencia',
-                      style: Theme.of(context).textTheme.titleLarge,
+                    _ProfileSectionTitle(
+                      icon: Icons.flag_outlined,
+                      title: 'Objetivo y experiencia',
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Container(
@@ -326,6 +345,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
       ),
+    );
+  }
+}
+
+class _ProfileSectionTitle extends StatelessWidget {
+  final IconData icon;
+  final String title;
+
+  const _ProfileSectionTitle({required this.icon, required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: AppColors.primary),
+        const SizedBox(width: AppSpacing.xs),
+        Text(
+          title,
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(color: AppColors.primary),
+        ),
+      ],
     );
   }
 }

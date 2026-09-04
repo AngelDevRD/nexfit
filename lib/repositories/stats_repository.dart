@@ -59,7 +59,12 @@ class StatsRepository {
     final exercises = await db.select(db.exercises).get();
     final exerciseById = {for (final e in exercises) e.id: e};
     final sessions = await db.select(db.workoutSessions).get();
-    final sessionById = {for (final s in sessions) s.id: s};
+    // T5: solo sesiones terminadas -- una sesión abierta (o abandonada) no
+    // debe contaminar el análisis, y sus series placeholder en 0/0 tampoco.
+    final sessionById = {
+      for (final s in sessions)
+        if (s.endedAt != null) s.id: s,
+    };
     final sets = await (db.select(
       db.workoutSets,
     )..where((t) => t.isWarmup.equals(false))).get();
@@ -69,6 +74,7 @@ class StatsRepository {
     final lastTrainedAt = <String, DateTime>{};
 
     for (final set in sets) {
+      if (set.weightKg <= 0 || set.reps <= 0) continue;
       final session = sessionById[set.sessionId];
       if (session == null || session.startedAt.isBefore(cutoff)) continue;
       final exercise = exerciseById[set.exerciseId];
@@ -136,7 +142,10 @@ class StatsRepository {
 
     final cutoff = DateTime.now().subtract(const Duration(days: 7));
     final sessions = await db.select(db.workoutSessions).get();
-    final sessionById = {for (final s in sessions) s.id: s};
+    final sessionById = {
+      for (final s in sessions)
+        if (s.endedAt != null) s.id: s,
+    };
     final sets = await (db.select(
       db.workoutSets,
     )..where((t) => t.isWarmup.equals(false))).get();
@@ -144,6 +153,7 @@ class StatsRepository {
     double weeklyVolume = 0;
     final sessionsByMuscle = <String, Set<int>>{};
     for (final set in sets) {
+      if (set.weightKg <= 0 || set.reps <= 0) continue;
       final session = sessionById[set.sessionId];
       if (session == null || session.startedAt.isBefore(cutoff)) continue;
       weeklyVolume += set.weightKg * set.reps;
@@ -169,7 +179,10 @@ class StatsRepository {
 
   Future<List<ExerciseProgressEntry>> exerciseProgress(int exerciseId) async {
     final sessions = await db.select(db.workoutSessions).get();
-    final sessionById = {for (final s in sessions) s.id: s};
+    final sessionById = {
+      for (final s in sessions)
+        if (s.endedAt != null) s.id: s,
+    };
     final sets =
         await (db.select(db.workoutSets)..where(
               (t) => t.exerciseId.equals(exerciseId) & t.isWarmup.equals(false),
@@ -178,6 +191,7 @@ class StatsRepository {
 
     final bySession = <int, List<local.WorkoutSet>>{};
     for (final set in sets) {
+      if (set.weightKg <= 0 || set.reps <= 0) continue;
       bySession.putIfAbsent(set.sessionId, () => []).add(set);
     }
 
@@ -205,6 +219,33 @@ class StatsRepository {
     return entries;
   }
 
+  /// PRs vigentes de un ejercicio -- max_weight y max_reps por separado, cada
+  /// uno con la fecha en que se logró (U2: se muestran en el detalle del
+  /// ejercicio, fusionado con el historial del usuario).
+  Future<ExercisePersonalRecords> currentRecordsFor(int exerciseId) async {
+    final records =
+        await (db.select(db.personalRecords)
+              ..where((t) => t.exerciseId.equals(exerciseId)))
+            .get();
+
+    local.PersonalRecord? bestWeight;
+    local.PersonalRecord? bestReps;
+    for (final r in records) {
+      if (r.recordType == 'max_weight') {
+        if (bestWeight == null || r.value > bestWeight.value) bestWeight = r;
+      } else if (r.recordType == 'max_reps') {
+        if (bestReps == null || r.value > bestReps.value) bestReps = r;
+      }
+    }
+
+    return ExercisePersonalRecords(
+      maxWeightKg: bestWeight?.value,
+      maxWeightAt: bestWeight?.achievedAt,
+      maxReps: bestReps?.value.round(),
+      maxRepsAt: bestReps?.achievedAt,
+    );
+  }
+
   DateTime _periodStart(DateTime dt, String period) {
     final d = _dateOnly(dt);
     if (period == 'month') return DateTime(d.year, d.month, 1);
@@ -216,13 +257,17 @@ class StatsRepository {
     int periods = 12,
   }) async {
     final sessions = await db.select(db.workoutSessions).get();
-    final sessionById = {for (final s in sessions) s.id: s};
+    final sessionById = {
+      for (final s in sessions)
+        if (s.endedAt != null) s.id: s,
+    };
     final sets = await (db.select(
       db.workoutSets,
     )..where((t) => t.isWarmup.equals(false))).get();
 
     final buckets = <String, double>{};
     for (final set in sets) {
+      if (set.weightKg <= 0 || set.reps <= 0) continue;
       final session = sessionById[set.sessionId];
       if (session == null) continue;
       final key = _dateKey(_periodStart(session.startedAt, period));
@@ -252,8 +297,33 @@ class StatsRepository {
     return result;
   }
 
+  /// Qué días de los últimos 7 (de más viejo a más nuevo, hoy incluido) hubo
+  /// al menos una sesión -- alimenta la barra de racha del Dashboard (U2:
+  /// antes eran 7 alturas hardcodeadas que no reflejaban nada real, solo
+  /// cambiaban de color).
+  Future<List<bool>> trainedLast7Days() async {
+    final today = _dateOnly(DateTime.now());
+    final start = today.subtract(const Duration(days: 6));
+    final sessions = await _finishedSessions();
+    final trainedDates = sessions.map((s) => _dateOnly(s.startedAt)).toSet();
+    return [
+      for (var i = 0; i < 7; i++)
+        trainedDates.contains(start.add(Duration(days: i))),
+    ];
+  }
+
+  /// Sesiones que realmente "cuentan" como entrenamiento hecho: ni borradas
+  /// ni todavía abiertas (U4). Antes `streak()`/`trainedLast7Days()` leían
+  /// TODAS las sesiones sin filtrar -- empezar un entrenamiento y
+  /// abandonarlo sumaba día de racha, y borrar una sesión no la sacaba.
+  /// `history()` ya filtraba `deleted`; acá se agrega también `endedAt`.
+  Future<List<local.WorkoutSession>> _finishedSessions() =>
+      (db.select(db.workoutSessions)
+            ..where((t) => t.deleted.equals(false) & t.endedAt.isNotNull()))
+          .get();
+
   Future<TrainingStreak> streak() async {
-    final sessions = await db.select(db.workoutSessions).get();
+    final sessions = await _finishedSessions();
     final dates = sessions.map((s) => _dateOnly(s.startedAt)).toSet().toList()
       ..sort();
 

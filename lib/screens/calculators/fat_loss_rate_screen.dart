@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/calculators.dart';
 import '../../core/theme.dart';
+import '../../core/units.dart';
+import '../../providers/weight_unit_provider.dart';
 
 class FatLossRateScreen extends StatefulWidget {
   const FatLossRateScreen({super.key});
@@ -18,9 +21,12 @@ class _FatLossRateScreenState extends State<FatLossRateScreen> {
   String? _error;
 
   Future<void> _calculate() async {
-    final current = double.tryParse(_currentController.text);
-    final target = double.tryParse(_targetController.text);
-    if (current == null || target == null) return;
+    final enteredCurrent = double.tryParse(_currentController.text);
+    final enteredTarget = double.tryParse(_targetController.text);
+    if (enteredCurrent == null || enteredTarget == null) return;
+    final weightUnit = context.read<WeightUnitProvider>().unit;
+    final current = displayToKg(enteredCurrent, weightUnit);
+    final target = displayToKg(enteredTarget, weightUnit);
     if (target >= current) {
       setState(() {
         _error = 'El peso objetivo debe ser menor al peso actual';
@@ -40,6 +46,7 @@ class _FatLossRateScreenState extends State<FatLossRateScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final weightUnit = context.watch<WeightUnitProvider>().unit;
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Ritmo de pérdida de grasa')),
@@ -51,13 +58,17 @@ class _FatLossRateScreenState extends State<FatLossRateScreen> {
           TextFormField(
             controller: _currentController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(labelText: 'Peso actual (kg)'),
+            decoration: InputDecoration(
+              labelText: 'Peso actual (${weightUnit.label})',
+            ),
           ),
           const SizedBox(height: AppSpacing.sm),
           TextFormField(
             controller: _targetController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(labelText: 'Peso objetivo (kg)'),
+            decoration: InputDecoration(
+              labelText: 'Peso objetivo (${weightUnit.label})',
+            ),
           ),
           if (_error != null) ...[
             const SizedBox(height: AppSpacing.sm),
@@ -113,7 +124,9 @@ class _FatLossRateScreenState extends State<FatLossRateScreen> {
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Text(
-                    'Ritmo seguro: ${_result!['min_weekly_loss_kg']}-${_result!['max_weekly_loss_kg']} kg/semana',
+                    'Ritmo seguro: '
+                    '${formatWeight(_result!['min_weekly_loss_kg']!, weightUnit, decimals: 2)}-'
+                    '${formatWeight(_result!['max_weekly_loss_kg']!, weightUnit, decimals: 2)}/semana',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ],

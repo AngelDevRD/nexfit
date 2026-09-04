@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/calculators.dart';
 import '../../core/theme.dart';
+import '../../core/units.dart';
+import '../../providers/weight_unit_provider.dart';
 
 class OneRepMaxScreen extends StatefulWidget {
   const OneRepMaxScreen({super.key});
@@ -17,10 +20,12 @@ class _OneRepMaxScreenState extends State<OneRepMaxScreen> {
   bool _loading = false;
 
   Future<void> _calculate() async {
-    final weight = double.tryParse(_weightController.text);
+    final enteredWeight = double.tryParse(_weightController.text);
     final reps = int.tryParse(_repsController.text);
-    if (weight == null || reps == null) return;
+    if (enteredWeight == null || reps == null) return;
     setState(() => _loading = true);
+    final weightUnit = context.read<WeightUnitProvider>().unit;
+    final weight = displayToKg(enteredWeight, weightUnit);
     setState(() {
       _result = Calculators.oneRepMax(weight, reps);
       _loading = false;
@@ -29,6 +34,7 @@ class _OneRepMaxScreenState extends State<OneRepMaxScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final weightUnit = context.watch<WeightUnitProvider>().unit;
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('1RM estimado')),
@@ -43,7 +49,9 @@ class _OneRepMaxScreenState extends State<OneRepMaxScreen> {
           TextFormField(
             controller: _weightController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(labelText: 'Peso levantado (kg)'),
+            decoration: InputDecoration(
+              labelText: 'Peso levantado (${weightUnit.label})',
+            ),
           ),
           const SizedBox(height: AppSpacing.sm),
           TextFormField(
@@ -86,7 +94,7 @@ class _OneRepMaxScreenState extends State<OneRepMaxScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '$_result kg',
+                    formatWeight(_result!, weightUnit),
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       color: AppColors.primary,
                     ),

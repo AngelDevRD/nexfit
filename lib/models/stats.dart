@@ -102,6 +102,25 @@ class ExerciseProgressEntry {
       );
 }
 
+/// PRs vigentes de un ejercicio (U2 -- detalle del ejercicio fusionado con
+/// el historial del usuario). `null` en un campo significa que ese récord
+/// todavía no se estableció para este ejercicio.
+class ExercisePersonalRecords {
+  final double? maxWeightKg;
+  final DateTime? maxWeightAt;
+  final int? maxReps;
+  final DateTime? maxRepsAt;
+
+  const ExercisePersonalRecords({
+    this.maxWeightKg,
+    this.maxWeightAt,
+    this.maxReps,
+    this.maxRepsAt,
+  });
+
+  bool get isEmpty => maxWeightKg == null && maxReps == null;
+}
+
 class TonnagePeriodEntry {
   final DateTime periodStart;
   final double totalTonnageKg;

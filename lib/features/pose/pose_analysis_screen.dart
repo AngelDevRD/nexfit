@@ -12,7 +12,14 @@ import 'rep_counter.dart';
 /// Análisis de técnica en vivo: usa la cámara + ML Kit Pose Detection
 /// (100% on-device, sin red) para dibujar el esqueleto y contar repeticiones.
 class PoseAnalysisScreen extends StatefulWidget {
-  const PoseAnalysisScreen({super.key});
+  const PoseAnalysisScreen({super.key, this.initialExerciseName});
+
+  /// Nombre del ejercicio desde el que se abrió esta pantalla (p. ej. desde
+  /// `ExerciseDetailScreen`, botón "Analizar técnica"). Si no coincide con
+  /// ninguno de [trackedExercises] (soporte limitado a los presets con
+  /// ángulo articular definido), cae al comportamiento previo:
+  /// `trackedExercises.first`.
+  final String? initialExerciseName;
 
   @override
   State<PoseAnalysisScreen> createState() => _PoseAnalysisScreenState();
@@ -29,8 +36,17 @@ class _PoseAnalysisScreenState extends State<PoseAnalysisScreen> {
   bool _busy = false;
   String? _error;
 
-  TrackedExercise _exercise = trackedExercises.first;
+  late TrackedExercise _exercise = _resolveInitialExercise();
   late RepCounter _counter = _exercise.newCounter();
+
+  TrackedExercise _resolveInitialExercise() {
+    final requested = widget.initialExerciseName?.toLowerCase();
+    if (requested == null) return trackedExercises.first;
+    for (final e in trackedExercises) {
+      if (requested.contains(e.name.toLowerCase())) return e;
+    }
+    return trackedExercises.first;
+  }
 
   static const _orientations = {
     DeviceOrientation.portraitUp: 0,

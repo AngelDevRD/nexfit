@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/calculators.dart';
 import '../../core/theme.dart';
+import '../../core/units.dart';
 import '../../models/user.dart';
+import '../../providers/weight_unit_provider.dart';
 
 class BodyCompositionScreen extends StatefulWidget {
   const BodyCompositionScreen({super.key});
@@ -24,11 +27,15 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> {
   double? _idealWeight;
 
   Future<void> _calculate() async {
-    final weight = double.tryParse(_weightController.text);
+    final enteredWeight = double.tryParse(_weightController.text);
     final height = double.tryParse(_heightController.text);
-    if (weight == null || height == null) return;
+    if (enteredWeight == null || height == null) return;
     setState(() => _loading = true);
 
+    final weightUnit = context.read<WeightUnitProvider>().unit;
+    // Las fórmulas de los calculadores operan en kg -- el peso ingresado en
+    // la unidad elegida se convierte antes de calcular (U1).
+    final weight = displayToKg(enteredWeight, weightUnit);
     final bodyFat = double.tryParse(_bodyFatController.text);
     final (bmiValue, bmiCategory) = Calculators.bmi(weight, height);
 
@@ -48,6 +55,7 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final weightUnit = context.watch<WeightUnitProvider>().unit;
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('IMC y masa magra')),
@@ -64,7 +72,9 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> {
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  decoration: const InputDecoration(labelText: 'Peso (kg)'),
+                  decoration: InputDecoration(
+                    labelText: 'Peso (${weightUnit.label})',
+                  ),
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
@@ -121,12 +131,12 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> {
             ),
             _ResultTile(
               label: 'Masa magra estimada',
-              value: '$_leanBodyMass kg',
+              value: formatWeight(_leanBodyMass!, weightUnit),
               accent: AppColors.secondary,
             ),
             _ResultTile(
               label: 'Peso ideal de referencia',
-              value: '$_idealWeight kg',
+              value: formatWeight(_idealWeight!, weightUnit),
               accent: AppColors.tertiary,
             ),
           ],
