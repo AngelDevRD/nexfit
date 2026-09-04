@@ -40,10 +40,26 @@ class ActiveWorkoutRepository {
     return draft?.sessionId;
   }
 
+  /// Igual que [currentSessionId] pero reactivo (N3): el shell lo escucha
+  /// para mostrar/ocultar el banner de "entrenamiento en curso" sin tener
+  /// que sondear -- emite de nuevo automáticamente cuando `begin`/`finish`
+  /// escriben la fila del draft.
+  Stream<int?> watchCurrentSessionId() {
+    return (db.select(
+      db.activeWorkoutDrafts,
+    )..where((t) => t.id.equals(_draftId))).watchSingleOrNull().map(
+      (draft) => draft?.sessionId,
+    );
+  }
+
   /// Inicia un entrenamiento nuevo y crea su draft. Lanza [StateError] si ya
   /// hay uno activo -- nunca se pisa un entrenamiento en curso; hay que
   /// finalizarlo o resumirlo primero (ver [currentSessionId]).
-  Future<WorkoutSession> begin({int? routineId, String? title}) async {
+  Future<WorkoutSession> begin({
+    int? routineId,
+    int? routineDayId,
+    String? title,
+  }) async {
     final existing = await currentSessionId();
     if (existing != null) {
       throw StateError(
@@ -53,6 +69,7 @@ class ActiveWorkoutRepository {
     }
     final session = await workoutRepository.startSession(
       routineId: routineId,
+      routineDayId: routineDayId,
       title: title,
     );
     await db

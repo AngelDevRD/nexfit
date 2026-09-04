@@ -5,6 +5,7 @@ import '../../core/theme.dart';
 import '../../models/routine.dart';
 import '../../repositories/active_workout_repository.dart';
 import '../../repositories/routine_repository.dart';
+import '../../repositories/workout_repository.dart';
 import 'active_workout_screen.dart';
 
 class StartWorkoutScreen extends StatefulWidget {
@@ -51,18 +52,108 @@ class _StartWorkoutScreenState extends State<StartWorkoutScreen> {
     });
   }
 
+  /// C4: si hay rutina, resuelve qué día entrenar (el único que tenga, o
+  /// preguntando si hay varios) y precarga sus ejercicios con los objetivos
+  /// de la rutina -- series, reps sugeridas y, crucial, el descanso
+  /// configurado para cada ejercicio (antes se ignoraba y siempre arrancaba
+  /// en 90s sin importar lo que el usuario haya puesto en el constructor).
   Future<void> _start({int? routineId, String? title}) async {
     setState(() => _starting = true);
+
+    RoutineDay? day;
+    if (routineId != null) {
+      final routine = await context.read<RoutineRepository>().get(routineId);
+      if (!mounted) return;
+      if (routine.days.isNotEmpty) {
+        day = routine.days.length == 1
+            ? routine.days.first
+            : await _pickDay(routine.days);
+        if (day == null) {
+          setState(() => _starting = false);
+          return;
+        }
+      }
+    }
+    if (!mounted) return;
+
     final session = await context.read<ActiveWorkoutRepository>().begin(
       routineId: routineId,
-      title: title,
+      routineDayId: day?.id,
+      title: title ?? day?.name,
     );
+
+    if (day != null) {
+      await _preloadRoutineDay(session.id, day);
+    }
+
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => ActiveWorkoutScreen(sessionId: session.id),
       ),
     );
+  }
+
+  Future<RoutineDay?> _pickDay(List<RoutineDay> days) {
+    return showModalBottomSheet<RoutineDay>(
+      context: context,
+      backgroundColor: AppColors.surfaceContainer,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppRadius.lg),
+        ),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Text(
+                '¿Qué día entrenás?',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+            for (final day in days)
+              ListTile(
+                leading: const Icon(Icons.calendar_today, size: 18),
+                title: Text(day.name),
+                subtitle: Text(
+                  '${day.exercises.length} ejercicios'
+                  '${day.muscleFocus != null ? ' · ${day.muscleFocus}' : ''}',
+                ),
+                onTap: () => Navigator.of(context).pop(day),
+              ),
+            const SizedBox(height: AppSpacing.sm),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Crea las series objetivo de cada ejercicio del día: peso sugerido =
+  /// última vez que se hizo ese ejercicio, o el objetivo de la rutina si
+  /// nunca se entrenó; reps sugeridas = punto medio del rango objetivo;
+  /// descanso = `targetRestSeconds` de la rutina (no el default de 90s).
+  Future<void> _preloadRoutineDay(int sessionId, RoutineDay day) async {
+    final workoutRepository = context.read<WorkoutRepository>();
+    for (final target in day.exercises) {
+      final last = await workoutRepository.lastSetFor(target.exercise.id);
+      final weightKg = last?.weightKg ?? target.targetWeightKg ?? 0.0;
+      final reps = ((target.targetRepsMin + target.targetRepsMax) / 2).round();
+      for (var i = 1; i <= target.targetSets; i++) {
+        await workoutRepository.addSet(sessionId, {
+          'exercise_id': target.exercise.id,
+          'set_number': i,
+          'weight_kg': weightKg,
+          'reps': reps,
+          'rest_seconds': target.targetRestSeconds,
+          'techniques': const [],
+          'is_warmup': false,
+          'completed': false,
+        });
+      }
+    }
   }
 
   @override
