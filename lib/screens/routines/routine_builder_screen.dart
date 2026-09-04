@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme.dart';
 import '../../models/exercise.dart';
+import '../../models/routine.dart';
 import '../../models/user.dart';
 import '../../repositories/routine_repository.dart';
 import '../exercises/exercise_picker_screen.dart';
@@ -15,6 +16,14 @@ class _ExerciseDraft {
   int targetRestSeconds = 90;
 
   _ExerciseDraft(this.exercise);
+
+  _ExerciseDraft.fromRoutineExercise(RoutineExercise re)
+    : exercise = re.exercise {
+    targetSets = re.targetSets;
+    targetRepsMin = re.targetRepsMin;
+    targetRepsMax = re.targetRepsMax;
+    targetRestSeconds = re.targetRestSeconds;
+  }
 }
 
 class _DayDraft {
@@ -27,8 +36,13 @@ class _DayDraft {
     : nameController = TextEditingController(text: name);
 }
 
+/// A6: reusa este mismo constructor para crear Y editar -- pasando
+/// [existing] precarga días/ejercicios/objetivo y `_save()` actualiza esa
+/// rutina en vez de crear una nueva.
 class RoutineBuilderScreen extends StatefulWidget {
-  const RoutineBuilderScreen({super.key});
+  final Routine? existing;
+
+  const RoutineBuilderScreen({super.key, this.existing});
 
   @override
   State<RoutineBuilderScreen> createState() => _RoutineBuilderScreenState();
@@ -37,9 +51,34 @@ class RoutineBuilderScreen extends StatefulWidget {
 class _RoutineBuilderScreenState extends State<RoutineBuilderScreen> {
   final _nameController = TextEditingController();
   String? _goal;
-  final List<_DayDraft> _days = [_DayDraft('Día 1')];
+  late final List<_DayDraft> _days;
   bool _saving = false;
   String? _error;
+
+  bool get _isEditing => widget.existing != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final existing = widget.existing;
+    if (existing == null) {
+      _days = [_DayDraft('Día 1')];
+      return;
+    }
+    _nameController.text = existing.name;
+    _goal = existing.goal;
+    _days = existing.days.map((day) {
+      final draft = _DayDraft(day.name, expanded: false);
+      draft.muscleFocus = day.muscleFocus;
+      final sortedExercises = [...day.exercises]
+        ..sort((a, b) => a.order.compareTo(b.order));
+      draft.exercises.addAll(
+        sortedExercises.map(_ExerciseDraft.fromRoutineExercise),
+      );
+      return draft;
+    }).toList();
+    if (_days.isNotEmpty) _days.first.expanded = true;
+  }
 
   void _addDay() {
     setState(
@@ -112,7 +151,12 @@ class _RoutineBuilderScreenState extends State<RoutineBuilderScreen> {
     };
 
     try {
-      await context.read<RoutineRepository>().create(payload);
+      final repository = context.read<RoutineRepository>();
+      if (_isEditing) {
+        await repository.update(widget.existing!.id, payload);
+      } else {
+        await repository.create(payload);
+      }
       if (!mounted) return;
       Navigator.of(context).pop(true);
     } catch (e) {
@@ -136,7 +180,9 @@ class _RoutineBuilderScreenState extends State<RoutineBuilderScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Constructor de rutinas')),
+      appBar: AppBar(
+        title: Text(_isEditing ? 'Editar rutina' : 'Constructor de rutinas'),
+      ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.secondary,
         foregroundColor: AppColors.onSecondary,
@@ -393,67 +439,106 @@ class _DayCardState extends State<_DayCard> {
   }
 
   Future<void> _editTargets(BuildContext context, _ExerciseDraft draft) {
-    final setsController = TextEditingController(
-      text: draft.targetSets.toString(),
-    );
-    final repsMinController = TextEditingController(
-      text: draft.targetRepsMin.toString(),
-    );
-    final repsMaxController = TextEditingController(
-      text: draft.targetRepsMax.toString(),
-    );
-    final restController = TextEditingController(
-      text: draft.targetRestSeconds.toString(),
-    );
-
     return showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(draft.exercise.name),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: setsController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Series'),
-            ),
-            TextField(
-              controller: repsMinController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Reps mínimo'),
-            ),
-            TextField(
-              controller: repsMaxController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Reps máximo'),
-            ),
-            TextField(
-              controller: restController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Descanso (segundos)',
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              draft.targetSets =
-                  int.tryParse(setsController.text) ?? draft.targetSets;
-              draft.targetRepsMin =
-                  int.tryParse(repsMinController.text) ?? draft.targetRepsMin;
-              draft.targetRepsMax =
-                  int.tryParse(repsMaxController.text) ?? draft.targetRepsMax;
-              draft.targetRestSeconds =
-                  int.tryParse(restController.text) ?? draft.targetRestSeconds;
-              Navigator.of(context).pop();
-            },
-            child: const Text('Guardar'),
+      builder: (context) => _TargetsDialog(draft: draft),
+    );
+  }
+}
+
+/// Diálogo de "Editar objetivos" como `StatefulWidget` propio (mismo fix que
+/// `set_form_sheet.dart`, AG-CORE-009): los 4 `TextEditingController` vivían
+/// en una función y nunca se liberaban.
+class _TargetsDialog extends StatefulWidget {
+  final _ExerciseDraft draft;
+
+  const _TargetsDialog({required this.draft});
+
+  @override
+  State<_TargetsDialog> createState() => _TargetsDialogState();
+}
+
+class _TargetsDialogState extends State<_TargetsDialog> {
+  late final TextEditingController setsController;
+  late final TextEditingController repsMinController;
+  late final TextEditingController repsMaxController;
+  late final TextEditingController restController;
+
+  @override
+  void initState() {
+    super.initState();
+    setsController = TextEditingController(
+      text: widget.draft.targetSets.toString(),
+    );
+    repsMinController = TextEditingController(
+      text: widget.draft.targetRepsMin.toString(),
+    );
+    repsMaxController = TextEditingController(
+      text: widget.draft.targetRepsMax.toString(),
+    );
+    restController = TextEditingController(
+      text: widget.draft.targetRestSeconds.toString(),
+    );
+  }
+
+  @override
+  void dispose() {
+    setsController.dispose();
+    repsMinController.dispose();
+    repsMaxController.dispose();
+    restController.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final draft = widget.draft;
+    draft.targetSets = int.tryParse(setsController.text) ?? draft.targetSets;
+    draft.targetRepsMin =
+        int.tryParse(repsMinController.text) ?? draft.targetRepsMin;
+    draft.targetRepsMax =
+        int.tryParse(repsMaxController.text) ?? draft.targetRepsMax;
+    draft.targetRestSeconds =
+        int.tryParse(restController.text) ?? draft.targetRestSeconds;
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.draft.exercise.name),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: setsController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: 'Series'),
+          ),
+          TextField(
+            controller: repsMinController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: 'Reps mínimo'),
+          ),
+          TextField(
+            controller: repsMaxController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: 'Reps máximo'),
+          ),
+          TextField(
+            controller: restController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: 'Descanso (segundos)'),
+            onSubmitted: (_) => _save(),
           ),
         ],
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(onPressed: _save, child: const Text('Guardar')),
+      ],
     );
   }
 }
@@ -466,48 +551,63 @@ class _ExerciseRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: const Icon(
-              Icons.fitness_center,
-              color: AppColors.primary,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  draft.exercise.name,
-                  style: Theme.of(context).textTheme.labelLarge,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+    // Toda la fila es la acción de editar objetivos -- antes solo el ícono
+    // `tune` (que en el entrenamiento activo ya significa "más opciones",
+    // otro sentido) lo era, y sin etiqueta no se entendía qué hacía.
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        onTap: onEdit,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
-                Text(
-                  '${draft.targetSets} x ${draft.targetRepsMin}-${draft.targetRepsMax} · ${draft.targetRestSeconds}s',
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: AppColors.onSurfaceVariant,
-                  ),
+                child: const Icon(
+                  Icons.fitness_center,
+                  color: AppColors.primary,
+                  size: 20,
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      draft.exercise.name,
+                      style: Theme.of(context).textTheme.labelLarge,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      '${draft.targetSets} x ${draft.targetRepsMin}-${draft.targetRepsMax} · ${draft.targetRestSeconds}s',
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: AppColors.primary,
+                        decoration: TextDecoration.underline,
+                        decorationColor: AppColors.primary.withValues(
+                          alpha: 0.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.edit_outlined,
+                color: AppColors.outline,
+                size: 18,
+              ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.tune, color: AppColors.outline),
-            onPressed: onEdit,
-          ),
-        ],
+        ),
       ),
     );
   }

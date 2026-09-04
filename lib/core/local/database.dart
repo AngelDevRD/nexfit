@@ -72,6 +72,10 @@ class WorkoutSessions extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get serverId => text().nullable()();
   IntColumn get routineId => integer().nullable()();
+  // Qué día de la rutina se está entrenando (esquema v9, C4). Sin FK directa
+  // por la misma razón que `routineId`: el id es siempre LOCAL, la
+  // resolución contra `serverId` vive solo en la capa de sync.
+  IntColumn get routineDayId => integer().nullable()();
   // Nombre del entrenamiento (ej. "Viernes pierna volumen"). Lo trae el export
   // de Hevy en la columna `title`; null para sesiones creadas a mano.
   TextColumn get title => text().nullable()();
@@ -102,6 +106,18 @@ class WorkoutSets extends Table {
   TextColumn get tempo => text().nullable()();
   BoolColumn get isWarmup => boolean().withDefault(const Constant(false))();
   TextColumn get notes => text().nullable()();
+  // Estado de "marcado como hecho" en la UI del entrenamiento activo (ver
+  // ActiveWorkoutScreen). Default true para no invalidar el historial ya
+  // sincronizado -- todo lo pasado se considera completado. Series nuevas del
+  // flujo rápido de "Agregar ejercicio" se insertan explícitamente en false.
+  BoolColumn get completed => boolean().withDefault(const Constant(true))();
+  // A4: nota y orden a nivel EJERCICIO dentro de la sesión (distinto de
+  // `notes`, que es por serie) -- igual que `restSeconds`, se duplica en
+  // todas las filas de ese ejercicio en esa sesión en vez de vivir en una
+  // entidad "ejercicio de sesión" aparte, siguiendo el mismo patrón ya usado
+  // por `_editExerciseRest`.
+  TextColumn get exerciseNotes => text().nullable()();
+  IntColumn get exerciseOrder => integer().nullable()();
 }
 
 // Bitácora de récords personales: UNA fila por cada vez que un set superó el
@@ -119,6 +135,16 @@ class PersonalRecords extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get exerciseId => integer().nullable()();
   IntColumn get sessionId => integer().nullable()();
+  // Qué serie exacta generó esta fila (esquema v8). Permite reemplazar la
+  // fila de ESA serie en vez de acumular una nueva por cada reevaluación --
+  // sin esto, reevaluar un set editado (p. ej. al completarlo de nuevo tras
+  // corregirlo) sumaba filas en vez de reemplazar la propia. Nullable: las
+  // filas de antes de esta columna (import viejo) no tienen de dónde sacarlo.
+  IntColumn get setId => integer().nullable().references(
+    WorkoutSets,
+    #id,
+    onDelete: KeyAction.setNull,
+  )();
   TextColumn get recordType => text()();
   RealColumn get value => real()();
   RealColumn get previousValue => real().nullable()();
@@ -280,7 +306,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -355,6 +381,25 @@ class AppDatabase extends _$AppDatabase {
         // (Fase 2) lo repuebla replayando los sets en orden cronológico.
         await m.deleteTable('personal_records');
         await m.createTable(personalRecords);
+      }
+      if (from < 8) {
+        // Regresión encontrada en revisión (docs/AUDITORIA_2026-09-03.md
+        // Fase 1, corrección de C2): sin `setId`, reevaluar la misma serie
+        // (p. ej. al completarla de nuevo tras editarla) no tenía forma de
+        // reemplazar su propia fila -- ver `PersonalRecordsService.evaluateSet`.
+        await m.addColumn(personalRecords, personalRecords.setId);
+      }
+      if (from < 9) {
+        // C4 (docs/AUDITORIA_2026-09-03.md Fase 2): permite saber qué día de
+        // la rutina se está entrenando, para precargar sus ejercicios/
+        // objetivos y para mostrar "objetivo vs. realizado" en cada fila.
+        await m.addColumn(workoutSessions, workoutSessions.routineDayId);
+      }
+      if (from < 10) {
+        // A4: acciones por ejercicio (reemplazar/reordenar/notas) -- ver
+        // `WorkoutRepository.updateExerciseNotes`/`reorderExercises`.
+        await m.addColumn(workoutSets, workoutSets.exerciseNotes);
+        await m.addColumn(workoutSets, workoutSets.exerciseOrder);
       }
     },
   );

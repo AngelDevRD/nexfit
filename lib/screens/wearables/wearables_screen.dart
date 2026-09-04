@@ -4,6 +4,10 @@ import 'package:health/health.dart';
 import '../../core/theme.dart';
 import '../../services/health_service.dart';
 
+/// N5: siempre vive dentro de [CuerpoHubScreen] -- el hub provee
+/// Scaffold/AppBar, esta pantalla solo devuelve contenido (sin FAB, no
+/// necesita `Scaffold` propio). El botón de actualizar vive en el
+/// encabezado de `_SummaryView`, no en un AppBar transparente fantasma.
 class WearablesScreen extends StatefulWidget {
   const WearablesScreen({super.key});
 
@@ -71,56 +75,43 @@ class _WearablesScreenState extends State<WearablesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Wearables'),
-        actions: [
-          if (_stage == _Stage.ready)
-            IconButton(
-              onPressed: _refresh,
-              icon: const Icon(Icons.refresh),
-              tooltip: 'Actualizar',
-            ),
-        ],
+    return switch (_stage) {
+      _Stage.loading => const Center(child: CircularProgressIndicator()),
+      _Stage.sdkUnavailable => _InfoState(
+        icon: Icons.health_and_safety_outlined,
+        title: 'Health Connect no está disponible',
+        body:
+            'Para sincronizar pasos, pulso, calorías y sueño necesitás la app '
+            'Health Connect instalada y actualizada en este dispositivo.',
+        actionLabel: 'Instalar Health Connect',
+        onAction: _service.installHealthConnect,
       ),
-      body: switch (_stage) {
-        _Stage.loading => const Center(child: CircularProgressIndicator()),
-        _Stage.sdkUnavailable => _InfoState(
-          icon: Icons.health_and_safety_outlined,
-          title: 'Health Connect no está disponible',
-          body:
-              'Para sincronizar pasos, pulso, calorías y sueño necesitás la app '
-              'Health Connect instalada y actualizada en este dispositivo.',
-          actionLabel: 'Instalar Health Connect',
-          onAction: _service.installHealthConnect,
-        ),
-        _Stage.needsPermission => _InfoState(
-          icon: Icons.watch_outlined,
-          title: 'Conectá tu wearable',
-          body:
-              'NexFit puede leer tus pasos, frecuencia cardíaca, calorías activas '
-              'y sueño desde Health Connect. Solo lectura: nunca escribe tus datos.',
-          actionLabel: 'Conectar con Health Connect',
-          onAction: _connect,
-        ),
-        _Stage.error => _InfoState(
-          icon: Icons.error_outline,
-          title: 'No se pudo acceder a los datos',
-          body: _message ?? 'Error desconocido',
-          actionLabel: 'Reintentar',
-          onAction: _bootstrap,
-        ),
-        _Stage.ready => _SummaryView(summary: _summary),
-      },
-    );
+      _Stage.needsPermission => _InfoState(
+        icon: Icons.watch_outlined,
+        title: 'Conectá tu wearable',
+        body:
+            'NexFit puede leer tus pasos, frecuencia cardíaca, calorías activas '
+            'y sueño desde Health Connect. Solo lectura: nunca escribe tus datos.',
+        actionLabel: 'Conectar con Health Connect',
+        onAction: _connect,
+      ),
+      _Stage.error => _InfoState(
+        icon: Icons.error_outline,
+        title: 'No se pudo acceder a los datos',
+        body: _message ?? 'Error desconocido',
+        actionLabel: 'Reintentar',
+        onAction: _bootstrap,
+      ),
+      _Stage.ready => _SummaryView(summary: _summary, onRefresh: _refresh),
+    };
   }
 }
 
 class _SummaryView extends StatelessWidget {
   final HealthSummary? summary;
+  final VoidCallback onRefresh;
 
-  const _SummaryView({required this.summary});
+  const _SummaryView({required this.summary, required this.onRefresh});
 
   @override
   Widget build(BuildContext context) {
@@ -138,45 +129,67 @@ class _SummaryView extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.md),
       children: [
-        Text('Hoy', style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: AppSpacing.md),
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: AppSpacing.md,
-          crossAxisSpacing: AppSpacing.md,
-          childAspectRatio: 1.3,
+        Row(
           children: [
-            _MetricCard(
-              icon: Icons.directions_walk,
-              color: AppColors.secondaryContainer,
-              label: 'Pasos',
-              value: '${s.steps}',
+            Expanded(
+              child: Text('Hoy', style: Theme.of(context).textTheme.titleLarge),
             ),
-            _MetricCard(
-              icon: Icons.favorite,
-              color: AppColors.danger,
-              label: 'Pulso promedio',
-              value: s.avgHeartRate == null
-                  ? '—'
-                  : '${s.avgHeartRate!.round()} bpm',
-            ),
-            _MetricCard(
-              icon: Icons.local_fire_department,
-              color: AppColors.warning,
-              label: 'Calorías activas',
-              value: s.activeCalories == null
-                  ? '—'
-                  : '${s.activeCalories!.round()} kcal',
-            ),
-            _MetricCard(
-              icon: Icons.bedtime,
-              color: AppColors.tertiary,
-              label: 'Sueño',
-              value: sleep == null ? '—' : '${sleep ~/ 60}h ${sleep % 60}m',
+            IconButton(
+              onPressed: onRefresh,
+              icon: const Icon(Icons.refresh),
+              tooltip: 'Actualizar',
             ),
           ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        // A5: mismo criterio que `workout_summary_screen.dart` -- alto fijo
+        // al contenido (`mainAxisExtent`) en vez de `childAspectRatio`, y la
+        // grilla no se estira más allá de un ancho razonable en pantalla
+        // ancha.
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: GridView(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: AppSpacing.md,
+                crossAxisSpacing: AppSpacing.md,
+                mainAxisExtent: 110,
+              ),
+              children: [
+                _MetricCard(
+                  icon: Icons.directions_walk,
+                  color: AppColors.secondaryContainer,
+                  label: 'Pasos',
+                  value: '${s.steps}',
+                ),
+                _MetricCard(
+                  icon: Icons.favorite,
+                  color: AppColors.danger,
+                  label: 'Pulso promedio',
+                  value: s.avgHeartRate == null
+                      ? '—'
+                      : '${s.avgHeartRate!.round()} bpm',
+                ),
+                _MetricCard(
+                  icon: Icons.local_fire_department,
+                  color: AppColors.warning,
+                  label: 'Calorías activas',
+                  value: s.activeCalories == null
+                      ? '—'
+                      : '${s.activeCalories!.round()} kcal',
+                ),
+                _MetricCard(
+                  icon: Icons.bedtime,
+                  color: AppColors.tertiary,
+                  label: 'Sueño',
+                  value: sleep == null ? '—' : '${sleep ~/ 60}h ${sleep % 60}m',
+                ),
+              ],
+            ),
+          ),
         ),
       ],
     );

@@ -19,20 +19,63 @@ class RoutineRepository {
 
   RoutineRepository(this.db);
 
+  /// A6: la tarjeta de la lista necesita mostrar qué ejercicios tiene cada
+  /// rutina (antes solo mostraba nombre + "N días/semana", indistinguibles
+  /// entre sí). Se resuelve con 3 queries EN TOTAL (días, ejercicios de
+  /// rutina, ejercicios) sin importar cuántas rutinas haya -- no una query
+  /// por rutina.
   Future<List<RoutineSummary>> list() async {
     final rows = await (db.select(
       db.routines,
     )..where((t) => t.deleted.equals(false))).get();
-    return rows
-        .map(
-          (r) => RoutineSummary(
-            id: r.id,
-            name: r.name,
-            goal: r.goal,
-            daysPerWeek: r.daysPerWeek,
-          ),
-        )
-        .toList();
+    if (rows.isEmpty) return const [];
+
+    final routineIds = rows.map((r) => r.id).toSet();
+    final dayRows = await (db.select(
+      db.routineDays,
+    )..where((t) => t.routineId.isIn(routineIds))).get();
+    final dayIds = dayRows.map((d) => d.id).toSet();
+
+    final exRows = dayIds.isEmpty
+        ? <local.RoutineExercise>[]
+        : await (db.select(db.routineExercises)
+                ..where((t) => t.dayId.isIn(dayIds))
+                ..orderBy([(t) => OrderingTerm.asc(t.orderIndex)]))
+              .get();
+    final exerciseIds = exRows.map((e) => e.exerciseId).toSet();
+
+    final exerciseRows = exerciseIds.isEmpty
+        ? <local.Exercise>[]
+        : await (db.select(
+            db.exercises,
+          )..where((t) => t.id.isIn(exerciseIds))).get();
+    final exerciseNameById = {for (final e in exerciseRows) e.id: e.name};
+
+    final dayIdsByRoutine = <int, List<int>>{};
+    for (final d in dayRows) {
+      dayIdsByRoutine.putIfAbsent(d.routineId, () => []).add(d.id);
+    }
+    final exercisesByDay = <int, List<local.RoutineExercise>>{};
+    for (final ex in exRows) {
+      exercisesByDay.putIfAbsent(ex.dayId, () => []).add(ex);
+    }
+
+    return rows.map((r) {
+      final names = <String>[];
+      for (final dayId in dayIdsByRoutine[r.id] ?? const <int>[]) {
+        for (final ex in exercisesByDay[dayId] ?? const []) {
+          final name = exerciseNameById[ex.exerciseId];
+          if (name != null) names.add(name);
+        }
+      }
+      return RoutineSummary(
+        id: r.id,
+        name: r.name,
+        goal: r.goal,
+        daysPerWeek: r.daysPerWeek,
+        exerciseNames: names,
+      );
+    }).toList();
   }
 
   Future<Routine> get(int id) async {
@@ -64,6 +107,7 @@ class RoutineRepository {
             targetRepsMin: ex.targetRepsMin,
             targetRepsMax: ex.targetRepsMax,
             targetRestSeconds: ex.targetRestSeconds,
+            targetWeightKg: ex.targetWeightKg,
             notes: ex.notes,
             exercise: ExerciseSummary(
               id: exerciseRow.id,
@@ -147,6 +191,72 @@ class RoutineRepository {
       }
 
       return routineId;
+    });
+  }
+
+  /// A6: edita una rutina existente EN EL MISMO id (no crea una nueva).
+  /// [payload] tiene la misma forma que [create]. Reemplaza días/ejercicios
+  /// por completo -- se borran y se reinsertan según lo que venga del
+  /// builder, igual que hace `create`, en vez de intentar un diff campo a
+  /// campo.
+  Future<void> update(int id, Map<String, dynamic> payload) async {
+    await db.transaction(() async {
+      await (db.update(db.routines)..where((t) => t.id.equals(id))).write(
+        local.RoutinesCompanion(
+          name: Value(payload['name'] as String),
+          goal: Value(payload['goal'] as String?),
+          daysPerWeek: Value((payload['days'] as List).length),
+          dirty: const Value(true),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+
+      final dayRows = await (db.select(
+        db.routineDays,
+      )..where((t) => t.routineId.equals(id))).get();
+      final dayIds = dayRows.map((d) => d.id).toSet();
+      if (dayIds.isNotEmpty) {
+        await (db.delete(
+          db.routineExercises,
+        )..where((t) => t.dayId.isIn(dayIds))).go();
+      }
+      await (db.delete(
+        db.routineDays,
+      )..where((t) => t.routineId.equals(id))).go();
+
+      for (final dayPayload in (payload['days'] as List)) {
+        final day = dayPayload as Map<String, dynamic>;
+        final dayId = await db
+            .into(db.routineDays)
+            .insert(
+              local.RoutineDaysCompanion.insert(
+                routineId: id,
+                dayIndex: day['day_index'] as int,
+                name: day['name'] as String,
+                muscleFocus: Value(day['muscle_focus'] as String?),
+              ),
+            );
+
+        for (final exPayload in (day['exercises'] as List)) {
+          final ex = exPayload as Map<String, dynamic>;
+          await db
+              .into(db.routineExercises)
+              .insert(
+                local.RoutineExercisesCompanion.insert(
+                  dayId: dayId,
+                  exerciseId: ex['exercise_id'] as int,
+                  orderIndex: ex['order'] as int,
+                  targetSets: Value(ex['target_sets'] as int? ?? 3),
+                  targetRepsMin: Value(ex['target_reps_min'] as int? ?? 8),
+                  targetRepsMax: Value(ex['target_reps_max'] as int? ?? 12),
+                  targetRestSeconds: Value(
+                    ex['target_rest_seconds'] as int? ?? 90,
+                  ),
+                  notes: Value(ex['notes'] as String?),
+                ),
+              );
+        }
+      }
     });
   }
 

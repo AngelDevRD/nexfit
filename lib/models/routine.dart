@@ -7,6 +7,7 @@ class RoutineExercise {
   final int targetRepsMin;
   final int targetRepsMax;
   final int targetRestSeconds;
+  final double? targetWeightKg;
   final String? notes;
   final ExerciseSummary exercise;
 
@@ -17,6 +18,7 @@ class RoutineExercise {
     required this.targetRepsMin,
     required this.targetRepsMax,
     required this.targetRestSeconds,
+    this.targetWeightKg,
     this.notes,
     required this.exercise,
   });
@@ -29,6 +31,7 @@ class RoutineExercise {
         targetRepsMin: json['target_reps_min'],
         targetRepsMax: json['target_reps_max'],
         targetRestSeconds: json['target_rest_seconds'],
+        targetWeightKg: (json['target_weight_kg'] as num?)?.toDouble(),
         notes: json['notes'],
         exercise: ExerciseSummary.fromJson(json['exercise']),
       );
@@ -89,12 +92,14 @@ class RoutineSummary {
   final String name;
   final String? goal;
   final int daysPerWeek;
+  final List<String> exerciseNames;
 
   RoutineSummary({
     required this.id,
     required this.name,
     this.goal,
     required this.daysPerWeek,
+    this.exerciseNames = const [],
   });
 
   factory RoutineSummary.fromJson(Map<String, dynamic> json) => RoutineSummary(

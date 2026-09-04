@@ -10,6 +10,9 @@ import '../workout/active_workout_screen.dart';
 import 'routine_builder_screen.dart';
 import 'routine_detail_screen.dart';
 
+/// N5: siempre vive dentro de [EntrenarHubScreen], que ya provee un FAB
+/// persistente "Empezar entrenamiento" -- por eso esta pantalla no usa un
+/// FAB propio, sino el botón "+" inline junto al título.
 class RoutineListScreen extends StatefulWidget {
   const RoutineListScreen({super.key});
 
@@ -21,7 +24,6 @@ class _RoutineListScreenState extends State<RoutineListScreen> {
   late final RoutineRepository _repository;
   late final WorkoutRepository _workoutRepository;
   List<RoutineSummary> _routines = [];
-  final Map<int, int> _exerciseCounts = {};
   bool _loading = true;
   String? _error;
   String _search = '';
@@ -35,6 +37,9 @@ class _RoutineListScreenState extends State<RoutineListScreen> {
     _load();
   }
 
+  // A6: `RoutineRepository.list()` ya resuelve `exerciseNames` en una sola
+  // tanda de queries -- ya no hace falta un `get()` por rutina solo para
+  // contar ejercicios.
   Future<void> _load() async {
     setState(() {
       _loading = true;
@@ -42,16 +47,6 @@ class _RoutineListScreenState extends State<RoutineListScreen> {
     });
     try {
       final routines = await _repository.list();
-      final details = await Future.wait(
-        routines.map((r) => _repository.get(r.id)),
-      );
-      _exerciseCounts.clear();
-      for (final routine in details) {
-        _exerciseCounts[routine.id] = routine.days.fold(
-          0,
-          (sum, day) => sum + day.exercises.length,
-        );
-      }
       setState(() {
         _routines = routines;
         _loading = false;
@@ -62,6 +57,38 @@ class _RoutineListScreenState extends State<RoutineListScreen> {
         _loading = false;
       });
     }
+  }
+
+  Future<void> _editRoutine(RoutineSummary summary) async {
+    final full = await _repository.get(summary.id);
+    if (!mounted) return;
+    final updated = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => RoutineBuilderScreen(existing: full)),
+    );
+    if (updated == true) _load();
+  }
+
+  Future<void> _deleteRoutine(RoutineSummary summary) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar rutina'),
+        content: Text('¿Eliminar "${summary.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await _repository.delete(summary.id);
+    if (mounted) _load();
   }
 
   Future<void> _startTraining(RoutineSummary routine) async {
@@ -89,143 +116,139 @@ class _RoutineListScreenState extends State<RoutineListScreen> {
         .toList();
   }
 
+  Future<void> _createRoutine() async {
+    final created = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const RoutineBuilderScreen()),
+    );
+    if (created == true) _load();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.primaryContainer,
-        foregroundColor: AppColors.onPrimaryContainer,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-        ),
-        onPressed: () async {
-          final created = await Navigator.of(context).push<bool>(
-            MaterialPageRoute(builder: (_) => const RoutineBuilderScreen()),
-          );
-          if (created == true) _load();
-        },
-        child: const Icon(Icons.add),
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.md,
-                AppSpacing.sm,
-                AppSpacing.md,
-                AppSpacing.md,
+    final content = Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.sm,
+            AppSpacing.md,
+            AppSpacing.md,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Tus Rutinas',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    Text(
+                      'Gestión de entrenamiento personalizado',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Tus Rutinas',
-                          style: Theme.of(context).textTheme.headlineSmall,
-                        ),
-                        Text(
-                          'Gestión de entrenamiento personalizado',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: AppColors.onSurfaceVariant),
-                        ),
-                      ],
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline),
+                color: AppColors.primary,
+                onPressed: _createRoutine,
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+          child: Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainer,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                  child: TextField(
+                    onChanged: (v) => setState(() => _search = v),
+                    decoration: const InputDecoration(
+                      hintText: 'Buscar rutina...',
+                      border: InputBorder.none,
+                      prefixIcon: Icon(Icons.search, size: 20),
+                      isDense: true,
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceContainer,
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                      ),
-                      child: TextField(
-                        onChanged: (v) => setState(() => _search = v),
-                        decoration: const InputDecoration(
-                          hintText: 'Buscar rutina...',
-                          border: InputBorder.none,
-                          prefixIcon: Icon(Icons.search, size: 20),
-                          isDense: true,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Expanded(
-              child: _loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _error != null
-                  ? Center(child: Text(_error!))
-                  : _routines.isEmpty
-                  ? const Center(
-                      child: Text('Todavía no creaste ninguna rutina.'),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: _load,
-                      child: ListView(
-                        padding: const EdgeInsets.fromLTRB(
-                          AppSpacing.md,
-                          0,
-                          AppSpacing.md,
-                          96,
-                        ),
-                        children: [
-                          for (final routine in _filtered)
-                            _RoutineCard(
-                              routine: routine,
-                              exerciseCount: _exerciseCounts[routine.id] ?? 0,
-                              starting: _startingRoutineId == routine.id,
-                              onTrain: () => _startTraining(routine),
-                              onOpen: () async {
-                                await Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => RoutineDetailScreen(
-                                      routineId: routine.id,
-                                    ),
-                                  ),
-                                );
-                                _load();
-                              },
-                            ),
-                        ],
-                      ),
-                    ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
+        const SizedBox(height: AppSpacing.md),
+        Expanded(
+          child: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : _error != null
+              ? Center(child: Text(_error!))
+              : _routines.isEmpty
+              ? const Center(child: Text('Todavía no creaste ninguna rutina.'))
+              : RefreshIndicator(
+                  onRefresh: _load,
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.md,
+                      0,
+                      AppSpacing.md,
+                      96,
+                    ),
+                    children: [
+                      for (final routine in _filtered)
+                        _RoutineCard(
+                          routine: routine,
+                          starting: _startingRoutineId == routine.id,
+                          onTrain: () => _startTraining(routine),
+                          onEdit: () => _editRoutine(routine),
+                          onDelete: () => _deleteRoutine(routine),
+                          onOpen: () async {
+                            await Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    RoutineDetailScreen(routineId: routine.id),
+                              ),
+                            );
+                            _load();
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+        ),
+      ],
     );
+
+    return content;
   }
 }
 
 class _RoutineCard extends StatelessWidget {
   final RoutineSummary routine;
-  final int exerciseCount;
   final bool starting;
   final VoidCallback onTrain;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
   final VoidCallback onOpen;
 
   const _RoutineCard({
     required this.routine,
-    required this.exerciseCount,
     required this.starting,
     required this.onTrain,
+    required this.onEdit,
+    required this.onDelete,
     required this.onOpen,
   });
 
@@ -268,12 +291,32 @@ class _RoutineCard extends StatelessWidget {
                             routine.name,
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
+                          if (routine.exerciseNames.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              routine.exerciseNames.join(', '),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(color: AppColors.onSurfaceVariant),
+                            ),
+                          ],
                         ],
                       ),
                     ),
-                    const Icon(
-                      Icons.more_vert,
-                      color: AppColors.onSurfaceVariant,
+                    PopupMenuButton<String>(
+                      icon: const Icon(
+                        Icons.more_vert,
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                      onSelected: (value) {
+                        if (value == 'edit') onEdit();
+                        if (value == 'delete') onDelete();
+                      },
+                      itemBuilder: (context) => const [
+                        PopupMenuItem(value: 'edit', child: Text('Editar')),
+                        PopupMenuItem(value: 'delete', child: Text('Eliminar')),
+                      ],
                     ),
                   ],
                 ),
@@ -287,7 +330,7 @@ class _RoutineCard extends StatelessWidget {
                     ),
                     const SizedBox(width: AppSpacing.xs),
                     Text(
-                      '$exerciseCount ejercicios',
+                      '${routine.exerciseNames.length} ejercicios',
                       style: Theme.of(context).textTheme.labelMedium,
                     ),
                     const SizedBox(width: AppSpacing.lg),

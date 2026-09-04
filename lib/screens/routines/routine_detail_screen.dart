@@ -7,6 +7,7 @@ import '../../models/user.dart';
 import '../../repositories/routine_repository.dart';
 import '../../repositories/workout_repository.dart';
 import '../workout/active_workout_screen.dart';
+import 'routine_builder_screen.dart';
 
 class RoutineDetailScreen extends StatefulWidget {
   final int routineId;
@@ -43,6 +44,15 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
     if (mounted) Navigator.of(context).pop();
   }
 
+  Future<void> _edit() async {
+    final updated = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => RoutineBuilderScreen(existing: _routine),
+      ),
+    );
+    if (updated == true) _load();
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_error != null) {
@@ -65,6 +75,7 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
       appBar: AppBar(
         title: Text(routine.name),
         actions: [
+          IconButton(icon: const Icon(Icons.edit_outlined), onPressed: _edit),
           IconButton(
             icon: const Icon(Icons.delete_outline),
             onPressed: () async {
