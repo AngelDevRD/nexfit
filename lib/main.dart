@@ -2,6 +2,7 @@ import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/auth/auth_repository.dart';
@@ -24,6 +25,7 @@ import 'core/theme.dart';
 import 'providers/auth_provider.dart';
 import 'providers/sync_settings_provider.dart';
 import 'providers/theme_provider.dart';
+import 'providers/weight_unit_provider.dart';
 import 'repositories/active_workout_repository.dart';
 import 'repositories/body_measurement_repository.dart';
 import 'repositories/exercise_repository.dart';
@@ -112,6 +114,7 @@ class _AppGymAppState extends State<AppGymApp> {
   late final SyncEngine _syncEngine;
   late final ThemeProvider _themeProvider;
   late final SyncSettingsProvider _syncSettingsProvider;
+  late final WeightUnitProvider _weightUnitProvider;
 
   @override
   void initState() {
@@ -119,14 +122,16 @@ class _AppGymAppState extends State<AppGymApp> {
     _themeProvider = ThemeProvider();
     _syncSettingsProvider = SyncSettingsProvider()
       ..addListener(_onSyncFrequencyChanged);
+    _weightUnitProvider = WeightUnitProvider();
 
     _db = AppDatabase();
     seedExercisesIfEmpty(_db);
     _profileRepository = ProfileRepository(_db);
+    _workoutRepository = WorkoutRepository(_db);
+    _repairZeroPersonalRecordsOnce();
     _authProvider = AuthProvider(widget.authRepository, _profileRepository)
       ..tryAutoLogin();
     _routineRepository = RoutineRepository(_db);
-    _workoutRepository = WorkoutRepository(_db);
     _activeWorkoutRepository = ActiveWorkoutRepository(_db, _workoutRepository);
     _goalRepository = GoalRepository(_db);
     _nutritionRepository = NutritionRepository(_db);
@@ -156,6 +161,18 @@ class _AppGymAppState extends State<AppGymApp> {
               RecoverySyncable(supabase),
             ],
     )..start();
+  }
+
+  // C2: repara de una vez los récords personales en 0kg/0 reps que haya
+  // dejado el bug (récords creados con la serie placeholder, nunca
+  // recalculados). Corre una sola vez por instalación -- `rebuildAll` es
+  // idempotente pero no hace falta repetirla en cada arranque.
+  Future<void> _repairZeroPersonalRecordsOnce() async {
+    final prefs = await SharedPreferences.getInstance();
+    const flag = 'pr_zero_repair_v1';
+    if (prefs.getBool(flag) == true) return;
+    await _workoutRepository.rebuildPersonalRecords();
+    await prefs.setBool(flag, true);
   }
 
   void _onSyncFrequencyChanged() {
@@ -195,6 +212,9 @@ class _AppGymAppState extends State<AppGymApp> {
         ChangeNotifierProvider<ThemeProvider>.value(value: _themeProvider),
         ChangeNotifierProvider<SyncSettingsProvider>.value(
           value: _syncSettingsProvider,
+        ),
+        ChangeNotifierProvider<WeightUnitProvider>.value(
+          value: _weightUnitProvider,
         ),
       ],
       child: Consumer<ThemeProvider>(

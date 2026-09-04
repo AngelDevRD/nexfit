@@ -8,6 +8,7 @@ import '../../features/import_export/export_screen.dart';
 import '../../features/import_export/import_preview_screen.dart';
 import '../../providers/sync_settings_provider.dart';
 import '../../providers/theme_provider.dart';
+import '../../providers/weight_unit_provider.dart';
 import '../../services/data_export_service.dart';
 import '../../services/data_import_service.dart';
 
@@ -98,6 +99,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
     final syncSettings = context.watch<SyncSettingsProvider>();
+    final weightUnit = context.watch<WeightUnitProvider>();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -105,7 +107,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.md),
         children: [
-          Text('Apariencia', style: Theme.of(context).textTheme.titleLarge),
+          _SectionHeader(icon: Icons.palette_outlined, title: 'Apariencia'),
           const SizedBox(height: AppSpacing.sm),
           Container(
             padding: const EdgeInsets.all(AppSpacing.md),
@@ -137,7 +139,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
-          Text('Sincronización', style: Theme.of(context).textTheme.titleLarge),
+          _SectionHeader(icon: Icons.sync, title: 'Sincronización'),
           const SizedBox(height: AppSpacing.sm),
           Container(
             padding: const EdgeInsets.all(AppSpacing.md),
@@ -178,7 +180,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
-          Text('Tus datos', style: Theme.of(context).textTheme.titleLarge),
+          _SectionHeader(icon: Icons.scale_outlined, title: 'Unidad de peso'),
+          const SizedBox(height: AppSpacing.sm),
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceContainer,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+            ),
+            child: SegmentedButton<WeightUnit>(
+              segments: const [
+                ButtonSegment(value: WeightUnit.kg, label: Text('kg')),
+                ButtonSegment(value: WeightUnit.lb, label: Text('lb')),
+              ],
+              selected: {weightUnit.unit},
+              onSelectionChanged: (selection) =>
+                  weightUnit.setUnit(selection.first),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          _SectionHeader(icon: Icons.save_outlined, title: 'Mis datos'),
           const SizedBox(height: AppSpacing.sm),
           Container(
             padding: const EdgeInsets.all(AppSpacing.md),
@@ -190,7 +211,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Rutinas, entrenamientos, nutrición, check-ins y metas.',
+                  // C3 (ADR): la app sube cambios a la nube pero no puede
+                  // restaurarlos todavía -- si reinstalás o cambiás de
+                  // teléfono, el historial se recupera solo con "Exportar
+                  // datos" y después "Importar datos" en el dispositivo
+                  // nuevo. Exportá seguido si te importa no perder nada.
+                  'Rutinas, entrenamientos, nutrición, check-ins y metas. '
+                  'Exportá antes de cambiar de teléfono o reinstalar: es la '
+                  'única forma de recuperar tu historial hoy.',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppColors.onSurfaceVariant,
                   ),
@@ -221,11 +249,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
-          Text(
-            'Migración de datos',
-            style: Theme.of(context).textTheme.titleLarge,
+          _SectionHeader(
+            icon: Icons.swap_vert,
+            title: 'Migración avanzada',
+            iconColor: AppColors.warning,
           ),
-          const SizedBox(height: AppSpacing.sm),
+          Padding(
+            padding: const EdgeInsets.only(top: 2, bottom: AppSpacing.sm),
+            child: Text(
+              'Formato de otra app -- distinto de tu backup propio de arriba.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors.onSurfaceVariant,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
           Container(
             padding: const EdgeInsets.all(AppSpacing.md),
             decoration: BoxDecoration(
@@ -267,6 +305,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final Color? iconColor;
+
+  const _SectionHeader({required this.icon, required this.title, this.iconColor});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = iconColor ?? AppColors.primary;
+    return Row(
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.15),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: 18, color: color),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Text(title, style: Theme.of(context).textTheme.titleLarge),
+      ],
     );
   }
 }

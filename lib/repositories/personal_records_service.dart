@@ -12,6 +12,7 @@ class RecordInput {
   final bool isWarmup;
   final DateTime achievedAt;
   final int sessionId;
+  final int setId;
 
   const RecordInput({
     required this.exerciseId,
@@ -20,6 +21,7 @@ class RecordInput {
     required this.isWarmup,
     required this.achievedAt,
     required this.sessionId,
+    required this.setId,
   });
 }
 
@@ -32,6 +34,7 @@ class ResolvedRecord {
   final double? previousValue;
   final DateTime achievedAt;
   final int sessionId;
+  final int setId;
 
   const ResolvedRecord({
     required this.exerciseId,
@@ -40,6 +43,7 @@ class ResolvedRecord {
     required this.previousValue,
     required this.achievedAt,
     required this.sessionId,
+    required this.setId,
   });
 }
 
@@ -64,7 +68,10 @@ List<ResolvedRecord> computeRecords(List<RecordInput> sets) {
   final events = <ResolvedRecord>[];
 
   for (final set in ordered) {
-    if (set.isWarmup) continue;
+    // Los calentamientos y las series placeholder en 0/0 (todavía sin editar
+    // por el usuario) no cuentan -- ver C2. Sin este guard, `rebuildAll`
+    // resucitaría PRs de 0kg/0 reps desde sets abandonados en 0.
+    if (set.isWarmup || set.weightKg <= 0 || set.reps <= 0) continue;
 
     final prevWeight = maxWeight[set.exerciseId];
     if (prevWeight == null || set.weightKg > prevWeight) {
@@ -76,6 +83,7 @@ List<ResolvedRecord> computeRecords(List<RecordInput> sets) {
           previousValue: prevWeight,
           achievedAt: set.achievedAt,
           sessionId: set.sessionId,
+          setId: set.setId,
         ),
       );
       maxWeight[set.exerciseId] = set.weightKg;
@@ -91,6 +99,7 @@ List<ResolvedRecord> computeRecords(List<RecordInput> sets) {
           previousValue: prevReps?.toDouble(),
           achievedAt: set.achievedAt,
           sessionId: set.sessionId,
+          setId: set.setId,
         ),
       );
       maxReps[set.exerciseId] = set.reps;
@@ -127,19 +136,36 @@ class PersonalRecordsService {
 
   PersonalRecordsService(this.db);
 
-  /// Evalúa un set recién guardado contra los máximos previos del ejercicio y
-  /// hace upsert de los récords que supere. Devuelve los récords nuevos (peso
-  /// y/o reps) para que la UI los muestre; lista vacía si no rompió ninguno.
+  /// Evalúa un set contra los máximos previos del ejercicio y hace upsert de
+  /// los récords que supere. Devuelve los récords nuevos (peso y/o reps) para
+  /// que la UI los muestre; lista vacía si no rompió ninguno.
+  ///
+  /// [setId] identifica la serie que se está evaluando: antes de calcular,
+  /// se borra cualquier fila que ESTA MISMA serie haya generado antes. Así,
+  /// reevaluar un set (p. ej. completarlo, editarlo, completarlo de nuevo)
+  /// reemplaza su propia fila en vez de acumular una nueva cada vez.
+  ///
+  /// Este método se llama UNA VEZ por acción del usuario (completar una
+  /// serie, o el replay de `rebuildAll`), nunca en cada escritura intermedia
+  /// -- ver la regresión documentada en `WorkoutRepository.updateSet`: si se
+  /// llama en cada toque de un stepper, 32 toques de +2.5kg generan 32 filas
+  /// para una sola serie.
   Future<List<ResolvedRecord>> evaluateSet({
     required int exerciseId,
     required double weightKg,
     required int reps,
     required int sessionId,
+    required int setId,
     required DateTime achievedAt,
   }) async {
-    // Máximos previos del ejercicio (el mayor de la bitácora), contra los que
-    // se compara el set nuevo. Se lee de la tabla de récords, no de todos los
-    // sets: es O(nº de récords del ejercicio), no O(historial completo).
+    await (db.delete(
+      db.personalRecords,
+    )..where((t) => t.setId.equals(setId))).go();
+
+    // Máximos previos del ejercicio (el mayor de la bitácora, ya sin la fila
+    // de esta serie), contra los que se compara el set. Se lee de la tabla de
+    // récords, no de todos los sets: es O(nº de récords del ejercicio), no
+    // O(historial completo).
     final existing = await (db.select(
       db.personalRecords,
     )..where((t) => t.exerciseId.equals(exerciseId))).get();
@@ -166,6 +192,7 @@ class PersonalRecordsService {
           previousValue: prevWeight,
           achievedAt: achievedAt,
           sessionId: sessionId,
+          setId: setId,
         ),
       );
     }
@@ -178,6 +205,7 @@ class PersonalRecordsService {
           previousValue: prevReps,
           achievedAt: achievedAt,
           sessionId: sessionId,
+          setId: setId,
         ),
       );
     }
@@ -207,6 +235,7 @@ class PersonalRecordsService {
           // los PRs quedan anclados al día real en que se lograron.
           achievedAt: startedById[s.sessionId] ?? DateTime.now(),
           sessionId: s.sessionId,
+          setId: s.id,
         ),
     ];
 
@@ -215,18 +244,7 @@ class PersonalRecordsService {
     await db.transaction(() async {
       await db.delete(db.personalRecords).go();
       for (final record in records) {
-        await db
-            .into(db.personalRecords)
-            .insert(
-              local.PersonalRecordsCompanion.insert(
-                exerciseId: Value(record.exerciseId),
-                sessionId: Value(record.sessionId),
-                recordType: record.recordType,
-                value: record.value,
-                previousValue: Value(record.previousValue),
-                achievedAt: record.achievedAt,
-              ),
-            );
+        await _insertEvent(record);
       }
     });
   }
@@ -238,6 +256,7 @@ class PersonalRecordsService {
           local.PersonalRecordsCompanion.insert(
             exerciseId: Value(record.exerciseId),
             sessionId: Value(record.sessionId),
+            setId: Value(record.setId),
             recordType: record.recordType,
             value: record.value,
             previousValue: Value(record.previousValue),

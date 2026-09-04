@@ -14,3 +14,4 @@ la reemplaza; el original queda como registro histórico.
 | [002](./ADR-002-offline-first.md) | Dominios derivados (stats, gamificación, calculadoras, calendario, export/import) on-device en vez de en un servidor |
 | [003](./ADR-003-coach-backend.md) | Coach IA en un backend mínimo y sin base de datos propia (`backend_ia`) |
 | [004](./ADR-004-archive-fastapi.md) | Archivar el backend FastAPI original en vez de eliminarlo |
+| [005](./ADR-005-sync-solo-subida.md) | Sync sigue siendo solo de subida en Fase 1; se corrige el copy de Ajustes en vez de implementar `pull` |

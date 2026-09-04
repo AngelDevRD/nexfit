@@ -1,6 +1,8 @@
 import 'package:appgym/repositories/personal_records_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+int _autoSetId = 0;
+
 RecordInput _set(
   double weight,
   int reps, {
@@ -8,6 +10,7 @@ RecordInput _set(
   bool warmup = false,
   int day = 1,
   int session = 1,
+  int? setId,
 }) => RecordInput(
   exerciseId: exercise,
   weightKg: weight,
@@ -15,6 +18,7 @@ RecordInput _set(
   isWarmup: warmup,
   achievedAt: DateTime(2026, 1, day),
   sessionId: session,
+  setId: setId ?? (_autoSetId += 1),
 );
 
 void main() {

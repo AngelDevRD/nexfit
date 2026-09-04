@@ -4,6 +4,11 @@
 *.pyc
 *.swp
 .DS_Store
+
+# Harness temporal de auditoria (docs/AUDITORIA_2026-09-03.md) -- monta la
+# app con datos sembrados para capturar pantallas a PNG. No es parte de la
+# app real, nunca se commitea.
+lib/main_audit.dart
 .atom/
 .build/
 .buildlog/
