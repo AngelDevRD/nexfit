@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/local/database.dart';
+import '../../core/local/database.dart' hide Exercise;
 import '../../core/theme.dart';
 import '../../models/exercise.dart';
 import '../../widgets/exercise_thumb.dart';
 import '../../widgets/muscle_group_filter.dart';
+import 'exercise_form_screen.dart';
 
 class ExercisePickerScreen extends StatefulWidget {
   const ExercisePickerScreen({super.key});
@@ -71,6 +72,29 @@ class _ExercisePickerScreenState extends State<ExercisePickerScreen> {
     setState(() => _selectedMuscleGroup = selected);
   }
 
+  /// E1: la búsqueda sin resultados es el momento exacto en que el usuario
+  /// descubre que el ejercicio no está en el catálogo -- ofrecerle crearlo
+  /// ahí mismo, con el nombre que ya escribió, en vez de mandarlo a buscar
+  /// otra pantalla.
+  Future<void> _createFromSearch() async {
+    final created = await Navigator.of(context).push<Exercise>(
+      MaterialPageRoute(
+        builder: (_) => ExerciseFormScreen(initialName: _search.trim()),
+      ),
+    );
+    if (created == null || !mounted) return;
+    Navigator.of(context).pop(
+      ExerciseSummary(
+        id: created.id,
+        slug: created.slug,
+        name: created.name,
+        muscleGroup: created.muscleGroup,
+        difficulty: created.difficulty,
+        imageUrl: created.imageUrl,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -132,8 +156,21 @@ class _ExercisePickerScreenState extends State<ExercisePickerScreen> {
                   ),
                 Expanded(
                   child: _filtered.isEmpty
-                      ? const Center(
-                          child: Text('No se encontraron ejercicios.'),
+                      ? Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text('No se encontraron ejercicios.'),
+                              if (_search.trim().isNotEmpty) ...[
+                                const SizedBox(height: AppSpacing.md),
+                                FilledButton.tonalIcon(
+                                  onPressed: _createFromSearch,
+                                  icon: const Icon(Icons.add),
+                                  label: Text('Crear "${_search.trim()}"'),
+                                ),
+                              ],
+                            ],
+                          ),
                         )
                       : ListView(
                           padding: const EdgeInsets.fromLTRB(

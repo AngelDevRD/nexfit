@@ -22,6 +22,7 @@ import '../../repositories/workout_repository.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/pill_tab_bar.dart';
 import '../workout/active_workout_screen.dart';
+import 'exercise_form_screen.dart';
 
 class ExerciseDetailScreen extends StatefulWidget {
   final int exerciseId;
@@ -131,6 +132,64 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen>
     if (mounted) setState(() => _startingWorkout = false);
   }
 
+  /// E1: solo para ejercicios propios (`ExerciseRepository.isCustomExercise`)
+  /// -- el catálogo semilla no se edita desde la app.
+  Future<void> _edit() async {
+    final updated = await Navigator.of(context).push<Exercise>(
+      MaterialPageRoute(
+        builder: (_) => ExerciseFormScreen(existing: _exercise),
+      ),
+    );
+    if (updated != null && mounted) setState(() => _exercise = updated);
+  }
+
+  /// E1: si el ejercicio tiene series registradas, avisa y no borra --
+  /// eliminarlo rompería el historial de entrenamientos ya guardado.
+  Future<void> _delete() async {
+    final repository = context.read<ExerciseRepository>();
+    final hasLoggedSets = await repository.hasLoggedSets(widget.exerciseId);
+    if (!mounted) return;
+    if (hasLoggedSets) {
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('No se puede eliminar'),
+          content: const Text(
+            'Este ejercicio tiene series registradas en tu historial. '
+            'Eliminarlo lo rompería, así que se mantiene en el catálogo.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Entendido'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar ejercicio'),
+        content: const Text('¿Seguro que querés eliminar este ejercicio?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    await repository.deleteExercise(widget.exerciseId);
+    if (mounted) Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_error != null) {
@@ -168,9 +227,24 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen>
     // con el contenido de la pestaña -- solo el `PillTabBar` queda fijo
     // (`SliverPersistentHeader(pinned: true)`), así deja de competir por
     // alto sin importar cuánto crezca el texto.
+    final isCustom = ExerciseRepository.isCustomExercise(exercise.id);
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: Text(exercise.name)),
+      appBar: AppBar(
+        title: Text(exercise.name),
+        actions: isCustom
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined),
+                  onPressed: _edit,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: _delete,
+                ),
+              ]
+            : null,
+      ),
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
           SliverToBoxAdapter(
@@ -702,6 +776,19 @@ class _GuiaTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // E1: un ejercicio propio nunca tiene contenido de guía -- el formulario
+    // de alta a propósito no lo pide (ver `ExerciseFormScreen`). Mostrar acá
+    // las mismas secciones vacías (Instrucciones sin ítems, etc.) sería una
+    // pantalla en blanco con títulos; el EmptyState ya existente deja claro
+    // que no hay nada que ver, no que algo falló en cargar.
+    if (ExerciseRepository.isCustomExercise(exercise.id)) {
+      return const Center(
+        child: EmptyState(
+          icon: Icons.menu_book_outlined,
+          message: 'Este ejercicio no tiene guía -- vos lo creaste.',
+        ),
+      );
+    }
     return ListView(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.md,

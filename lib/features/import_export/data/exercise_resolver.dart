@@ -1,6 +1,5 @@
-import 'package:drift/drift.dart' show Value;
-
 import '../../../core/local/database.dart' as local;
+import '../../../repositories/exercise_repository.dart';
 import '../domain/exercise_resolution_models.dart';
 import 'auto_mapper.dart' show normalizeHeader;
 
@@ -56,31 +55,20 @@ class ExerciseResolver {
 
   /// Crea un ejercicio nuevo en el catalogo local a partir de un nombre
   /// importado que no tenia correspondencia, con categoria "Sin clasificar"
-  /// y el minimo de datos necesario. El id se asigna por fuera del rango
-  /// del catalogo semilla (`assets/data/exercises.json`) para no chocar con
-  /// futuras actualizaciones de ese archivo.
+  /// y el minimo de datos necesario. Delega en `ExerciseRepository` (E1):
+  /// es el punto unico de escritura del catalogo, con la misma estrategia
+  /// de ids (fuera del rango del catalogo semilla) para ejercicios creados
+  /// desde la app o desde una importacion.
   Future<int> createExercise(String exerciseName) async {
     final cache = await _ensureCache();
-    final existingIds = cache.values.toSet();
-    var nextId = 1000000;
-    while (existingIds.contains(nextId)) {
-      nextId++;
-    }
-
-    await db
-        .into(db.exercises)
-        .insert(
-          local.ExercisesCompanion.insert(
-            id: Value(nextId),
-            slug: 'custom-$nextId',
-            name: exerciseName,
-            muscleGroup: 'Sin clasificar',
-            difficulty: 'beginner',
-          ),
-        );
-
-    cache[normalizeHeader(exerciseName)] = nextId;
-    return nextId;
+    final id = await ExerciseRepository(db).createExercise(
+      name: exerciseName,
+      muscleGroup: 'Sin clasificar',
+      equipment: const [],
+      movementType: '',
+    );
+    cache[normalizeHeader(exerciseName)] = id;
+    return id;
   }
 
   Future<Map<String, int>> _ensureCache() async {

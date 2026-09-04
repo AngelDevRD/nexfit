@@ -7,6 +7,7 @@ import '../../repositories/exercise_repository.dart';
 import '../../widgets/exercise_thumb.dart';
 import '../../widgets/muscle_group_filter.dart';
 import 'exercise_detail_screen.dart';
+import 'exercise_form_screen.dart';
 
 /// N5: siempre vive dentro de [EntrenarHubScreen] (nunca standalone) -- el
 /// hub provee Scaffold/AppBar/fondo, esta pantalla solo devuelve contenido.
@@ -71,6 +72,15 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
         .toList();
   }
 
+  /// E1: alta desde el catálogo (segundo punto de entrada, junto al de
+  /// `ExercisePickerScreen` cuando la búsqueda no da resultados).
+  Future<void> _createExercise() async {
+    final created = await Navigator.of(context).push<Exercise>(
+      MaterialPageRoute(builder: (_) => const ExerciseFormScreen()),
+    );
+    if (created != null) _load();
+  }
+
   @override
   Widget build(BuildContext context) {
     final content = Column(
@@ -87,14 +97,27 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
                 decoration: InputDecoration(
                   hintText: 'Buscar ejercicios...',
                   prefixIcon: const Icon(Icons.search),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      Icons.tune,
-                      color: _selectedMuscleGroup != null
-                          ? AppColors.primary
-                          : AppColors.onSurfaceVariant,
-                    ),
-                    onPressed: _openMuscleGroupSheet,
+                  suffixIcon: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          Icons.tune,
+                          color: _selectedMuscleGroup != null
+                              ? AppColors.primary
+                              : AppColors.onSurfaceVariant,
+                        ),
+                        onPressed: _openMuscleGroupSheet,
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.add,
+                          color: AppColors.onSurfaceVariant,
+                        ),
+                        tooltip: 'Crear ejercicio',
+                        onPressed: _createExercise,
+                      ),
+                    ],
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppRadius.md),
@@ -143,7 +166,7 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
                         ),
                         children: [
                           for (final exercise in _filtered)
-                            _ExerciseCard(exercise: exercise),
+                            _ExerciseCard(exercise: exercise, onReturn: _load),
                         ],
                       ),
                     ),
@@ -157,8 +180,9 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
 
 class _ExerciseCard extends StatelessWidget {
   final ExerciseSummary exercise;
+  final VoidCallback onReturn;
 
-  const _ExerciseCard({required this.exercise});
+  const _ExerciseCard({required this.exercise, required this.onReturn});
 
   @override
   Widget build(BuildContext context) {
@@ -175,11 +199,17 @@ class _ExerciseCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.lg),
         child: InkWell(
           borderRadius: BorderRadius.circular(AppRadius.lg),
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => ExerciseDetailScreen(exerciseId: exercise.id),
-            ),
-          ),
+          onTap: () => Navigator.of(context)
+              .push(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      ExerciseDetailScreen(exerciseId: exercise.id),
+                ),
+              )
+              // Un ejercicio propio pudo editarse (nombre/grupo cambiado) o
+              // eliminarse desde el detalle -- refresca para que la lista
+              // no muestre datos viejos ni una tarjeta fantasma.
+              .then((_) => onReturn()),
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.md),
             child: Row(
