@@ -948,5 +948,570 @@
 "Hipertrofia abdominal con sobrecarga progresiva"
 ],
 "id": 25
+},
+{
+"slug": "abduccion-cadera-maquina",
+"name": "Abducción de cadera en máquina",
+"muscle_group": "Glúteos",
+"primary_muscles": [
+"Glúteo medio"
+],
+"secondary_muscles": [
+"Glúteo menor"
+],
+"equipment": [
+"Máquina de abducción"
+],
+"difficulty": "beginner",
+"movement_type": "isolation",
+"description": "Aislamiento de glúteo medio, clave para estabilidad de cadera y ancho de glúteo.",
+"instructions": [
+"Sentate en la máquina con las piernas dentro de los apoyos acolchados.",
+"Separá las piernas hacia afuera contra la resistencia hasta el tope cómodo.",
+"Volvé controlado sin dejar que la pila de peso golpee entre repeticiones."
+],
+"tips": [
+"Torso erguido contra el respaldo, sin inclinarse para ayudarse con el impulso"
+],
+"common_mistakes": [
+"Usar un rango de movimiento corto con demasiado peso"
+],
+"variants": [
+"Abducción de cadera con banda de pie",
+"Abducción de cadera con banda acostado de lado"
+],
+"benefits": [
+"Fuerza y ancho de glúteo medio",
+"Mejor estabilidad de cadera en sentadilla y zancadas"
+],
+"id": 26
+},
+{
+"slug": "patada-gluteo-polea",
+"name": "Patada de glúteo en polea",
+"muscle_group": "Glúteos",
+"primary_muscles": [
+"Glúteo mayor"
+],
+"secondary_muscles": [
+"Isquiotibiales"
+],
+"equipment": [
+"Polea baja",
+"Tobillera"
+],
+"difficulty": "beginner",
+"movement_type": "isolation",
+"description": "Aislamiento de glúteo con tensión constante de la polea en todo el recorrido.",
+"instructions": [
+"Enganchá la tobillera a la polea baja y parate de frente al aparato, apoyado en el marco.",
+"Extendé la cadera llevando la pierna hacia atrás contrayendo el glúteo, sin arquear la lumbar.",
+"Volvé controlado a la posición inicial sin que la pierna pase adelante del cuerpo."
+],
+"tips": [
+"Inclinar levemente el torso adelante ayuda a aislar el glúteo de la lumbar"
+],
+"common_mistakes": [
+"Usar el impulso de la lumbar en vez de extender desde la cadera"
+],
+"variants": [
+"Patada de glúteo a cuatro apoyos",
+"Patada de glúteo en máquina"
+],
+"benefits": [
+"Aislamiento de glúteo con tensión constante",
+"Complementa movimientos compuestos como hip thrust o sentadilla"
+],
+"id": 27
+},
+{
+"slug": "elevacion-talones-sentado",
+"name": "Elevación de talones sentado",
+"muscle_group": "Pantorrillas",
+"primary_muscles": [
+"Sóleo"
+],
+"secondary_muscles": [
+"Gastrocnemio"
+],
+"equipment": [
+"Máquina de gemelo sentado"
+],
+"difficulty": "beginner",
+"movement_type": "isolation",
+"description": "Con la rodilla flexionada, pone más énfasis en el sóleo que la versión de pie -- complementa la elevación de talones de pie en vez de repetirla.",
+"instructions": [
+"Sentate en la máquina con los antepiés apoyados en la plataforma y las almohadillas sobre las rodillas.",
+"Elevá los talones lo más alto posible contrayendo la pantorrilla.",
+"Bajá controlado hasta el estiramiento completo antes de la siguiente repetición."
+],
+"tips": [
+"Repeticiones lentas y con pausa arriba rinden más que hacerlas rápido"
+],
+"common_mistakes": [
+"Rebotar en la posición baja en vez de controlar el descenso"
+],
+"variants": [
+"Elevación de talones sentado a una pierna",
+"Elevación de talones de pie (más gastrocnemio)"
+],
+"benefits": [
+"Desarrollo de sóleo",
+"Complementa el trabajo de gastrocnemio de la versión de pie"
+],
+"id": 28
+},
+{
+"slug": "curl-inclinado-mancuernas",
+"name": "Curl inclinado con mancuernas",
+"muscle_group": "Bíceps",
+"primary_muscles": [
+"Bíceps braquial"
+],
+"secondary_muscles": [
+"Braquial anterior"
+],
+"equipment": [
+"Banco inclinado",
+"Mancuernas"
+],
+"difficulty": "intermediate",
+"movement_type": "isolation",
+"description": "El respaldo inclinado deja el brazo detrás del torso, con más estiramiento del bíceps al inicio del recorrido.",
+"instructions": [
+"Sentate en un banco inclinado a 45° con un mancuerna en cada mano, brazos colgando a los costados.",
+"Flexioná los codos llevando las mancuernas hacia los hombros sin despegar los brazos del respaldo.",
+"Bajá controlado hasta la extensión completa antes de la siguiente repetición."
+],
+"tips": [
+"No dejar que los codos se muevan hacia adelante durante la subida"
+],
+"common_mistakes": [
+"Usar impulso del hombro para levantar el peso"
+],
+"variants": [
+"Curl inclinado alternado",
+"Curl de bíceps de pie con barra"
+],
+"benefits": [
+"Mayor estiramiento del bíceps que el curl de pie",
+"Aislamiento con menor participación del hombro"
+],
+"id": 29
+},
+{
+"slug": "press-cerrado-banca",
+"name": "Press cerrado en banca",
+"muscle_group": "Tríceps",
+"primary_muscles": [
+"Tríceps braquial"
+],
+"secondary_muscles": [
+"Pectoral mayor",
+"Deltoide anterior"
+],
+"equipment": [
+"Barra",
+"Banco plano"
+],
+"difficulty": "intermediate",
+"movement_type": "compound",
+"description": "Compuesto de empuje con agarre cerrado que traslada más carga al tríceps que el press banca tradicional.",
+"instructions": [
+"Acostate en el banco con agarre a la altura de los hombros, manos más cerca que en el press banca estándar.",
+"Bajá la barra controlada hasta rozar el pecho, codos cerca del cuerpo.",
+"Empujá hasta la extensión completa sin abrir los codos hacia afuera."
+],
+"tips": [
+"Codos pegados al torso durante todo el recorrido, no abiertos como en el press banca"
+],
+"common_mistakes": [
+"Agarre demasiado cerrado, que sobrecarga la muñeca en vez del tríceps"
+],
+"variants": [
+"Press cerrado con mancuernas",
+"Fondos en paralelas"
+],
+"benefits": [
+"Fuerza y tamaño de tríceps con carga alta",
+"Transferencia directa al press banca estándar"
+],
+"id": 30
+},
+{
+"slug": "buenos-dias-barra",
+"name": "Buenos días con barra",
+"muscle_group": "Isquiotibiales",
+"primary_muscles": [
+"Isquiotibiales"
+],
+"secondary_muscles": [
+"Glúteo mayor",
+"Zona lumbar"
+],
+"equipment": [
+"Barra"
+],
+"difficulty": "advanced",
+"movement_type": "compound",
+"description": "Bisagra de cadera con la barra en la espalda alta -- exige buena técnica antes de sumar carga.",
+"instructions": [
+"Apoyá la barra en la espalda alta, como en sentadilla, con las rodillas levemente flexionadas.",
+"Empujá la cadera hacia atrás inclinando el torso adelante, manteniendo la espalda recta.",
+"Volvé a la posición inicial extendiendo la cadera, sin redondear la zona lumbar en ningún momento."
+],
+"tips": [
+"Empezá con poco peso hasta dominar la técnica de bisagra de cadera"
+],
+"common_mistakes": [
+"Redondear la espalda baja en vez de mantenerla neutra"
+],
+"variants": [
+"Buenos días con banda elástica",
+"Peso muerto rumano"
+],
+"benefits": [
+"Fuerza de cadena posterior",
+"Mejora la técnica de bisagra de cadera para el peso muerto"
+],
+"id": 31
+},
+{
+"slug": "elevaciones-frontales-mancuernas",
+"name": "Elevaciones frontales con mancuernas",
+"muscle_group": "Hombros",
+"primary_muscles": [
+"Deltoide anterior"
+],
+"secondary_muscles": [
+"Deltoide medio"
+],
+"equipment": [
+"Mancuernas"
+],
+"difficulty": "beginner",
+"movement_type": "isolation",
+"description": "Aislamiento de deltoide anterior, complementa a las elevaciones laterales (deltoide medio) ya presentes en el catálogo.",
+"instructions": [
+"De pie con una mancuerna en cada mano, apoyadas contra los muslos.",
+"Elevá un brazo al frente hasta la altura del hombro, con un leve quiebre en el codo.",
+"Bajá controlado y alterná con el otro brazo."
+],
+"tips": [
+"No usar impulso de la zona lumbar para levantar el peso"
+],
+"common_mistakes": [
+"Elevar el brazo por encima de la altura del hombro"
+],
+"variants": [
+"Elevaciones frontales con disco",
+"Elevaciones frontales alternadas con polea"
+],
+"benefits": [
+"Aislamiento de deltoide anterior",
+"Complementa el trabajo de hombro de las elevaciones laterales"
+],
+"id": 32
+},
+{
+"slug": "elevacion-talones-prensa",
+"name": "Elevación de talones en prensa de piernas",
+"muscle_group": "Pantorrillas",
+"primary_muscles": [
+"Gastrocnemio"
+],
+"secondary_muscles": [
+"Sóleo"
+],
+"equipment": [
+"Prensa de piernas"
+],
+"difficulty": "beginner",
+"movement_type": "isolation",
+"description": "Aprovecha una máquina que ya usás para piernas -- útil si no hay máquina de gemelo dedicada en el gimnasio.",
+"instructions": [
+"Sentate en la prensa con las piernas casi extendidas y solo el antepié apoyado en la plataforma.",
+"Elevá los talones empujando la plataforma con la punta del pie, sin flexionar más las rodillas.",
+"Bajá controlado hasta el estiramiento completo del gemelo."
+],
+"tips": [
+"Rodillas casi extendidas mantiene el énfasis en la pantorrilla, no en el cuádriceps"
+],
+"common_mistakes": [
+"Flexionar y extender la rodilla en cada repetición en vez de mover solo el tobillo"
+],
+"variants": [
+"Elevación de talones de pie",
+"Elevación de talones sentado (más sóleo)"
+],
+"benefits": [
+"Desarrollo de gastrocnemio",
+"Alternativa cuando no hay máquina de gemelo libre"
+],
+"id": 33
+},
+{
+"slug": "elevacion-talones-mancuerna-unipodal",
+"name": "Elevación de talones a una pierna con mancuerna",
+"muscle_group": "Pantorrillas",
+"primary_muscles": [
+"Gastrocnemio"
+],
+"secondary_muscles": [
+"Sóleo"
+],
+"equipment": [
+"Mancuerna",
+"Escalón o step"
+],
+"difficulty": "intermediate",
+"movement_type": "isolation",
+"description": "Versión unilateral que expone y corrige diferencias de fuerza entre una pantorrilla y la otra.",
+"instructions": [
+"Parado sobre un escalón con el antepié de una pierna apoyado y el talón colgando, sostené una mancuerna del mismo lado.",
+"Elevá el talón lo más alto posible contrayendo la pantorrilla, sujetándote con la otra mano para el equilibrio.",
+"Bajá controlado hasta sentir el estiramiento completo antes de la siguiente repetición."
+],
+"tips": [
+"Empezá sin mancuerna hasta controlar el equilibrio en una pierna"
+],
+"common_mistakes": [
+"Usar impulso de todo el cuerpo en vez de aislar el movimiento del tobillo"
+],
+"variants": [
+"Elevación de talones a una pierna sin peso",
+"Elevación de talones de pie (bipodal)"
+],
+"benefits": [
+"Corrige asimetrías de fuerza entre piernas",
+"Mayor rango de movimiento que la versión con las dos piernas"
+],
+"id": 34
+},
+{
+"slug": "curl-biceps-polea-baja",
+"name": "Curl de bíceps en polea baja",
+"muscle_group": "Bíceps",
+"primary_muscles": [
+"Bíceps braquial"
+],
+"secondary_muscles": [
+"Braquial anterior"
+],
+"equipment": [
+"Polea baja",
+"Barra recta"
+],
+"difficulty": "beginner",
+"movement_type": "isolation",
+"description": "La polea mantiene tensión constante en el bíceps en todo el recorrido, a diferencia de la barra libre.",
+"instructions": [
+"Parate frente a la polea baja con la barra recta agarrada con las palmas hacia arriba.",
+"Flexioná los codos llevando la barra hacia los hombros, sin mover los codos de los costados.",
+"Bajá controlado hasta la extensión casi completa sin perder la tensión de la polea."
+],
+"tips": [
+"Mantener los codos fijos pegados al torso durante toda la serie"
+],
+"common_mistakes": [
+"Balancear el torso hacia atrás para ayudar a subir el peso"
+],
+"variants": [
+"Curl en polea con cuerda",
+"Curl con barra libre"
+],
+"benefits": [
+"Tensión constante en el bíceps",
+"Menor estrés articular que la barra libre en algunos casos"
+],
+"id": 35
+},
+{
+"slug": "patada-triceps-mancuerna",
+"name": "Patada de tríceps con mancuerna",
+"muscle_group": "Tríceps",
+"primary_muscles": [
+"Tríceps braquial"
+],
+"secondary_muscles": [],
+"equipment": [
+"Mancuerna",
+"Banco"
+],
+"difficulty": "beginner",
+"movement_type": "isolation",
+"description": "Aislamiento de tríceps con el brazo fijo, foco en la contracción máxima al final del recorrido.",
+"instructions": [
+"Apoyá una rodilla y una mano en el banco, torso paralelo al piso, brazo superior pegado a las costillas.",
+"Extendé el codo hacia atrás hasta que el brazo quede recto, contrayendo el tríceps al máximo.",
+"Volvé controlado sin dejar caer el peso ni mover el brazo superior."
+],
+"tips": [
+"El brazo superior no se mueve -- solo el antebrazo extiende el codo"
+],
+"common_mistakes": [
+"Mover el hombro hacia arriba para ayudar a extender el codo"
+],
+"variants": [
+"Patada de tríceps en polea",
+"Extensión de tríceps en polea"
+],
+"benefits": [
+"Aislamiento estricto de tríceps",
+"Buen ejercicio de cierre para la contracción máxima"
+],
+"id": 36
+},
+{
+"slug": "sentadilla-bulgara",
+"name": "Sentadilla búlgara",
+"muscle_group": "Cuádriceps",
+"primary_muscles": [
+"Cuádriceps"
+],
+"secondary_muscles": [
+"Glúteo mayor",
+"Isquiotibiales"
+],
+"equipment": [
+"Banco",
+"Mancuernas"
+],
+"difficulty": "intermediate",
+"movement_type": "compound",
+"description": "Unilateral que expone diferencias de fuerza entre piernas y suma trabajo de equilibrio a la sentadilla tradicional.",
+"instructions": [
+"Parado de espaldas a un banco, apoyá el empeine de un pie sobre él y dejá la otra pierna adelante.",
+"Bajá flexionando la rodilla de adelante hasta un ángulo cómodo, torso erguido.",
+"Empujá con el talón de la pierna de adelante para volver a la posición inicial."
+],
+"tips": [
+"La rodilla de adelante no debería adelantarse mucho más allá de la punta del pie"
+],
+"common_mistakes": [
+"Apoyar demasiado peso en el pie de atrás en vez de trabajar la pierna de adelante"
+],
+"variants": [
+"Sentadilla búlgara a una mancuerna",
+"Zancadas"
+],
+"benefits": [
+"Fuerza unilateral de cuádriceps y glúteo",
+"Corrige asimetrías entre piernas"
+],
+"id": 37
+},
+{
+"slug": "peso-muerto-una-pierna",
+"name": "Peso muerto a una pierna",
+"muscle_group": "Isquiotibiales",
+"primary_muscles": [
+"Isquiotibiales"
+],
+"secondary_muscles": [
+"Glúteo mayor",
+"Core"
+],
+"equipment": [
+"Mancuerna"
+],
+"difficulty": "advanced",
+"movement_type": "compound",
+"description": "Bisagra de cadera unilateral que suma un fuerte componente de equilibrio y estabilidad al trabajo de isquiotibiales.",
+"instructions": [
+"Parado en una pierna con una mancuerna en la mano contraria, tronco y pierna libre casi en línea recta.",
+"Inclinate hacia adelante llevando la pierna libre hacia atrás, bajando la mancuerna cerca del piso.",
+"Volvé a la posición inicial extendiendo la cadera, sin perder el equilibrio ni redondear la espalda."
+],
+"tips": [
+"Practicá primero sin peso hasta dominar el equilibrio en una pierna"
+],
+"common_mistakes": [
+"Rotar la cadera en vez de mantenerla cuadrada mirando al frente"
+],
+"variants": [
+"Peso muerto a una pierna con apoyo",
+"Peso muerto rumano (bipodal)"
+],
+"benefits": [
+"Fuerza de isquiotibiales con componente de equilibrio",
+"Transferencia directa a deportes que exigen estabilidad unilateral"
+],
+"id": 38
+},
+{
+"slug": "sentadilla-sumo-mancuerna",
+"name": "Sentadilla sumo con mancuerna",
+"muscle_group": "Glúteos",
+"primary_muscles": [
+"Glúteo mayor"
+],
+"secondary_muscles": [
+"Aductores",
+"Cuádriceps"
+],
+"equipment": [
+"Mancuerna"
+],
+"difficulty": "beginner",
+"movement_type": "compound",
+"description": "La postura ancha con los pies rotados hacia afuera pone más énfasis en glúteo y aductores que la sentadilla tradicional.",
+"instructions": [
+"Parate con las piernas bien separadas y los pies rotados hacia afuera, sosteniendo una mancuerna verticalmente con ambas manos.",
+"Bajá flexionando cadera y rodillas, manteniendo el torso erguido y las rodillas en línea con los pies.",
+"Empujá con los talones para volver a la posición inicial contrayendo el glúteo."
+],
+"tips": [
+"Las rodillas siguen la dirección de los pies durante todo el recorrido"
+],
+"common_mistakes": [
+"Dejar que las rodillas colapsen hacia adentro al bajar"
+],
+"variants": [
+"Sentadilla sumo con barra",
+"Hip thrust"
+],
+"benefits": [
+"Fuerza de glúteo y aductores",
+"Buena opción de bajo impacto en rodilla para quienes evitan la sentadilla tradicional"
+],
+"id": 39
+},
+{
+"slug": "elevacion-piernas-colgado",
+"name": "Elevación de piernas colgado",
+"muscle_group": "Core",
+"primary_muscles": [
+"Recto abdominal"
+],
+"secondary_muscles": [
+"Flexores de cadera"
+],
+"equipment": [
+"Barra de dominadas"
+],
+"difficulty": "advanced",
+"movement_type": "isolation",
+"description": "Exige buen agarre y control del torso -- de los ejercicios de abdomen más exigentes del catálogo.",
+"instructions": [
+"Colgate de la barra con los brazos extendidos y el cuerpo estable, sin balancearte.",
+"Elevá las piernas (rectas o con rodillas flexionadas) hasta la altura de la cadera contrayendo el abdomen.",
+"Bajá controlado sin usar impulso para la siguiente repetición."
+],
+"tips": [
+"Con rodillas flexionadas es más accesible que con las piernas rectas"
+],
+"common_mistakes": [
+"Balancear el cuerpo para generar impulso en vez de contraer el abdomen"
+],
+"variants": [
+"Elevación de rodillas colgado (más accesible)",
+"Rueda abdominal"
+],
+"benefits": [
+"Fuerza de core y flexores de cadera",
+"Mejora el control del cuerpo en la barra de dominadas"
+],
+"id": 40
 }
 ]

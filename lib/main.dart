@@ -125,7 +125,19 @@ class _AppGymAppState extends State<AppGymApp> {
     _weightUnitProvider = WeightUnitProvider();
 
     _db = AppDatabase();
-    seedExercisesIfEmpty(_db);
+    // Fire-and-forget deliberado: no bloquea el arranque de la app por una
+    // fusión de catálogo que, en el peor caso, deja una pantalla mostrando
+    // datos del catálogo viejo por un instante hasta que termine. El error
+    // sí se registra (no un catch vacío) -- antes esto era inocuo porque
+    // `seedExercisesIfEmpty` solo corría una vez con la base vacía; ahora
+    // corre en cada cambio de catálogo y actualiza filas existentes.
+    syncExerciseCatalog(_db).catchError(
+      (e, st) => developer.log(
+        'syncExerciseCatalog falló -- el catálogo puede haber quedado desactualizado',
+        error: e,
+        stackTrace: st,
+      ),
+    );
     _profileRepository = ProfileRepository(_db);
     _workoutRepository = WorkoutRepository(_db);
     _repairZeroPersonalRecordsOnce();
