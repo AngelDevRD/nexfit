@@ -51,6 +51,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen>
   List<ExerciseSessionEntry> _sessionHistory = [];
   bool _loadingHistory = true;
   bool _startingWorkout = false;
+  bool _has3DModel = false;
 
   @override
   void initState() {
@@ -62,6 +63,9 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen>
         .get(widget.exerciseId)
         .then((e) {
           setState(() => _exercise = e);
+          exercise3DModelExists(
+            e.slug,
+          ).then((exists) => mounted ? setState(() => _has3DModel = exists) : null);
           return animationRepository.getAnimation(e.slug);
         })
         .then((a) => setState(() => _animation = a))
@@ -294,23 +298,24 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen>
                                   label: 'Animación',
                                 ),
                               ),
-                              Positioned(
-                                right: AppSpacing.sm,
-                                bottom: AppSpacing.sm,
-                                child: _MediaPill(
-                                  icon: Icons.view_in_ar_outlined,
-                                  label: 'Ver en 3D',
-                                  filled: true,
-                                  onTap: () => Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => Exercise3DView(
-                                        slug: exercise.slug,
-                                        exerciseName: exercise.name,
+                              if (_has3DModel)
+                                Positioned(
+                                  right: AppSpacing.sm,
+                                  bottom: AppSpacing.sm,
+                                  child: _MediaPill(
+                                    icon: Icons.view_in_ar_outlined,
+                                    label: 'Ver en 3D',
+                                    filled: true,
+                                    onTap: () => Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => Exercise3DView(
+                                          slug: exercise.slug,
+                                          exerciseName: exercise.name,
+                                        ),
                                       ),
                                     ),
                                   ),
                                 ),
-                              ),
                             ],
                           ),
                         ),

@@ -4,6 +4,24 @@ import 'package:flutter_3d_controller/flutter_3d_controller.dart';
 
 import '../../core/theme.dart';
 
+/// E3(a): hoy `assets/models_3d/` no tiene ningún `.glb` (solo el README),
+/// así que el botón "Ver en 3D" del detalle siempre terminaba en el cartel
+/// de `_MissingAsset`. En vez de ocultarlo con un feature flag, se comprueba
+/// si existe el modelo (masculino o femenino) para este ejercicio puntual --
+/// a medida que se agreguen archivos, el botón aparece solo, sin volver a
+/// tocar código.
+Future<bool> exercise3DModelExists(String slug) async {
+  for (final gender in const ['male', 'female']) {
+    try {
+      await rootBundle.load('assets/models_3d/${slug}_$gender.glb');
+      return true;
+    } catch (_) {
+      // sigue con el otro género
+    }
+  }
+  return false;
+}
+
 /// Visor 3D de un ejercicio. Carga el modelo animado desde
 /// `assets/models_3d/<slug>_<gender>.glb` (offline). Si el archivo no está,
 /// muestra un placeholder con el nombre exacto que falta.
