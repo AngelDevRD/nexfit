@@ -228,6 +228,7 @@ class _AppGymAppState extends State<AppGymApp> {
         ChangeNotifierProvider<WeightUnitProvider>.value(
           value: _weightUnitProvider,
         ),
+        ChangeNotifierProvider<SyncEngine>.value(value: _syncEngine),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) => MaterialApp(

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
 import '../../core/local/database.dart';
+import '../../core/sync/sync_engine.dart';
 import '../../core/theme.dart';
 import '../../features/import_export/export_screen.dart';
 import '../../features/import_export/import_preview_screen.dart';
@@ -99,6 +101,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
     final syncSettings = context.watch<SyncSettingsProvider>();
+    final syncEngine = context.watch<SyncEngine>();
     final weightUnit = context.watch<WeightUnitProvider>();
 
     return Scaffold(
@@ -176,6 +179,56 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     if (f != null) syncSettings.setFrequency(f);
                   },
                 ),
+                // Antes una falla de sync (ej. el bug de la columna
+                // `completed` faltante en Supabase) solo quedaba en
+                // developer.log -- invisible sin conectar un debugger. Esto
+                // es lo mínimo para que el usuario se entere sin tener que
+                // preguntar "¿esto está subiendo a la nube de verdad?".
+                if (syncEngine.lastError != null) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.sm),
+                    decoration: BoxDecoration(
+                      color: AppColors.danger.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      border: Border.all(
+                        color: AppColors.danger.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.sync_problem,
+                          size: 18,
+                          color: AppColors.danger,
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Último error de sync'
+                                '${syncEngine.lastErrorAt != null ? ' (${DateFormat('dd/MM HH:mm').format(syncEngine.lastErrorAt!.toLocal())})' : ''}',
+                                style: Theme.of(context).textTheme.labelMedium
+                                    ?.copyWith(
+                                      color: AppColors.danger,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                syncEngine.lastError!,
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
