@@ -26,6 +26,16 @@ jobs:
 
       - run: flutter test
 
+      - name: Restaurar keystore de release
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/nexfit-release.jks
+          cat > android/key.properties <<EOF
+          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          storeFile=nexfit-release.jks
+          EOF
+
       - name: Compilar APK (release)
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -44,11 +54,17 @@ jobs:
             --dart-define=SUPABASE_URL=$SUPABASE_URL \
             --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
 
-      - name: Calcular tag desde pubspec.yaml
+      - name: Verificar que el tag coincide con pubspec.yaml
         id: tag
         run: |
           version=$(grep '^version:' pubspec.yaml | sed 's/version: *//' | cut -d'+' -f1)
-          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+          expected="v$version"
+          actual="${{ github.ref_name }}"
+          if [ "$actual" != "$expected" ]; then
+            echo "El tag pusheado ($actual) no coincide con la version de pubspec.yaml ($expected)." >&2
+            exit 1
+          fi
+          echo "tag=$actual" >> "$GITHUB_OUTPUT"
 
       - name: Verificar que la version es superior a la ultima publicada
         run: node tools/verify-release-version.mjs --repo ${{ github.repository }} --new "${{ steps.tag.outputs.tag }}"
