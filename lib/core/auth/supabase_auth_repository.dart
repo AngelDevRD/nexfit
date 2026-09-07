@@ -119,4 +119,18 @@ class SupabaseAuthRepository implements AuthRepository {
       _rethrowAsFailure(e);
     }
   }
+
+  @override
+  Future<void> deleteAccount() async {
+    // RPC SECURITY DEFINER (ver supabase/migrations): borra auth.users del
+    // usuario actual, lo que en cascada borra todas sus filas nexfit_*.
+    try {
+      await _client.rpc('nexfit_delete_own_account');
+    } on sb.PostgrestException {
+      throw AuthFailure(
+        'No se pudo eliminar la cuenta. Intentá de nuevo más tarde.',
+      );
+    }
+    await _client.auth.signOut();
+  }
 }

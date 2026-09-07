@@ -54,4 +54,8 @@ abstract class AuthRepository {
   /// un email con un link). No devuelve el usuario porque en ese momento
   /// todavía no hay sesión activa.
   Future<void> resetPassword({required String email});
+
+  /// Borra la cuenta del usuario autenticado en el proveedor (identidad +
+  /// todos sus datos remotos) y cierra la sesión. Irreversible.
+  Future<void> deleteAccount();
 }

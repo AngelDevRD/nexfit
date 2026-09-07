@@ -45,4 +45,9 @@ class UnavailableAuthRepository implements AuthRepository {
   Future<void> resetPassword({required String email}) async {
     throw AuthFailure(_message);
   }
+
+  @override
+  Future<void> deleteAccount() async {
+    throw AuthFailure(_message);
+  }
 }
