@@ -50,6 +50,11 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Firma de release (ver README.md, seccion "Firma de release") -- nunca se commitea
+android/key.properties
+*.jks
+*.keystore
+
 # Backend legado (Python/FastAPI, archivado -- ver legacy/backend_fastapi/README.md)
 legacy/backend_fastapi/.env
 legacy/backend_fastapi/__pycache__/

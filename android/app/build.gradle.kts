@@ -64,12 +64,17 @@ android {
 
     buildTypes {
         release {
-            // Firma de release si existe key.properties; si no, cae a debug para dev.
-            signingConfig = if (keystorePropertiesFile.exists()) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
+            // Sin key.properties no hay build de release: evita que un APK
+            // quede firmado con la clave de debug sin que nadie lo note.
+            if (!keystorePropertiesFile.exists()) {
+                throw GradleException(
+                    "Falta android/key.properties: no se puede firmar el build de " +
+                        "release. Genera el keystore y crea key.properties " +
+                        "(ver README.md, seccion 'Firma de release'), o en CI " +
+                        "restaura el secret correspondiente antes de compilar."
+                )
             }
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }
