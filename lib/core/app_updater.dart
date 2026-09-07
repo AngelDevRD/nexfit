@@ -37,6 +37,14 @@ class AppUpdater {
   static const String defaultBaseUrl =
       'https://portfolio-five-zeta-xf21p0a5se.vercel.app';
 
+  /// Google Play prohíbe que una app se actualice por un mecanismo distinto
+  /// al de Play (politica Device and Network Abuse). El canal de APK directo
+  /// activa este autoupdater con --dart-define=ENABLE_SELF_UPDATE=true; el
+  /// build que se sube a Play lo deja desactivado (default).
+  static const bool enableSelfUpdate = bool.fromEnvironment(
+    'ENABLE_SELF_UPDATE',
+  );
+
   /// Revisa si hay una version nueva y, si aplica, muestra el dialogo de actualizacion.
   /// Nunca lanza: cualquier error de red o parseo se ignora silenciosamente para no
   /// afectar el arranque de la app.
@@ -45,6 +53,7 @@ class AppUpdater {
     required String slug,
     String baseUrl = defaultBaseUrl,
   }) async {
+    if (!enableSelfUpdate) return;
     try {
       final info = await _fetchUpdateInfo(slug, baseUrl);
       if (info == null) return;
