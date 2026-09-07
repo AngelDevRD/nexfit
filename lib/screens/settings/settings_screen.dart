@@ -8,6 +8,7 @@ import '../../core/sync/sync_engine.dart';
 import '../../core/theme.dart';
 import '../../features/import_export/export_screen.dart';
 import '../../features/import_export/import_preview_screen.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/sync_settings_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/weight_unit_provider.dart';
@@ -92,6 +93,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
           context,
         ).showSnackBar(SnackBar(content: Text('Error al importar: $e')));
       }
+    } finally {
+      if (mounted) setState(() => _working = false);
+    }
+  }
+
+  Future<void> _deleteAccount() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar mi cuenta'),
+        content: const Text(
+          'Esta acción es permanente y no se puede deshacer. Se va a borrar '
+          'tu cuenta y todos tus datos: rutinas, entrenamientos, series, '
+          'objetivos, check-ins y registros de nutrición, tanto los guardados '
+          'en este teléfono como los de la nube.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Eliminar mi cuenta'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    setState(() => _working = true);
+    try {
+      final ok = await context.read<AuthProvider>().deleteAccount();
+      if (!ok) {
+        if (mounted) {
+          final error = context.read<AuthProvider>().error;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(error ?? 'No se pudo eliminar la cuenta.')),
+          );
+        }
+        return;
+      }
+      await context.read<AppDatabase>().clearAllData();
     } finally {
       if (mounted) setState(() => _working = false);
     }
@@ -352,6 +397,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   icon: const Icon(Icons.file_download_outlined),
                   label: const Text('Exportar a archivo'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          _SectionHeader(
+            icon: Icons.person_remove_outlined,
+            title: 'Cuenta',
+            iconColor: AppColors.danger,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceContainer,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Borra tu cuenta y todos tus datos, en el teléfono y en la '
+                  'nube. No se puede deshacer.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.danger,
+                    side: BorderSide(color: AppColors.danger),
+                  ),
+                  onPressed: _working ? null : _deleteAccount,
+                  icon: const Icon(Icons.person_remove_outlined),
+                  label: const Text('Eliminar mi cuenta'),
                 ),
               ],
             ),
