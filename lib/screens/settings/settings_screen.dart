@@ -124,19 +124,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
     if (confirm != true || !mounted) return;
 
+    final authProvider = context.read<AuthProvider>();
+    final db = context.read<AppDatabase>();
     setState(() => _working = true);
     try {
-      final ok = await context.read<AuthProvider>().deleteAccount();
+      final ok = await authProvider.deleteAccount();
       if (!ok) {
         if (mounted) {
-          final error = context.read<AuthProvider>().error;
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(error ?? 'No se pudo eliminar la cuenta.')),
+            SnackBar(
+              content: Text(authProvider.error ?? 'No se pudo eliminar la cuenta.'),
+            ),
           );
         }
         return;
       }
-      await context.read<AppDatabase>().clearAllData();
+      await db.clearAllData();
     } finally {
       if (mounted) setState(() => _working = false);
     }
