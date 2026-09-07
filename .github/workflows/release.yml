@@ -5,7 +5,7 @@ name: Release
 # Settings > Secrets and variables > Actions de este repo.
 on:
   push:
-    branches: [master]
+    tags: ['v*']
 
 permissions:
   contents: write
@@ -35,6 +35,15 @@ jobs:
             --dart-define=SUPABASE_URL=$SUPABASE_URL \
             --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
 
+      - name: Compilar AAB (release)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          flutter build appbundle --release \
+            --dart-define=SUPABASE_URL=$SUPABASE_URL \
+            --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
+
       - name: Calcular tag desde pubspec.yaml
         id: tag
         run: |
@@ -51,6 +60,11 @@ jobs:
           name: android-apk
           path: build/app/outputs/flutter-apk/app-release.apk
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-aab
+          path: build/app/outputs/bundle/release/app-release.aab
+
   build-windows:
     # windows-latest ya trae MSVC 14.51 (VS 2026), que elimino los headers
     # <experimental/coroutine> que usan flutter_inappwebview_windows y otros
@@ -66,6 +80,8 @@ jobs:
       - run: flutter config --enable-windows-desktop
 
       - run: flutter pub get
+
+      - run: flutter test
 
       - name: Compilar Windows (release)
         env:
@@ -98,4 +114,5 @@ jobs:
           generate_release_notes: true
           files: |
             android-apk/app-release.apk
+            android-aab/app-release.aab
             windows-zip/nexfit-windows.zip
