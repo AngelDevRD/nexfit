@@ -18,6 +18,7 @@ import '../../repositories/recovery_repository.dart';
 import '../../repositories/social_repository.dart';
 import '../../repositories/stats_repository.dart';
 import '../../widgets/coming_soon_view.dart';
+import '../../widgets/health_disclaimer.dart';
 
 class CoachChatScreen extends StatefulWidget {
   const CoachChatScreen({super.key});
@@ -175,9 +176,12 @@ class _CoachChatBodyState extends State<_CoachChatBody> {
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(AppSpacing.md),
-              itemCount: coach.messages.length + 1,
+              itemCount: coach.messages.length + 2,
               itemBuilder: (context, index) {
                 if (index == 0) {
+                  return const HealthDisclaimer();
+                }
+                if (index == 1) {
                   return Center(
                     child: Container(
                       margin: const EdgeInsets.only(bottom: AppSpacing.md),
@@ -198,7 +202,7 @@ class _CoachChatBodyState extends State<_CoachChatBody> {
                     ),
                   );
                 }
-                final message = coach.messages[index - 1];
+                final message = coach.messages[index - 2];
                 return _ChatBubble(message: message);
               },
             ),
