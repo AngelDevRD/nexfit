@@ -5,6 +5,7 @@ import '../../core/calculators.dart';
 import '../../core/theme.dart';
 import '../../core/units.dart';
 import '../../providers/weight_unit_provider.dart';
+import '../../widgets/health_disclaimer.dart';
 
 class FatLossRateScreen extends StatefulWidget {
   const FatLossRateScreen({super.key});
@@ -53,6 +54,7 @@ class _FatLossRateScreenState extends State<FatLossRateScreen> {
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.md),
         children: [
+          const HealthDisclaimer(),
           Text('Tu objetivo', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: AppSpacing.md),
           TextFormField(

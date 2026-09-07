@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/calculators.dart';
 import '../../core/theme.dart';
 import '../../models/user.dart';
+import '../../widgets/health_disclaimer.dart';
 
 class NutritionCalculatorScreen extends StatefulWidget {
   const NutritionCalculatorScreen({super.key});
@@ -49,6 +50,7 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.md),
         children: [
+          const HealthDisclaimer(),
           Text('Tus datos', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: AppSpacing.md),
           Row(
