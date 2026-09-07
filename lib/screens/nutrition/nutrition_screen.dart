@@ -6,6 +6,7 @@ import '../../core/theme.dart';
 import '../../models/nutrition.dart';
 import '../../repositories/nutrition_repository.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/health_disclaimer.dart';
 
 /// N5: siempre vive dentro de [CuerpoHubScreen] -- el hub provee
 /// Scaffold/AppBar, esta pantalla solo devuelve contenido.
@@ -94,6 +95,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.md),
           children: [
+            const HealthDisclaimer(),
             Text(
               'Registrar hoy',
               style: Theme.of(context).textTheme.titleLarge,
