@@ -117,6 +117,15 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Borra la cuenta (identidad + datos remotos) y cierra la sesión.
+  /// Irreversible -- la pantalla que llama a esto es responsable de pedir
+  /// confirmación explícita antes.
+  Future<bool> deleteAccount() => _run(() async {
+    await _authRepository.deleteAccount();
+    user = null;
+    status = AuthStatus.unauthenticated;
+  });
+
   @override
   void dispose() {
     _authStateSub?.cancel();

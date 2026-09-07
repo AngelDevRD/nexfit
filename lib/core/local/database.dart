@@ -403,4 +403,13 @@ class AppDatabase extends _$AppDatabase {
       }
     },
   );
+
+  /// Borra todas las filas de todas las tablas. Usado al eliminar la cuenta:
+  /// la identidad y los datos remotos ya se borraron en el backend, esto
+  /// limpia lo que queda en el telefono.
+  Future<void> clearAllData() => transaction(() async {
+    for (final table in allTables) {
+      await delete(table).go();
+    }
+  });
 }
