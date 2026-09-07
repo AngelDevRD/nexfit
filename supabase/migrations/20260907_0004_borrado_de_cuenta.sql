@@ -17,4 +17,8 @@ begin
 end;
 $function$;
 
+-- Postgres concede EXECUTE a PUBLIC por defecto al crear una funcion -- sin
+-- este revoke, anon tambien podria invocarla (lint 0028, ya resuelto para el
+-- resto de las funciones en 20260905_0003_endurecer_rls.sql).
+revoke execute on function public.nexfit_delete_own_account() from anon, public;
 grant execute on function public.nexfit_delete_own_account() to authenticated;
