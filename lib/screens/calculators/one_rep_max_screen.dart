@@ -5,6 +5,7 @@ import '../../core/calculators.dart';
 import '../../core/theme.dart';
 import '../../core/units.dart';
 import '../../providers/weight_unit_provider.dart';
+import '../../widgets/health_disclaimer.dart';
 
 class OneRepMaxScreen extends StatefulWidget {
   const OneRepMaxScreen({super.key});
@@ -41,6 +42,7 @@ class _OneRepMaxScreenState extends State<OneRepMaxScreen> {
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.md),
         children: [
+          const HealthDisclaimer(),
           Text(
             'Datos de la serie',
             style: Theme.of(context).textTheme.titleLarge,

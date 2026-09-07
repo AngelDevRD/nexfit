@@ -6,6 +6,7 @@ import '../../core/theme.dart';
 import '../../core/units.dart';
 import '../../models/user.dart';
 import '../../providers/weight_unit_provider.dart';
+import '../../widgets/health_disclaimer.dart';
 
 class BodyCompositionScreen extends StatefulWidget {
   const BodyCompositionScreen({super.key});
@@ -62,6 +63,7 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> {
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.md),
         children: [
+          const HealthDisclaimer(),
           Text('Tus datos', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: AppSpacing.md),
           Row(
