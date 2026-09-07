@@ -402,6 +402,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
+          _SectionHeader(icon: Icons.info_outline, title: 'Acerca de'),
+          const SizedBox(height: AppSpacing.sm),
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.surfaceContainer,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+            ),
+            child: ListTile(
+              leading: const Icon(Icons.description_outlined),
+              title: const Text('Licencias de software libre'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => showLicensePage(
+                context: context,
+                applicationName: 'NexFit',
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
           _SectionHeader(
             icon: Icons.person_remove_outlined,
             title: 'Cuenta',
