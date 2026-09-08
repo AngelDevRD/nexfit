@@ -438,4 +438,22 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+    'A3: sessionId inexistente (draft huérfano) muestra un error con '
+    '"Volver", no un spinner infinito',
+    (tester) async {
+      // Nunca se crea la sesión 999 -- reproduce un draft que quedó
+      // apuntando a una sesión ya borrada.
+      await tester.pumpWidget(wrap(999));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(
+        find.text('No se pudo cargar este entrenamiento.'),
+        findsOneWidget,
+      );
+      expect(find.text('Volver'), findsOneWidget);
+    },
+  );
 }

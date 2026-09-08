@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -13,6 +14,8 @@ import '../../repositories/active_workout_repository.dart';
 import '../../repositories/personal_records_service.dart';
 import '../../repositories/routine_repository.dart';
 import '../../repositories/workout_repository.dart';
+import '../../widgets/attribution_footer.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/exercise_thumb.dart';
 import '../../widgets/stat_tile.dart';
 import '../../widgets/stepper_field.dart';
@@ -36,6 +39,10 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen>
   late final ActiveWorkoutRepository _activeRepository;
   late final RoutineRepository _routineRepository;
   WorkoutSession? _session;
+  // A3: la sesión puede no existir más (draft huérfano) -- sin esto, un
+  // `getSingle()` que falla dejaba `_session` en null para siempre y la
+  // pantalla se quedaba en el spinner sin ningún indicio de qué pasó.
+  bool _loadError = false;
   DateTime? _restEndsAt;
   int? _restTotalSeconds;
   bool _finishing = false;
@@ -70,49 +77,67 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen>
   }
 
   Future<void> _load() async {
-    final session = await _repository.get(widget.sessionId);
-    // El descanso persiste como instante absoluto en el draft -> si la app se
-    // cerró a mitad de un descanso, al reabrir se restaura el mismo estado
-    // (RestTimerBanner recalcula el restante contra `DateTime.now()`).
-    final restEndsAt = await _activeRepository.restEndsAt();
+    try {
+      final session = await _repository.get(widget.sessionId);
+      // El descanso persiste como instante absoluto en el draft -> si la app
+      // se cerró a mitad de un descanso, al reabrir se restaura el mismo
+      // estado (RestTimerBanner recalcula el restante contra
+      // `DateTime.now()`).
+      final restEndsAt = await _activeRepository.restEndsAt();
 
-    if (!_routineTargetsLoaded &&
-        session.routineId != null &&
-        session.routineDayId != null) {
-      _routineTargetsLoaded = true;
-      final routine = await _routineRepository.get(session.routineId!);
-      RoutineDay? day;
-      for (final d in routine.days) {
-        if (d.id == session.routineDayId) {
-          day = d;
-          break;
+      if (!_routineTargetsLoaded &&
+          session.routineId != null &&
+          session.routineDayId != null) {
+        _routineTargetsLoaded = true;
+        final routine = await _routineRepository.get(session.routineId!);
+        RoutineDay? day;
+        for (final d in routine.days) {
+          if (d.id == session.routineDayId) {
+            day = d;
+            break;
+          }
+        }
+        if (day != null) {
+          _routineTargets = {for (final e in day.exercises) e.exercise.id: e};
         }
       }
-      if (day != null) {
-        _routineTargets = {for (final e in day.exercises) e.exercise.id: e};
+
+      final exerciseIds = session.sets.map((s) => s.exercise.id).toSet();
+      for (final exerciseId in exerciseIds) {
+        if (_lastSets.containsKey(exerciseId)) continue;
+        _lastSets[exerciseId] = await _repository.lastSetFor(
+          exerciseId,
+          excludeSessionId: widget.sessionId,
+        );
+        _previousSets[exerciseId] =
+            (await _repository.lastSessionFor(exerciseId))?.sets ?? const [];
       }
-    }
 
-    final exerciseIds = session.sets.map((s) => s.exercise.id).toSet();
-    for (final exerciseId in exerciseIds) {
-      if (_lastSets.containsKey(exerciseId)) continue;
-      _lastSets[exerciseId] = await _repository.lastSetFor(
-        exerciseId,
-        excludeSessionId: widget.sessionId,
-      );
-      _previousSets[exerciseId] =
-          (await _repository.lastSessionFor(exerciseId))?.sets ?? const [];
-    }
-
-    if (!mounted) return;
-    setState(() {
-      _session = session;
-      _restEndsAt = restEndsAt;
-    });
-    _elapsedTimer ??= Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
-      setState(() => _elapsed = DateTime.now().difference(session.startedAt));
-    });
+      setState(() {
+        _session = session;
+        _restEndsAt = restEndsAt;
+        _loadError = false;
+      });
+      _elapsedTimer ??= Timer.periodic(const Duration(seconds: 1), (_) {
+        if (!mounted) return;
+        setState(() => _elapsed = DateTime.now().difference(session.startedAt));
+      });
+    } catch (e, st) {
+      // A3: la causa real es un draft huérfano (sesión borrada pero el draft
+      // todavía la referenciaba) -- `ActiveWorkoutRepository.currentSessionId`
+      // ya se autolimpia, pero esta pantalla puede haber sido abierta con un
+      // `sessionId` ya resuelto antes de esa limpieza (p. ej. desde el
+      // banner). No hay forma de recuperarse acá -- mostrar el error y dejar
+      // volver es mejor que un spinner infinito.
+      developer.log(
+        'No se pudo cargar el entrenamiento activo',
+        error: e,
+        stackTrace: st,
+      );
+      if (!mounted) return;
+      setState(() => _loadError = true);
+    }
   }
 
   @override
@@ -546,6 +571,7 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen>
                     children: [
                       IconButton(
                         icon: const Icon(Icons.keyboard_arrow_up),
+                        tooltip: 'Mover ejercicio hacia arriba',
                         onPressed: index == 0
                             ? null
                             : () => setDialogState(() {
@@ -555,6 +581,7 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen>
                       ),
                       IconButton(
                         icon: const Icon(Icons.keyboard_arrow_down),
+                        tooltip: 'Mover ejercicio hacia abajo',
                         onPressed: index == order.length - 1
                             ? null
                             : () => setDialogState(() {
@@ -739,6 +766,19 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (_loadError) {
+      return Scaffold(
+        body: Center(
+          child: EmptyState(
+            icon: Icons.error_outline,
+            iconColor: AppColors.danger,
+            message: 'No se pudo cargar este entrenamiento.',
+            actionLabel: 'Volver',
+            onAction: () => Navigator.of(context).pop(),
+          ),
+        ),
+      );
+    }
     if (_session == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -973,6 +1013,9 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen>
                         }).toList(),
                       ),
               ),
+              AttributionFooter(
+                slugs: [for (final e in exercisesInSession.values) e.slug],
+              ),
             ],
           ),
           // Barra completa anclada abajo (C5): visible de entrada, no una
@@ -1057,6 +1100,7 @@ class _RecordBanner extends StatelessWidget {
           ),
           IconButton(
             icon: const Icon(Icons.close, size: 18),
+            tooltip: 'Cerrar aviso',
             color: AppColors.onSurfaceVariant,
             onPressed: onDismiss,
           ),
@@ -1351,43 +1395,57 @@ class _ExerciseFocusCard extends StatelessWidget {
                               ? 'Serie completada'
                               : 'Marcar serie y empezar descanso'
                                     '${set.restSeconds != null ? ' (${set.restSeconds}s)' : ''}',
-                          child: InkWell(
-                            key: ValueKey('set-check-${set.id}'),
-                            borderRadius: BorderRadius.circular(AppRadius.full),
-                            onTap: () => onToggleSetCompleted(set),
-                            child: Container(
-                              width: 34,
-                              height: 34,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: set.completed
-                                    ? AppColors.secondary
-                                    : (set.isWarmup
-                                          ? Colors.transparent
-                                          : AppColors.surfaceContainerHighest),
-                                shape: BoxShape.circle,
-                                border: !set.completed && set.isWarmup
-                                    ? Border.all(color: AppColors.outline)
-                                    : null,
-                                boxShadow: set.completed
-                                    ? AppGlow.secondary
-                                    : null,
+                          child: Semantics(
+                            // A18: el círculo ya tenía Tooltip (texto visual
+                            // al mantener presionado) pero ningún lector de
+                            // pantalla anunciaba el estado por serie -- solo
+                            // "botón" a secas.
+                            label: set.completed
+                                ? 'Serie ${set.setNumber} completada'
+                                : 'Serie ${set.setNumber} sin completar',
+                            button: true,
+                            excludeSemantics: true,
+                            child: InkWell(
+                              key: ValueKey('set-check-${set.id}'),
+                              borderRadius: BorderRadius.circular(
+                                AppRadius.full,
                               ),
-                              child: set.completed
-                                  ? const Icon(
-                                      Icons.check,
-                                      size: 18,
-                                      color: AppColors.onSecondary,
-                                    )
-                                  : Text(
-                                      '${set.setNumber}',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .labelMedium
-                                          ?.copyWith(
-                                            color: AppColors.onSurfaceVariant,
-                                          ),
-                                    ),
+                              onTap: () => onToggleSetCompleted(set),
+                              child: Container(
+                                width: 34,
+                                height: 34,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: set.completed
+                                      ? AppColors.secondary
+                                      : (set.isWarmup
+                                            ? Colors.transparent
+                                            : AppColors
+                                                  .surfaceContainerHighest),
+                                  shape: BoxShape.circle,
+                                  border: !set.completed && set.isWarmup
+                                      ? Border.all(color: AppColors.outline)
+                                      : null,
+                                  boxShadow: set.completed
+                                      ? AppGlow.secondary
+                                      : null,
+                                ),
+                                child: set.completed
+                                    ? const Icon(
+                                        Icons.check,
+                                        size: 18,
+                                        color: AppColors.onSecondary,
+                                      )
+                                    : Text(
+                                        '${set.setNumber}',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelMedium
+                                            ?.copyWith(
+                                              color: AppColors.onSurfaceVariant,
+                                            ),
+                                      ),
+                              ),
                             ),
                           ),
                         ),

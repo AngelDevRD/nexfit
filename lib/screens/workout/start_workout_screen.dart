@@ -8,6 +8,8 @@ import '../../repositories/routine_repository.dart';
 import '../../repositories/workout_repository.dart';
 import 'active_workout_screen.dart';
 
+enum _ActiveWorkoutAction { resume, discard, cancel }
+
 class StartWorkoutScreen extends StatefulWidget {
   const StartWorkoutScreen({super.key});
 
@@ -29,19 +31,43 @@ class _StartWorkoutScreenState extends State<StartWorkoutScreen> {
   Future<void> _init() async {
     final activeWorkoutRepository = context.read<ActiveWorkoutRepository>();
     final routineRepository = context.read<RoutineRepository>();
+    final workoutRepository = context.read<WorkoutRepository>();
 
     // Si ya hay un entrenamiento activo (la app se cerró a mitad de una
-    // sesión), se resume directo en vez de ofrecer iniciar uno nuevo: solo
-    // puede existir un entrenamiento en curso a la vez.
+    // sesión), hay que decidir qué hacer con él en vez de resumirlo en
+    // silencio (A1): puede ser uno recién minimizado (seguirlo tiene
+    // sentido) o uno abandonado hace días (bloquearía para siempre empezar
+    // uno nuevo si no se ofrece descartarlo).
     final activeId = await activeWorkoutRepository.currentSessionId();
     if (!mounted) return;
     if (activeId != null) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => ActiveWorkoutScreen(sessionId: activeId),
-        ),
-      );
-      return;
+      final staleId = await activeWorkoutRepository.staleSessionId();
+      Duration? openFor;
+      if (staleId != null) {
+        final session = await workoutRepository.get(staleId);
+        if (!mounted) return;
+        openFor = DateTime.now().difference(session.startedAt);
+      }
+      if (!mounted) return;
+      final action = await _showActiveWorkoutDialog(openFor);
+      if (!mounted) return;
+      switch (action) {
+        case _ActiveWorkoutAction.resume:
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => ActiveWorkoutScreen(sessionId: activeId),
+            ),
+          );
+          return;
+        case _ActiveWorkoutAction.discard:
+          await activeWorkoutRepository.discard(activeId);
+          if (!mounted) return;
+          break;
+        case _ActiveWorkoutAction.cancel:
+        case null:
+          Navigator.of(context).pop();
+          return;
+      }
     }
 
     final routines = await routineRepository.list();
@@ -52,6 +78,41 @@ class _StartWorkoutScreenState extends State<StartWorkoutScreen> {
     });
   }
 
+  Future<_ActiveWorkoutAction?> _showActiveWorkoutDialog(Duration? openFor) {
+    final hours = openFor?.inHours;
+    return showDialog<_ActiveWorkoutAction>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surfaceContainer,
+        title: const Text('Entrenamiento en curso'),
+        content: Text(
+          hours != null
+              ? 'Tenés un entrenamiento abierto hace $hours horas. '
+                    '¿Qué querés hacer?'
+              : 'Ya tenés un entrenamiento en curso. ¿Qué querés hacer?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () =>
+                Navigator.of(context).pop(_ActiveWorkoutAction.cancel),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () =>
+                Navigator.of(context).pop(_ActiveWorkoutAction.discard),
+            child: const Text('Descartar y empezar uno nuevo'),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.of(context).pop(_ActiveWorkoutAction.resume),
+            child: const Text('Continuar entrenamiento'),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// C4: si hay rutina, resuelve qué día entrenar (el único que tenga, o
   /// preguntando si hay varios) y precarga sus ejercicios con los objetivos
   /// de la rutina -- series, reps sugeridas y, crucial, el descanso
@@ -60,38 +121,51 @@ class _StartWorkoutScreenState extends State<StartWorkoutScreen> {
   Future<void> _start({int? routineId, String? title}) async {
     setState(() => _starting = true);
 
-    RoutineDay? day;
-    if (routineId != null) {
-      final routine = await context.read<RoutineRepository>().get(routineId);
-      if (!mounted) return;
-      if (routine.days.isNotEmpty) {
-        day = routine.days.length == 1
-            ? routine.days.first
-            : await _pickDay(routine.days);
-        if (day == null) {
-          setState(() => _starting = false);
-          return;
+    try {
+      RoutineDay? day;
+      if (routineId != null) {
+        final routine = await context.read<RoutineRepository>().get(routineId);
+        if (!mounted) return;
+        if (routine.days.isNotEmpty) {
+          day = routine.days.length == 1
+              ? routine.days.first
+              : await _pickDay(routine.days);
+          if (day == null) {
+            setState(() => _starting = false);
+            return;
+          }
         }
       }
+      if (!mounted) return;
+
+      final session = await context.read<ActiveWorkoutRepository>().begin(
+        routineId: routineId,
+        routineDayId: day?.id,
+        title: title ?? day?.name,
+      );
+
+      if (day != null) {
+        await _preloadRoutineDay(session.id, day);
+      }
+
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => ActiveWorkoutScreen(sessionId: session.id),
+        ),
+      );
+    } on StateError catch (e) {
+      // A1: `begin()` lanza si ya hay una sesión activa -- puede pasar si
+      // otro entrenamiento se creó entre que esta pantalla cargó y el toque
+      // en "Entrenamiento libre"/una rutina (p. ej. dos pestañas). Antes la
+      // excepción escapaba sin capturar y el botón quedaba cargando para
+      // siempre.
+      if (!mounted) return;
+      setState(() => _starting = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message.toString())));
     }
-    if (!mounted) return;
-
-    final session = await context.read<ActiveWorkoutRepository>().begin(
-      routineId: routineId,
-      routineDayId: day?.id,
-      title: title ?? day?.name,
-    );
-
-    if (day != null) {
-      await _preloadRoutineDay(session.id, day);
-    }
-
-    if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => ActiveWorkoutScreen(sessionId: session.id),
-      ),
-    );
   }
 
   Future<RoutineDay?> _pickDay(List<RoutineDay> days) {
@@ -99,9 +173,7 @@ class _StartWorkoutScreenState extends State<StartWorkoutScreen> {
       context: context,
       backgroundColor: AppColors.surfaceContainer,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppRadius.lg),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
       ),
       builder: (context) => SafeArea(
         child: Column(
@@ -229,58 +301,65 @@ class _StartCard extends StatelessWidget {
       child: Material(
         color: AppColors.surfaceContainer,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: Row(
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: iconColor.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(AppRadius.md),
+        child: Semantics(
+          // A18: sin esto un lector de pantalla lee ícono + título +
+          // subtítulo como nodos sueltos en vez de una sola tarjeta
+          // accionable.
+          button: true,
+          label: '$title. $subtitle',
+          excludeSemantics: true,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Row(
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: iconColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                    child: Icon(icon, color: iconColor),
                   ),
-                  child: Icon(icon, color: iconColor),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle,
-                        style: Theme.of(context).textTheme.labelMedium
-                            ?.copyWith(color: AppColors.onSurfaceVariant),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          style: Theme.of(context).textTheme.labelMedium
+                              ?.copyWith(color: AppColors.onSurfaceVariant),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                if (loading)
-                  const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                else
-                  const Icon(
-                    Icons.chevron_right,
-                    color: AppColors.onSurfaceVariant,
-                  ),
-              ],
+                  if (loading)
+                    const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  else
+                    const Icon(
+                      Icons.chevron_right,
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                ],
+              ),
             ),
           ),
         ),

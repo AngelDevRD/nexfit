@@ -12,7 +12,13 @@ import '../workout/active_workout_screen.dart';
 import 'dashboard_screen.dart';
 
 class HomeShell extends StatefulWidget {
-  const HomeShell({super.key});
+  const HomeShell({super.key, this.onCheckForUpdate});
+
+  // A26: costura para tests -- `AppUpdater.checkForUpdate` real hace una
+  // petición HTTP con timeout que deja un `Timer` pendiente y cuelga
+  // cualquier `testWidgets` que monte `HomeShell`. Un test puede pasar
+  // `(_) async {}` para evitarlo.
+  final Future<void> Function(BuildContext)? onCheckForUpdate;
 
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -31,7 +37,10 @@ class _HomeShellState extends State<HomeShell> {
     // asi que su propio context no sirve para abrir un dialogo con showDialog.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        AppUpdater.checkForUpdate(context, slug: 'nexfit');
+        final checkForUpdate =
+            widget.onCheckForUpdate ??
+            (context) => AppUpdater.checkForUpdate(context, slug: 'nexfit');
+        checkForUpdate(context);
       }
     });
   }
@@ -70,33 +79,37 @@ class _HomeShellState extends State<HomeShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
+      // A2: el banner iba en un `Positioned(bottom: 0)` dentro del mismo
+      // `Stack` que el `IndexedStack`, así que se dibujaba ENCIMA del FAB de
+      // `EntrenarHubScreen` (ese `Scaffold` no tiene `bottomNavigationBar`,
+      // así que su FAB queda a 16px del borde -- justo donde caía el
+      // banner) y le robaba los toques. Con `Column` el banner ocupa su
+      // propio espacio en vez de superponerse; sin sesión activa devuelve
+      // `SizedBox.shrink()` y el layout queda idéntico al de antes.
+      body: Column(
         children: [
-          IndexedStack(
-            index: _index,
-            children: [
-              DashboardScreen(
-                key: ValueKey('dashboard-$_dashboardEpoch'),
-                onOpenProgresoTab: _openProgresoTab,
-              ),
-              const EntrenarHubScreen(),
-              ProgresoHubScreen(
-                key: ValueKey('progreso-$_progresoEpoch'),
-                initialTabIndex: _progresoInitialTab,
-              ),
-              const CuerpoHubScreen(),
-              const ProfileScreen(),
-            ],
+          Expanded(
+            child: IndexedStack(
+              index: _index,
+              children: [
+                DashboardScreen(
+                  key: ValueKey('dashboard-$_dashboardEpoch'),
+                  onOpenProgresoTab: _openProgresoTab,
+                ),
+                const EntrenarHubScreen(),
+                ProgresoHubScreen(
+                  key: ValueKey('progreso-$_progresoEpoch'),
+                  initialTabIndex: _progresoInitialTab,
+                ),
+                const CuerpoHubScreen(),
+                const ProfileScreen(),
+              ],
+            ),
           ),
           // N3: banner de "entrenamiento en curso" visible en TODO el shell
           // (no solo en una pestaña) -- antes el único punto de reanudación
           // era una tarjeta enterrada en Entrenar -> Historial.
-          const Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: _ActiveWorkoutBanner(),
-          ),
+          const _ActiveWorkoutBanner(),
         ],
       ),
       bottomNavigationBar: NavigationBar(
@@ -134,65 +147,96 @@ class _HomeShellState extends State<HomeShell> {
   }
 }
 
-class _ActiveWorkoutBanner extends StatelessWidget {
+class _ActiveWorkoutBanner extends StatefulWidget {
   const _ActiveWorkoutBanner();
 
   @override
+  State<_ActiveWorkoutBanner> createState() => _ActiveWorkoutBannerState();
+}
+
+class _ActiveWorkoutBannerState extends State<_ActiveWorkoutBanner> {
+  late final Stream<int?> _sessionIdStream;
+
+  @override
+  void initState() {
+    super.initState();
+    // A2 (reabierto): `watchCurrentSessionId()` armaba un Stream (y su query
+    // reactiva de Drift) nuevo en cada `build()` -- cada setState de
+    // `HomeShell` (cambiar de pestaña, bump de `_dashboardEpoch`/
+    // `_progresoEpoch`) cancelaba la suscripción anterior y abría una nueva.
+    // Mismo defecto que A10 en `ExerciseThumb`, acá con costo mayor: corre en
+    // cada rebuild del shell entero. Se resuelve una sola vez.
+    // `ActiveWorkoutRepository` se provee con `Provider.value` (no es
+    // `Listenable`), así que `context.read` alcanza -- `context.watch` no
+    // aportaba nada.
+    _sessionIdStream = context
+        .read<ActiveWorkoutRepository>()
+        .watchCurrentSessionId();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final activeRepository = context.watch<ActiveWorkoutRepository>();
     return StreamBuilder<int?>(
-      stream: activeRepository.watchCurrentSessionId(),
+      stream: _sessionIdStream,
       builder: (context, snapshot) {
         final sessionId = snapshot.data;
         if (sessionId == null) return const SizedBox.shrink();
         return Material(
           color: Colors.transparent,
-          child: InkWell(
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => ActiveWorkoutScreen(sessionId: sessionId),
+          child: Semantics(
+            // A18: sin esto un lector de pantalla lee "Entrenamiento en
+            // curso" y "Continuar" como dos textos sueltos en vez de un
+            // solo banner accionable.
+            button: true,
+            label: 'Entrenamiento en curso. Continuar',
+            excludeSemantics: true,
+            child: InkWell(
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ActiveWorkoutScreen(sessionId: sessionId),
+                ),
               ),
-            ),
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md,
-                vertical: AppSpacing.sm,
-              ),
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                boxShadow: AppGlow.primary,
-              ),
-              child: SafeArea(
-                top: false,
-                bottom: false,
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.fitness_center,
-                      color: AppColors.onPrimary,
-                      size: 18,
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: Text(
-                        'Entrenamiento en curso',
-                        style: Theme.of(context).textTheme.labelLarge
-                            ?.copyWith(color: AppColors.onPrimary),
-                      ),
-                    ),
-                    Text(
-                      'Continuar',
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.sm,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  boxShadow: AppGlow.primary,
+                ),
+                child: SafeArea(
+                  top: false,
+                  bottom: false,
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.fitness_center,
                         color: AppColors.onPrimary,
-                        fontWeight: FontWeight.bold,
+                        size: 18,
                       ),
-                    ),
-                    const Icon(
-                      Icons.chevron_right,
-                      color: AppColors.onPrimary,
-                      size: 18,
-                    ),
-                  ],
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          'Entrenamiento en curso',
+                          style: Theme.of(context).textTheme.labelLarge
+                              ?.copyWith(color: AppColors.onPrimary),
+                        ),
+                      ),
+                      Text(
+                        'Continuar',
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: AppColors.onPrimary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Icon(
+                        Icons.chevron_right,
+                        color: AppColors.onPrimary,
+                        size: 18,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
