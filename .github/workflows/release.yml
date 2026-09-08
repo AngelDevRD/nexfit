@@ -1,20 +1,35 @@
 name: Release
 
 # Reemplaza a codemagic.yaml (nunca conectada como app en Codemagic, sin builds
-# reales). Requiere los secrets SUPABASE_URL y SUPABASE_ANON_KEY configurados en
-# Settings > Secrets and variables > Actions de este repo.
+# reales). Requiere los secrets SUPABASE_URL, SUPABASE_ANON_KEY,
+# ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS y
+# ANDROID_KEY_PASSWORD configurados en Settings > Secrets and variables >
+# Actions de este repo.
+#
+# Publicar una version es un solo gesto: pushear un tag v*.*.* . La version
+# dentro de la APK (build-name/build-number) se deriva del tag, no de
+# pubspec.yaml -- pubspec.yaml ya no es una fuente de verdad de version.
 on:
   push:
-    branches: [master]
+    tags:
+      - "v*.*.*"
 
 permissions:
   contents: write
 
 jobs:
-  build-android:
+  verify-version:
     runs-on: ubuntu-latest
-    outputs:
-      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificar que el tag es superior al ultimo release publicado
+        run: node tools/verify-release-version.mjs --repo ${{ github.repository }} --new "${{ github.ref_name }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-android:
+    needs: verify-version
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -26,6 +41,10 @@ jobs:
       - run: flutter pub get
 
       - run: flutter test
+
+      - name: Derivar version del tag
+        id: version
+        run: echo "name=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
       - name: Restaurar keystore de firma release
         env:
@@ -52,26 +71,21 @@ jobs:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
           flutter build apk --release \
+            --build-name=${{ steps.version.outputs.name }} \
+            --build-number=${{ github.run_number }} \
             --dart-define=SUPABASE_URL=$SUPABASE_URL \
             --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
 
-      - name: Calcular tag desde pubspec.yaml
-        id: tag
-        run: |
-          version=$(grep '^version:' pubspec.yaml | sed 's/version: *//' | cut -d'+' -f1)
-          echo "tag=v$version" >> "$GITHUB_OUTPUT"
-
-      - name: Verificar que la version es superior a la ultima publicada
-        run: node tools/verify-release-version.mjs --repo ${{ github.repository }} --new "${{ steps.tag.outputs.tag }}"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Renombrar artefacto
+        run: cp build/app/outputs/flutter-apk/app-release.apk nexfit-android.apk
 
       - uses: actions/upload-artifact@v4
         with:
           name: android-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: nexfit-android.apk
 
   build-windows:
+    needs: verify-version
     # windows-latest ya trae MSVC 14.51 (VS 2026), que elimino los headers
     # <experimental/coroutine> que usan flutter_inappwebview_windows y otros
     # plugins nativos -- windows-2022 todavia trae el toolchain compatible.
@@ -115,8 +129,8 @@ jobs:
 
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ needs.build-android.outputs.tag }}
+          tag_name: ${{ github.ref_name }}
           generate_release_notes: true
           files: |
-            android-apk/app-release.apk
+            android-apk/nexfit-android.apk
             windows-zip/nexfit-windows.zip
