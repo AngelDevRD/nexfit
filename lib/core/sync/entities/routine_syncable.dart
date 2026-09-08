@@ -111,6 +111,23 @@ class RoutineSyncable implements SyncableEntity {
       // Cascade en Supabase se encarga de routine_days/routine_exercises.
       await client.from('nexfit_routines').delete().eq('id', routine.serverId!);
     }
+    // A25: SQLite ignora `onDelete: cascade` sin `PRAGMA foreign_keys = ON`
+    // (que esta base nunca activa -- ver el comentario de
+    // `ActiveWorkoutRepository.discard`). Sin este borrado a mano,
+    // RoutineDays/RoutineExercises quedaban huérfanos apuntando a una
+    // rutina inexistente (medido en `foreign_key_orphans_test.dart`).
+    final dayIds = await (db.select(db.routineDays)
+          ..where((t) => t.routineId.equals(routine.id)))
+        .map((d) => d.id)
+        .get();
+    if (dayIds.isNotEmpty) {
+      await (db.delete(
+        db.routineExercises,
+      )..where((t) => t.dayId.isIn(dayIds))).go();
+    }
+    await (db.delete(
+      db.routineDays,
+    )..where((t) => t.routineId.equals(routine.id))).go();
     await (db.delete(db.routines)..where((t) => t.id.equals(routine.id))).go();
   }
 }

@@ -102,6 +102,18 @@ class WorkoutSessionSyncable implements SyncableEntity {
           .delete()
           .eq('id', session.serverId!);
     }
+    // A25: SQLite ignora `onDelete: cascade` sin `PRAGMA foreign_keys = ON`
+    // (que esta base nunca activa -- ver el comentario de
+    // `ActiveWorkoutRepository.discard`, que ya sigue este mismo patrón).
+    // Sin este borrado a mano, WorkoutSets/PendingSetOps quedaban huérfanos
+    // apuntando a una sesión inexistente (medido en
+    // `foreign_key_orphans_test.dart`).
+    await (db.delete(
+      db.workoutSets,
+    )..where((t) => t.sessionId.equals(session.id))).go();
+    await (db.delete(
+      db.pendingSetOps,
+    )..where((t) => t.sessionId.equals(session.id))).go();
     await (db.delete(
       db.workoutSessions,
     )..where((t) => t.id.equals(session.id))).go();
