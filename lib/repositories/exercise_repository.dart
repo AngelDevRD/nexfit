@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart';
 
 import '../core/local/database.dart' as local;
 import '../models/exercise.dart';
@@ -34,7 +34,8 @@ class ExerciseRepository {
       value == null ? [] : (value as List).map((e) => e.toString()).toList();
 
   Future<List<ExerciseSummary>> list({String? muscleGroup}) async {
-    final query = db.select(db.exercises);
+    final query = db.select(db.exercises)
+      ..where((t) => t.deleted.equals(false));
     if (muscleGroup != null) {
       query.where((t) => t.muscleGroup.equals(muscleGroup));
     }
@@ -54,9 +55,10 @@ class ExerciseRepository {
   }
 
   Future<Exercise> get(int id) async {
-    final row = await (db.select(
-      db.exercises,
-    )..where((t) => t.id.equals(id))).getSingle();
+    final row = await (db.select(db.exercises)..where(
+          (t) => t.id.equals(id) & t.deleted.equals(false),
+        ))
+        .getSingle();
     final detail = jsonDecode(row.detailJson) as Map<String, dynamic>;
     return Exercise(
       id: row.id,
@@ -109,6 +111,7 @@ class ExerciseRepository {
             name: name,
             muscleGroup: muscleGroup,
             difficulty: 'beginner',
+            dirty: const Value(true),
             detailJson: Value(
               jsonEncode({
                 'primary_muscles': const [],
@@ -151,6 +154,7 @@ class ExerciseRepository {
         name: Value(name),
         muscleGroup: Value(muscleGroup),
         detailJson: Value(jsonEncode(detail)),
+        dirty: const Value(true),
       ),
     );
   }
@@ -167,6 +171,12 @@ class ExerciseRepository {
 
   /// Solo para ejercicios propios sin series registradas (ver
   /// [hasLoggedSets]) -- el catálogo semilla no se borra desde la app.
+  ///
+  /// A15: soft-delete (`deleted = true`, `dirty = true`) en vez de borrado
+  /// directo -- igual que `Routines`/`Goals`. Si se borrara la fila acá
+  /// mismo, `ExerciseSyncable` nunca se enteraría de que hay que borrar
+  /// también la copia en `nexfit_custom_exercises`, y el ejercicio
+  /// reaparecería al reinstalar. `list()` ya filtra `deleted = false`.
   Future<void> deleteExercise(int id) async {
     if (!isCustomExercise(id)) {
       throw ArgumentError('Solo se pueden eliminar ejercicios propios.');
@@ -176,6 +186,11 @@ class ExerciseRepository {
         'No se puede eliminar: tiene series registradas en el historial.',
       );
     }
-    await (db.delete(db.exercises)..where((t) => t.id.equals(id))).go();
+    await (db.update(db.exercises)..where((t) => t.id.equals(id))).write(
+      const local.ExercisesCompanion(
+        deleted: Value(true),
+        dirty: Value(true),
+      ),
+    );
   }
 }

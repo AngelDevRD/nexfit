@@ -9,11 +9,11 @@ import 'core/auth/auth_repository.dart';
 import 'core/auth/supabase_auth_repository.dart';
 import 'core/auth/unavailable_auth_repository.dart';
 import 'core/exercise_animation/animation_repository.dart';
-import 'core/exercise_animation/providers/custom_animation_provider.dart';
 import 'core/exercise_animation/providers/gym_visual_provider.dart';
 import 'core/local/database.dart';
 import 'core/local/local_bootstrap.dart';
 import 'core/supabase_config.dart';
+import 'core/sync/entities/exercise_syncable.dart';
 import 'core/sync/entities/goal_syncable.dart';
 import 'core/sync/entities/nutrition_syncable.dart';
 import 'core/sync/entities/profile_syncable.dart';
@@ -170,6 +170,7 @@ class _AppGymAppState extends State<AppGymApp> {
           ? const []
           : [
               ProfileSyncable(supabase),
+              ExerciseSyncable(supabase),
               RoutineSyncable(supabase),
               WorkoutSessionSyncable(supabase),
               GoalSyncable(supabase),

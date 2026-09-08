@@ -178,4 +178,82 @@ void main() {
       expect(() => repo.deleteExercise(7), throwsArgumentError);
     });
   });
+
+  group('A15: metadata de sync (dirty/deleted)', () {
+    Future<local.Exercise> rowOf(int id) => (db.select(
+      db.exercises,
+    )..where((t) => t.id.equals(id))).getSingle();
+
+    test('createExercise deja dirty = true para que el syncable lo suba', () async {
+      final id = await repo.createExercise(
+        name: 'Nuevo',
+        muscleGroup: 'Core',
+        equipment: const [],
+        movementType: 'compound',
+      );
+
+      expect((await rowOf(id)).dirty, isTrue);
+    });
+
+    test('el catálogo semilla nunca queda dirty', () async {
+      await seedCatalogExercise(9);
+
+      expect((await rowOf(9)).dirty, isFalse);
+    });
+
+    test('updateExercise vuelve a marcar dirty = true (para re-subir la edición)', () async {
+      final id = await repo.createExercise(
+        name: 'Original',
+        muscleGroup: 'Core',
+        equipment: const [],
+        movementType: 'compound',
+      );
+      // Simula que el syncable ya lo subió.
+      await (db.update(db.exercises)..where((t) => t.id.equals(id))).write(
+        const local.ExercisesCompanion(dirty: Value(false)),
+      );
+
+      await repo.updateExercise(
+        id,
+        name: 'Editado',
+        muscleGroup: 'Core',
+        equipment: const [],
+        movementType: 'compound',
+      );
+
+      expect((await rowOf(id)).dirty, isTrue);
+    });
+
+    test(
+      'deleteExercise hace soft-delete (deleted = true, dirty = true) -- no borra la fila',
+      () async {
+        final id = await repo.createExercise(
+          name: 'Descartable',
+          muscleGroup: 'Core',
+          equipment: const [],
+          movementType: 'compound',
+        );
+
+        await repo.deleteExercise(id);
+
+        final row = await rowOf(id);
+        expect(row.deleted, isTrue);
+        expect(row.dirty, isTrue);
+      },
+    );
+
+    test('list() no incluye ejercicios soft-deleted', () async {
+      final id = await repo.createExercise(
+        name: 'Descartable',
+        muscleGroup: 'Core',
+        equipment: const [],
+        movementType: 'compound',
+      );
+      await repo.deleteExercise(id);
+
+      final exercises = await repo.list();
+
+      expect(exercises.map((e) => e.id), isNot(contains(id)));
+    });
+  });
 }
