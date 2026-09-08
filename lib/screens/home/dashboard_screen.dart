@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/smart_backend_availability.dart';
 import '../../core/theme.dart';
 import '../../models/gamification.dart';
 import '../../models/stats.dart';
@@ -189,14 +190,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.lg),
-                      _AiCoachTile(
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const CoachChatScreen(),
+                      // A14: mientras SMART_BACKEND_URL no esté configurado
+                      // en el build (ver SmartBackendAvailability), esta
+                      // tarjeta -la más destacada del Dashboard- llevaba a un
+                      // ComingSoonView en todo APK publicado. Se oculta hasta
+                      // que el backend exista de verdad.
+                      if (SmartBackendAvailability.isConfigured) ...[
+                        const SizedBox(height: AppSpacing.lg),
+                        _AiCoachTile(
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const CoachChatScreen(),
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ]),
                   ),
                 ),
