@@ -102,8 +102,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _openLegalUrl(String url) async {
     final uri = Uri.tryParse(url);
-    final launched =
-        uri != null && await launchUrl(uri, mode: LaunchMode.externalApplication);
+    var launched = false;
+    if (uri != null && uri.hasScheme) {
+      try {
+        launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } catch (_) {
+        launched = false;
+      }
+    }
     if (!launched && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No se pudo abrir el enlace.')),
@@ -420,11 +426,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: AppSpacing.lg),
           _SectionHeader(icon: Icons.info_outline, title: 'Acerca de'),
           const SizedBox(height: AppSpacing.sm),
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.surfaceContainer,
-              borderRadius: BorderRadius.circular(AppRadius.lg),
-            ),
+          Material(
+            color: AppColors.surfaceContainer,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            clipBehavior: Clip.antiAlias,
             child: Column(
               children: [
                 ListTile(
