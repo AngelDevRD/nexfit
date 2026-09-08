@@ -6,11 +6,8 @@ import 'package:provider/provider.dart';
 import '../../core/exercise_animation/animation_repository.dart';
 import '../../core/exercise_animation/exercise_animation.dart';
 import '../../core/exercise_animation/widgets/exercise_animation_viewer.dart';
-import '../../core/feature_flags.dart';
 import '../../core/theme.dart';
 import '../../core/units.dart';
-import '../../features/exercise_3d/exercise_3d_view.dart';
-import '../../features/pose/pose_analysis_screen.dart';
 import '../../models/exercise.dart';
 import '../../models/stats.dart';
 import '../../models/workout.dart';
@@ -51,7 +48,6 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen>
   List<ExerciseSessionEntry> _sessionHistory = [];
   bool _loadingHistory = true;
   bool _startingWorkout = false;
-  bool _has3DModel = false;
 
   @override
   void initState() {
@@ -63,9 +59,6 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen>
         .get(widget.exerciseId)
         .then((e) {
           setState(() => _exercise = e);
-          exercise3DModelExists(
-            e.slug,
-          ).then((exists) => mounted ? setState(() => _has3DModel = exists) : null);
           return animationRepository.getAnimation(e.slug);
         })
         .then((a) => setState(() => _animation = a))
@@ -240,10 +233,12 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen>
             ? [
                 IconButton(
                   icon: const Icon(Icons.edit_outlined),
+                  tooltip: 'Editar ejercicio',
                   onPressed: _edit,
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete_outline),
+                  tooltip: 'Eliminar ejercicio',
                   onPressed: _delete,
                 ),
               ]
@@ -298,24 +293,6 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen>
                                   label: 'Animación',
                                 ),
                               ),
-                              if (_has3DModel)
-                                Positioned(
-                                  right: AppSpacing.sm,
-                                  bottom: AppSpacing.sm,
-                                  child: _MediaPill(
-                                    icon: Icons.view_in_ar_outlined,
-                                    label: 'Ver en 3D',
-                                    filled: true,
-                                    onTap: () => Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) => Exercise3DView(
-                                          slug: exercise.slug,
-                                          exerciseName: exercise.name,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
                             ],
                           ),
                         ),
@@ -449,46 +426,29 @@ class _PinnedTabBarDelegate extends SliverPersistentHeaderDelegate {
 class _MediaPill extends StatelessWidget {
   final IconData icon;
   final String label;
-  final bool filled;
-  final VoidCallback? onTap;
 
-  const _MediaPill({
-    required this.icon,
-    required this.label,
-    this.filled = false,
-    this.onTap,
-  });
+  const _MediaPill({required this.icon, required this.label});
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: filled
-          ? AppColors.primaryContainer
-          : Colors.black.withValues(alpha: 0.45),
+      color: Colors.black.withValues(alpha: 0.45),
       borderRadius: BorderRadius.circular(AppRadius.full),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadius.full),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                size: 16,
-                color: filled ? AppColors.onPrimaryContainer : Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: Colors.white),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
               ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: filled ? AppColors.onPrimaryContainer : Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -879,19 +839,6 @@ class _GuiaTab extends StatelessWidget {
               color: AppColors.primary,
             ),
           ),
-        if (kShowPoseAnalysisEntryPoints) ...[
-          const SizedBox(height: AppSpacing.sm),
-          FilledButton.icon(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) =>
-                    PoseAnalysisScreen(initialExerciseName: exercise.name),
-              ),
-            ),
-            icon: const Icon(Icons.videocam_outlined),
-            label: const Text('Analizar técnica'),
-          ),
-        ],
         if (animation?.attribution != null) ...[
           const SizedBox(height: AppSpacing.lg),
           Text(
