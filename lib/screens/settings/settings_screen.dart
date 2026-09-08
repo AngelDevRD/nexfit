@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/legal_urls.dart';
 import '../../core/local/database.dart';
 import '../../core/sync/sync_engine.dart';
 import '../../core/theme.dart';
@@ -95,6 +97,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
     } finally {
       if (mounted) setState(() => _working = false);
+    }
+  }
+
+  Future<void> _openLegalUrl(String url) async {
+    final uri = Uri.tryParse(url);
+    final launched =
+        uri != null && await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo abrir el enlace.')),
+      );
     }
   }
 
@@ -412,14 +425,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
               color: AppColors.surfaceContainer,
               borderRadius: BorderRadius.circular(AppRadius.lg),
             ),
-            child: ListTile(
-              leading: const Icon(Icons.description_outlined),
-              title: const Text('Licencias de software libre'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => showLicensePage(
-                context: context,
-                applicationName: 'NexFit',
-              ),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.privacy_tip_outlined),
+                  title: const Text('Política de privacidad'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _openLegalUrl(LegalUrls.privacyPolicy),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.gavel_outlined),
+                  title: const Text('Términos de uso'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _openLegalUrl(LegalUrls.termsOfUse),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.description_outlined),
+                  title: const Text('Licencias de software libre'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => showLicensePage(
+                    context: context,
+                    applicationName: 'NexFit',
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
