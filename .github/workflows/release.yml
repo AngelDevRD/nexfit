@@ -82,10 +82,11 @@ jobs:
           path: build/app/outputs/bundle/release/app-release.aab
 
   build-windows:
-    # windows-latest ya trae MSVC 14.51 (VS 2026), que elimino los headers
-    # <experimental/coroutine> que usan flutter_inappwebview_windows y otros
-    # plugins nativos -- windows-2022 todavia trae el toolchain compatible.
-    runs-on: windows-2022
+    # A20: se removio flutter_3d_controller (y con el, flutter_inappwebview),
+    # que era la dependencia que forzaba windows-2022 por incompatibilidad
+    # con el MSVC 14.51 de windows-latest. Si esta corrida falla en el mismo
+    # punto, revertir a windows-2022.
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
