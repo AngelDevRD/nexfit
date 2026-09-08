@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/local/database.dart' hide Exercise;
 import '../../core/theme.dart';
 import '../../models/exercise.dart';
+import '../../widgets/attribution_footer.dart';
 import '../../widgets/exercise_thumb.dart';
 import '../../widgets/muscle_group_filter.dart';
 import 'exercise_form_screen.dart';
@@ -58,7 +59,9 @@ class _ExercisePickerScreenState extends State<ExercisePickerScreen> {
     }
     if (_search.trim().isNotEmpty) {
       final query = _search.trim().toLowerCase();
-      result = result.where((e) => e.name.toLowerCase().contains(query)).toList();
+      result = result
+          .where((e) => e.name.toLowerCase().contains(query))
+          .toList();
     }
     return result;
   }
@@ -123,6 +126,7 @@ class _ExercisePickerScreenState extends State<ExercisePickerScreen> {
                               ? AppColors.primary
                               : AppColors.onSurfaceVariant,
                         ),
+                        tooltip: 'Filtrar por grupo muscular',
                         onPressed: _openMuscleGroupSheet,
                       ),
                       border: OutlineInputBorder(
@@ -185,6 +189,7 @@ class _ExercisePickerScreenState extends State<ExercisePickerScreen> {
                           ],
                         ),
                 ),
+                AttributionFooter(slugs: [for (final e in _filtered) e.slug]),
               ],
             ),
     );
@@ -209,69 +214,78 @@ class _PickerCard extends StatelessWidget {
       child: Material(
         color: AppColors.surfaceContainer,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          onTap: () => Navigator.of(context).pop(exercise),
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: Row(
-              children: [
-                ExerciseThumb(
-                  slug: exercise.slug,
-                  color: color,
-                  muscleGroup: exercise.muscleGroup,
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        exercise.name,
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Text(
-                            difficultyLabels[exercise.difficulty] ??
-                                exercise.difficulty,
-                            style: Theme.of(context).textTheme.labelMedium
-                                ?.copyWith(color: difficultyColor),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            width: 3,
-                            height: 3,
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: AppColors.outlineVariant,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              exercise.muscleGroup,
-                              style: Theme.of(context).textTheme.labelMedium
-                                  ?.copyWith(color: AppColors.onSurfaceVariant),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+        child: Semantics(
+          // A18: sin esto un lector de pantalla lee la miniatura, el
+          // nombre y el grupo muscular como nodos sueltos en vez de una
+          // sola tarjeta accionable.
+          button: true,
+          label: '${exercise.name}. ${exercise.muscleGroup}',
+          excludeSemantics: true,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            onTap: () => Navigator.of(context).pop(exercise),
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Row(
+                children: [
+                  ExerciseThumb(
+                    slug: exercise.slug,
+                    color: color,
+                    muscleGroup: exercise.muscleGroup,
                   ),
-                ),
-                const Icon(
-                  Icons.chevron_right,
-                  color: AppColors.onSurfaceVariant,
-                ),
-              ],
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          exercise.name,
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Text(
+                              difficultyLabels[exercise.difficulty] ??
+                                  exercise.difficulty,
+                              style: Theme.of(context).textTheme.labelMedium
+                                  ?.copyWith(color: difficultyColor),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              width: 3,
+                              height: 3,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: AppColors.outlineVariant,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                exercise.muscleGroup,
+                                style: Theme.of(context).textTheme.labelMedium
+                                    ?.copyWith(
+                                      color: AppColors.onSurfaceVariant,
+                                    ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    Icons.chevron_right,
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
