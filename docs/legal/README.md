@@ -45,6 +45,27 @@ aparte (o a un Gist/Netlify/Vercel) y linkear desde ahí.
 ## Placeholders pendientes en estos documentos
 
 El email de contacto ya está resuelto (angeldnielgs@gmail.com) en los 3
-documentos. Sigue pendiente reemplazar `<URL_PRIVACIDAD>`/`<URL_TERMINOS>` en
-`borrado-de-cuenta.html` una vez publicados `PRIVACIDAD.md` y `TERMINOS.md`
--- ver la sección de arriba.
+documentos. Quedan las URLs, que no se pueden resolver hasta publicar
+`PRIVACIDAD.md` y `TERMINOS.md` (ver "Cómo publicarlos" arriba). Checklist
+completo, generado con
+`grep -rn "URL_PRIVACIDAD\|URL_TERMINOS\|URL_BORRADO_DE_CUENTA" docs/ lib/`
+-- si agregás o quitás una aparición, volvé a correr ese grep y actualizá
+esta lista, no la edites de memoria:
+
+- [ ] `lib/core/legal_urls.dart:11` -- `LegalUrls.privacyPolicy`
+- [ ] `lib/core/legal_urls.dart:12` -- `LegalUrls.termsOfUse`
+- [ ] `docs/legal/borrado-de-cuenta.html:134` -- `href` del link a Privacidad
+- [ ] `docs/legal/borrado-de-cuenta.html:135` -- `href` del link a Términos
+- [ ] `docs/legal/PRIVACIDAD.md:135` -- mención de la URL de borrado de
+      cuenta en "Tus derechos" (ya entre backticks, sobrevive al renderizado
+      Markdown mientras siga pendiente)
+- [ ] `docs/legal/PLAY_DATA_SAFETY.md:28` -- mención de la misma URL en la
+      sección 1.3 del borrador de Data safety. **Ojo**: hoy está entre
+      `<` `>` sueltos, igual que estaba `PRIVACIDAD.md:135` antes de
+      corregirlo -- Markdown la va a tragar como HTML crudo al publicar y
+      desaparece de la página renderizada. No se corrigió en esta tarea
+      (quedó fuera del alcance pedido); corregirla con el mismo tratamiento
+      de backticks antes de publicar `PLAY_DATA_SAFETY.md` en algún lado.
+- [ ] `docs/legal/PLAY_DATA_SAFETY.md:110` -- ya está en su propia lista de
+      "Placeholders pendientes" (entre backticks, no tiene el problema de
+      arriba)
