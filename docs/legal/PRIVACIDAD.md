@@ -78,9 +78,8 @@ sexo, altura, peso y porcentaje de grasa si los cargaste; tu objetivo y nivel de
 experiencia; tus objetivos activos; tu índice de recuperación más reciente (si
 tenés un check-in cargado); tu volumen de entrenamiento semanal y tus rachas;
 tus entrenamientos y récords personales recientes; tu nivel y logros de
-gamificación. Groq no guarda esta información para entrenar sus modelos según
-sus propios términos de servicio (verificalos en groq.com si te importa el
-detalle).
+gamificación. El tratamiento que Groq haga de estos datos se rige por sus
+propios términos de servicio; consultalos en groq.com.
 
 El Coach IA es **opcional en el sentido más literal**: no se activa solo. Se
 envía información únicamente cuando vos abrís esa pantalla y escribís un
