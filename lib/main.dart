@@ -106,8 +106,12 @@ class _AppGymAppState extends State<AppGymApp> {
   // Composition root de las fuentes de animación: acá (y solo acá) se elige
   // qué proveedores existen y en qué orden se prueban. GymVisualProvider es
   // temporal -- el día que se reemplace, este es el único lugar que cambia.
+  // CustomAnimationProvider queda fuera de la lista mientras
+  // assets/animations/custom/ esté vacío (A11): cada resolución pagaba 5
+  // rootBundle.load() fallidos antes de llegar a GymVisual. El archivo se
+  // conserva para cuando haya recursos propios que resolver.
   final _animationRepository = AnimationRepository(
-    providers: [CustomAnimationProvider(), GymVisualProvider()],
+    providers: [GymVisualProvider()],
   );
   late final BodyMeasurementRepository _bodyMeasurementRepository;
   SocialRepository? _socialRepository;
