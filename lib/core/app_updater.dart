@@ -20,6 +20,7 @@
 //   });
 
 import 'dart:convert';
+import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -84,8 +85,15 @@ class AppUpdater {
 
       if (!context.mounted) return;
       await _showUpdateDialog(context, info, required: required);
-    } catch (_) {
-      // Silencioso a proposito: un fallo de red nunca debe bloquear el arranque de la app.
+    } catch (e, st) {
+      // No relanza a proposito: un fallo de red nunca debe bloquear el
+      // arranque de la app. Sí se registra para poder diagnosticarlo.
+      developer.log(
+        'AppUpdater.checkForUpdate falló',
+        error: e,
+        stackTrace: st,
+        name: 'AppUpdater',
+      );
     }
   }
 
