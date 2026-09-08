@@ -44,6 +44,7 @@ aparte (o a un Gist/Netlify/Vercel) y linkear desde ahí.
 
 ## Placeholders pendientes en estos documentos
 
-Buscar `<EMAIL_DE_CONTACTO>` en `PRIVACIDAD.md`, `TERMINOS.md` y
-`borrado-de-cuenta.html`, y `<URL_PRIVACIDAD>`/`<URL_TERMINOS>` en
-`borrado-de-cuenta.html` -- reemplazar todos antes de publicar.
+El email de contacto ya está resuelto (angeldnielgs@gmail.com) en los 3
+documentos. Sigue pendiente reemplazar `<URL_PRIVACIDAD>`/`<URL_TERMINOS>` en
+`borrado-de-cuenta.html` una vez publicados `PRIVACIDAD.md` y `TERMINOS.md`
+-- ver la sección de arriba.

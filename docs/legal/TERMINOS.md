@@ -73,4 +73,4 @@ actualización" de arriba.
 
 ## 9. Contacto
 
-**<EMAIL_DE_CONTACTO>**.
+**angeldnielgs@gmail.com**.

@@ -132,7 +132,7 @@ acá, no es una promesa genérica:
 - **Borrado**: desde Ajustes → Cuenta → "Eliminar mi cuenta" podés borrar tu
   cuenta y todos tus datos, tanto los del teléfono como los de la nube, de
   forma permanente e inmediata. También podés pedirlo sin abrir la app —
-  ver <URL_BORRADO_DE_CUENTA> o escribir a <EMAIL_DE_CONTACTO>.
+  ver <URL_BORRADO_DE_CUENTA> o escribir a angeldnielgs@gmail.com.
 - **Corrección**: todos los datos de perfil, rutinas, entrenamientos, etc. se
   editan directamente desde la app en el momento que quieras.
 
@@ -149,4 +149,4 @@ documento y la fecha de "Última actualización" de arriba.
 ## 7. Contacto
 
 Para cualquier consulta sobre privacidad, borrado de datos, o esta política:
-**<EMAIL_DE_CONTACTO>**.
+**angeldnielgs@gmail.com**.
