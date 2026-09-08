@@ -81,6 +81,45 @@ class $ExercisesTable extends Exercises
     requiredDuringInsert: false,
     defaultValue: const Constant('{}'),
   );
+  static const VerificationMeta _serverIdMeta = const VerificationMeta(
+    'serverId',
+  );
+  @override
+  late final GeneratedColumn<String> serverId = GeneratedColumn<String>(
+    'server_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
+  @override
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+    'dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _deletedMeta = const VerificationMeta(
+    'deleted',
+  );
+  @override
+  late final GeneratedColumn<bool> deleted = GeneratedColumn<bool>(
+    'deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -90,6 +129,9 @@ class $ExercisesTable extends Exercises
     difficulty,
     imageUrl,
     detailJson,
+    serverId,
+    dirty,
+    deleted,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -153,6 +195,24 @@ class $ExercisesTable extends Exercises
         detailJson.isAcceptableOrUnknown(data['detail_json']!, _detailJsonMeta),
       );
     }
+    if (data.containsKey('server_id')) {
+      context.handle(
+        _serverIdMeta,
+        serverId.isAcceptableOrUnknown(data['server_id']!, _serverIdMeta),
+      );
+    }
+    if (data.containsKey('dirty')) {
+      context.handle(
+        _dirtyMeta,
+        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('deleted')) {
+      context.handle(
+        _deletedMeta,
+        deleted.isAcceptableOrUnknown(data['deleted']!, _deletedMeta),
+      );
+    }
     return context;
   }
 
@@ -190,6 +250,18 @@ class $ExercisesTable extends Exercises
         DriftSqlType.string,
         data['${effectivePrefix}detail_json'],
       )!,
+      serverId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}server_id'],
+      ),
+      dirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dirty'],
+      )!,
+      deleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted'],
+      )!,
     );
   }
 
@@ -207,6 +279,9 @@ class Exercise extends DataClass implements Insertable<Exercise> {
   final String difficulty;
   final String? imageUrl;
   final String detailJson;
+  final String? serverId;
+  final bool dirty;
+  final bool deleted;
   const Exercise({
     required this.id,
     required this.slug,
@@ -215,6 +290,9 @@ class Exercise extends DataClass implements Insertable<Exercise> {
     required this.difficulty,
     this.imageUrl,
     required this.detailJson,
+    this.serverId,
+    required this.dirty,
+    required this.deleted,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -228,6 +306,11 @@ class Exercise extends DataClass implements Insertable<Exercise> {
       map['image_url'] = Variable<String>(imageUrl);
     }
     map['detail_json'] = Variable<String>(detailJson);
+    if (!nullToAbsent || serverId != null) {
+      map['server_id'] = Variable<String>(serverId);
+    }
+    map['dirty'] = Variable<bool>(dirty);
+    map['deleted'] = Variable<bool>(deleted);
     return map;
   }
 
@@ -242,6 +325,11 @@ class Exercise extends DataClass implements Insertable<Exercise> {
           ? const Value.absent()
           : Value(imageUrl),
       detailJson: Value(detailJson),
+      serverId: serverId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(serverId),
+      dirty: Value(dirty),
+      deleted: Value(deleted),
     );
   }
 
@@ -258,6 +346,9 @@ class Exercise extends DataClass implements Insertable<Exercise> {
       difficulty: serializer.fromJson<String>(json['difficulty']),
       imageUrl: serializer.fromJson<String?>(json['imageUrl']),
       detailJson: serializer.fromJson<String>(json['detailJson']),
+      serverId: serializer.fromJson<String?>(json['serverId']),
+      dirty: serializer.fromJson<bool>(json['dirty']),
+      deleted: serializer.fromJson<bool>(json['deleted']),
     );
   }
   @override
@@ -271,6 +362,9 @@ class Exercise extends DataClass implements Insertable<Exercise> {
       'difficulty': serializer.toJson<String>(difficulty),
       'imageUrl': serializer.toJson<String?>(imageUrl),
       'detailJson': serializer.toJson<String>(detailJson),
+      'serverId': serializer.toJson<String?>(serverId),
+      'dirty': serializer.toJson<bool>(dirty),
+      'deleted': serializer.toJson<bool>(deleted),
     };
   }
 
@@ -282,6 +376,9 @@ class Exercise extends DataClass implements Insertable<Exercise> {
     String? difficulty,
     Value<String?> imageUrl = const Value.absent(),
     String? detailJson,
+    Value<String?> serverId = const Value.absent(),
+    bool? dirty,
+    bool? deleted,
   }) => Exercise(
     id: id ?? this.id,
     slug: slug ?? this.slug,
@@ -290,6 +387,9 @@ class Exercise extends DataClass implements Insertable<Exercise> {
     difficulty: difficulty ?? this.difficulty,
     imageUrl: imageUrl.present ? imageUrl.value : this.imageUrl,
     detailJson: detailJson ?? this.detailJson,
+    serverId: serverId.present ? serverId.value : this.serverId,
+    dirty: dirty ?? this.dirty,
+    deleted: deleted ?? this.deleted,
   );
   Exercise copyWithCompanion(ExercisesCompanion data) {
     return Exercise(
@@ -306,6 +406,9 @@ class Exercise extends DataClass implements Insertable<Exercise> {
       detailJson: data.detailJson.present
           ? data.detailJson.value
           : this.detailJson,
+      serverId: data.serverId.present ? data.serverId.value : this.serverId,
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      deleted: data.deleted.present ? data.deleted.value : this.deleted,
     );
   }
 
@@ -318,7 +421,10 @@ class Exercise extends DataClass implements Insertable<Exercise> {
           ..write('muscleGroup: $muscleGroup, ')
           ..write('difficulty: $difficulty, ')
           ..write('imageUrl: $imageUrl, ')
-          ..write('detailJson: $detailJson')
+          ..write('detailJson: $detailJson, ')
+          ..write('serverId: $serverId, ')
+          ..write('dirty: $dirty, ')
+          ..write('deleted: $deleted')
           ..write(')'))
         .toString();
   }
@@ -332,6 +438,9 @@ class Exercise extends DataClass implements Insertable<Exercise> {
     difficulty,
     imageUrl,
     detailJson,
+    serverId,
+    dirty,
+    deleted,
   );
   @override
   bool operator ==(Object other) =>
@@ -343,7 +452,10 @@ class Exercise extends DataClass implements Insertable<Exercise> {
           other.muscleGroup == this.muscleGroup &&
           other.difficulty == this.difficulty &&
           other.imageUrl == this.imageUrl &&
-          other.detailJson == this.detailJson);
+          other.detailJson == this.detailJson &&
+          other.serverId == this.serverId &&
+          other.dirty == this.dirty &&
+          other.deleted == this.deleted);
 }
 
 class ExercisesCompanion extends UpdateCompanion<Exercise> {
@@ -354,6 +466,9 @@ class ExercisesCompanion extends UpdateCompanion<Exercise> {
   final Value<String> difficulty;
   final Value<String?> imageUrl;
   final Value<String> detailJson;
+  final Value<String?> serverId;
+  final Value<bool> dirty;
+  final Value<bool> deleted;
   const ExercisesCompanion({
     this.id = const Value.absent(),
     this.slug = const Value.absent(),
@@ -362,6 +477,9 @@ class ExercisesCompanion extends UpdateCompanion<Exercise> {
     this.difficulty = const Value.absent(),
     this.imageUrl = const Value.absent(),
     this.detailJson = const Value.absent(),
+    this.serverId = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deleted = const Value.absent(),
   });
   ExercisesCompanion.insert({
     this.id = const Value.absent(),
@@ -371,6 +489,9 @@ class ExercisesCompanion extends UpdateCompanion<Exercise> {
     required String difficulty,
     this.imageUrl = const Value.absent(),
     this.detailJson = const Value.absent(),
+    this.serverId = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deleted = const Value.absent(),
   }) : slug = Value(slug),
        name = Value(name),
        muscleGroup = Value(muscleGroup),
@@ -383,6 +504,9 @@ class ExercisesCompanion extends UpdateCompanion<Exercise> {
     Expression<String>? difficulty,
     Expression<String>? imageUrl,
     Expression<String>? detailJson,
+    Expression<String>? serverId,
+    Expression<bool>? dirty,
+    Expression<bool>? deleted,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -392,6 +516,9 @@ class ExercisesCompanion extends UpdateCompanion<Exercise> {
       if (difficulty != null) 'difficulty': difficulty,
       if (imageUrl != null) 'image_url': imageUrl,
       if (detailJson != null) 'detail_json': detailJson,
+      if (serverId != null) 'server_id': serverId,
+      if (dirty != null) 'dirty': dirty,
+      if (deleted != null) 'deleted': deleted,
     });
   }
 
@@ -403,6 +530,9 @@ class ExercisesCompanion extends UpdateCompanion<Exercise> {
     Value<String>? difficulty,
     Value<String?>? imageUrl,
     Value<String>? detailJson,
+    Value<String?>? serverId,
+    Value<bool>? dirty,
+    Value<bool>? deleted,
   }) {
     return ExercisesCompanion(
       id: id ?? this.id,
@@ -412,6 +542,9 @@ class ExercisesCompanion extends UpdateCompanion<Exercise> {
       difficulty: difficulty ?? this.difficulty,
       imageUrl: imageUrl ?? this.imageUrl,
       detailJson: detailJson ?? this.detailJson,
+      serverId: serverId ?? this.serverId,
+      dirty: dirty ?? this.dirty,
+      deleted: deleted ?? this.deleted,
     );
   }
 
@@ -439,6 +572,15 @@ class ExercisesCompanion extends UpdateCompanion<Exercise> {
     if (detailJson.present) {
       map['detail_json'] = Variable<String>(detailJson.value);
     }
+    if (serverId.present) {
+      map['server_id'] = Variable<String>(serverId.value);
+    }
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (deleted.present) {
+      map['deleted'] = Variable<bool>(deleted.value);
+    }
     return map;
   }
 
@@ -451,7 +593,10 @@ class ExercisesCompanion extends UpdateCompanion<Exercise> {
           ..write('muscleGroup: $muscleGroup, ')
           ..write('difficulty: $difficulty, ')
           ..write('imageUrl: $imageUrl, ')
-          ..write('detailJson: $detailJson')
+          ..write('detailJson: $detailJson, ')
+          ..write('serverId: $serverId, ')
+          ..write('dirty: $dirty, ')
+          ..write('deleted: $deleted')
           ..write(')'))
         .toString();
   }
@@ -8890,6 +9035,9 @@ typedef $$ExercisesTableCreateCompanionBuilder =
       required String difficulty,
       Value<String?> imageUrl,
       Value<String> detailJson,
+      Value<String?> serverId,
+      Value<bool> dirty,
+      Value<bool> deleted,
     });
 typedef $$ExercisesTableUpdateCompanionBuilder =
     ExercisesCompanion Function({
@@ -8900,6 +9048,9 @@ typedef $$ExercisesTableUpdateCompanionBuilder =
       Value<String> difficulty,
       Value<String?> imageUrl,
       Value<String> detailJson,
+      Value<String?> serverId,
+      Value<bool> dirty,
+      Value<bool> deleted,
     });
 
 class $$ExercisesTableFilterComposer
@@ -8943,6 +9094,21 @@ class $$ExercisesTableFilterComposer
 
   ColumnFilters<String> get detailJson => $composableBuilder(
     column: $table.detailJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get serverId => $composableBuilder(
+    column: $table.serverId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -8990,6 +9156,21 @@ class $$ExercisesTableOrderingComposer
     column: $table.detailJson,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get serverId => $composableBuilder(
+    column: $table.serverId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deleted => $composableBuilder(
+    column: $table.deleted,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ExercisesTableAnnotationComposer
@@ -9027,6 +9208,15 @@ class $$ExercisesTableAnnotationComposer
     column: $table.detailJson,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get serverId =>
+      $composableBuilder(column: $table.serverId, builder: (column) => column);
+
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get deleted =>
+      $composableBuilder(column: $table.deleted, builder: (column) => column);
 }
 
 class $$ExercisesTableTableManager
@@ -9064,6 +9254,9 @@ class $$ExercisesTableTableManager
                 Value<String> difficulty = const Value.absent(),
                 Value<String?> imageUrl = const Value.absent(),
                 Value<String> detailJson = const Value.absent(),
+                Value<String?> serverId = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
               }) => ExercisesCompanion(
                 id: id,
                 slug: slug,
@@ -9072,6 +9265,9 @@ class $$ExercisesTableTableManager
                 difficulty: difficulty,
                 imageUrl: imageUrl,
                 detailJson: detailJson,
+                serverId: serverId,
+                dirty: dirty,
+                deleted: deleted,
               ),
           createCompanionCallback:
               ({
@@ -9082,6 +9278,9 @@ class $$ExercisesTableTableManager
                 required String difficulty,
                 Value<String?> imageUrl = const Value.absent(),
                 Value<String> detailJson = const Value.absent(),
+                Value<String?> serverId = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deleted = const Value.absent(),
               }) => ExercisesCompanion.insert(
                 id: id,
                 slug: slug,
@@ -9090,6 +9289,9 @@ class $$ExercisesTableTableManager
                 difficulty: difficulty,
                 imageUrl: imageUrl,
                 detailJson: detailJson,
+                serverId: serverId,
+                dirty: dirty,
+                deleted: deleted,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

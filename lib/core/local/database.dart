@@ -15,6 +15,14 @@ class Exercises extends Table {
   TextColumn get imageUrl => text().nullable()();
   // Resto de campos (músculos, equipo, instrucciones, tips…) como JSON.
   TextColumn get detailJson => text().withDefault(const Constant('{}'))();
+  // A15: metadata de sync, solo relevante para ejercicios PROPIOS
+  // (`ExerciseRepository.isCustomExercise`) -- el catálogo semilla
+  // (`syncExerciseCatalog`) nunca marca `dirty` ni toca estas columnas, así
+  // que nunca se sube. `serverId`/`dirty`/`deleted` siguen el mismo patrón
+  // que `Routines`/`Goals` en vez de vivir en una tabla aparte.
+  TextColumn get serverId => text().nullable()();
+  BoolColumn get dirty => boolean().withDefault(const Constant(false))();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -306,7 +314,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -400,6 +408,30 @@ class AppDatabase extends _$AppDatabase {
         // `WorkoutRepository.updateExerciseNotes`/`reorderExercises`.
         await m.addColumn(workoutSets, workoutSets.exerciseNotes);
         await m.addColumn(workoutSets, workoutSets.exerciseOrder);
+      }
+      if (from < 11) {
+        // A1/A3: instalaciones afectadas por el draft que nunca caducaba
+        // pueden tener un `ActiveWorkoutDrafts` apuntando a una sesión que ya
+        // no existe -- limpieza de datos, no de esquema (la corrección de
+        // origen vive en `ActiveWorkoutRepository.currentSessionId`).
+        await customStatement(
+          'DELETE FROM active_workout_drafts '
+          'WHERE session_id NOT IN (SELECT id FROM workout_sessions)',
+        );
+      }
+      if (from < 12) {
+        // A15: los ejercicios propios (id >= customExerciseIdStart) pasan a
+        // sincronizarse contra `nexfit_custom_exercises` -- ver
+        // `ExerciseSyncable`. Se marcan `dirty` para que la primera pasada
+        // del SyncEngine suba los que ya existían en instalaciones previas
+        // (el catálogo semilla, con id menor, queda en `dirty = false` por
+        // default y nunca se toca).
+        await m.addColumn(exercises, exercises.serverId);
+        await m.addColumn(exercises, exercises.dirty);
+        await m.addColumn(exercises, exercises.deleted);
+        await customStatement(
+          'UPDATE exercises SET dirty = 1 WHERE id >= 1000000',
+        );
       }
     },
   );
