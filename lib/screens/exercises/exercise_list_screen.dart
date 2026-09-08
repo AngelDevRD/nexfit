@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../models/exercise.dart';
 import '../../repositories/exercise_repository.dart';
+import '../../widgets/attribution_footer.dart';
 import '../../widgets/exercise_thumb.dart';
 import '../../widgets/muscle_group_filter.dart';
 import 'exercise_detail_screen.dart';
@@ -107,6 +108,7 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
                               ? AppColors.primary
                               : AppColors.onSurfaceVariant,
                         ),
+                        tooltip: 'Filtrar por grupo muscular',
                         onPressed: _openMuscleGroupSheet,
                       ),
                       IconButton(
@@ -171,6 +173,7 @@ class _ExerciseListScreenState extends State<ExerciseListScreen> {
                       ),
                     ),
             ),
+            AttributionFooter(slugs: [for (final e in _filtered) e.slug]),
           ],
         );
 
