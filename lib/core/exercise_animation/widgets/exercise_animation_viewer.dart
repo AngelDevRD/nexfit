@@ -70,11 +70,23 @@ class _AssetImageRenderer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A16 (corregido -- mismo tratamiento que `ExerciseThumb`, ver el
+    // comentario ahí): un `ColorFilter.mode(..., BlendMode.multiply)`
+    // dejaba el trazo negro del dibujo con ~1,3:1 de contraste contra el
+    // fondo oscurecido, casi invisible. Se enmarca en vez de filtrar: fondo
+    // blanco propio + borde de `AppColors.outlineVariant`, sin tocar un
+    // solo píxel del GIF.
     return Center(
-      child: Image.asset(
-        path,
-        fit: BoxFit.contain,
-        errorBuilder: (_, _, _) => const _Placeholder(),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: AppColors.outlineVariant),
+        ),
+        child: Image.asset(
+          path,
+          fit: BoxFit.contain,
+          errorBuilder: (_, _, _) => const _Placeholder(),
+        ),
       ),
     );
   }

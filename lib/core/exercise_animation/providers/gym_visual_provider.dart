@@ -15,7 +15,7 @@ import '../exercise_animation_provider.dart';
 /// [ExerciseAnimationProvider] es lo único de lo que depende el resto del
 /// código.
 ///
-/// Licencia de la media (ver `assets/models_3d/README.md`): los GIFs son
+/// Licencia de la media: los GIFs son
 /// © Gym visual (https://gymvisual.com/), incluidos con permiso, solo a
 /// 180x180 y con atribución obligatoria -- por eso [ExerciseAnimation]
 /// siempre trae `attribution` seteado acá, nunca `null`.
