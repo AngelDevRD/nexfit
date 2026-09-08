@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Borrado de cuenta — NexFit</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #0b0d12;
+    --surface: #1c212c;
+    --text: #e8eaf0;
+    --text-muted: #a6adba;
+    --primary: #4f7cff;
+    --danger: #ef4444;
+    --border: #2a3040;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+  }
+  main {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 32px 20px 64px;
+  }
+  h1 {
+    font-size: 1.6rem;
+    margin-bottom: 4px;
+  }
+  .subtitle {
+    color: var(--text-muted);
+    margin-top: 0;
+    margin-bottom: 32px;
+  }
+  h2 {
+    font-size: 1.15rem;
+    margin-top: 40px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin: 16px 0;
+  }
+  .card.danger {
+    border-color: color-mix(in srgb, var(--danger) 40%, var(--border));
+  }
+  ul { padding-left: 1.2em; }
+  a { color: var(--primary); }
+  code {
+    background: var(--border);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+  footer {
+    margin-top: 48px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Borrado de cuenta de NexFit</h1>
+  <p class="subtitle">Cómo pedir el borrado de tu cuenta y tus datos, con o sin la app instalada.</p>
+
+  <div class="card">
+    <h2 style="margin-top:0">Opción 1 — Desde la app (inmediata)</h2>
+    <p>Si todavía tenés NexFit instalada:</p>
+    <ol>
+      <li>Abrí la app e iniciá sesión.</li>
+      <li>Andá a <strong>Ajustes → Cuenta → Eliminar mi cuenta</strong>.</li>
+      <li>Confirmá la acción.</li>
+    </ol>
+    <p>El borrado es inmediato y permanente: no hace falta reinstalar nada ni
+    esperar una confirmación por email.</p>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">Opción 2 — Sin la app instalada</h2>
+    <p>Si desinstalaste la app o no podés acceder a ella, escribí a
+    <strong><EMAIL_DE_CONTACTO></strong> desde la misma dirección de email con la
+    que te registraste, pidiendo el borrado de tu cuenta de NexFit. Usamos el
+    email de origen para verificar que el pedido viene de vos.</p>
+  </div>
+
+  <h2>Qué se borra</h2>
+  <div class="card">
+    <ul>
+      <li>Tu cuenta y credenciales de acceso.</li>
+      <li>Tu perfil (nombre, edad, sexo, altura, peso, % de grasa, objetivo,
+        nivel de experiencia).</li>
+      <li>Todas tus rutinas, entrenamientos y series registradas.</li>
+      <li>Tus objetivos, récords personales, registros de nutrición y
+        check-ins de recuperación.</li>
+      <li>Los ejercicios propios que hayas creado.</li>
+    </ul>
+    <p>Esto incluye tanto lo que está en tu teléfono (si el borrado se hace
+    desde la app) como la copia en nuestro servidor (Supabase, alojado en
+    Estados Unidos).</p>
+  </div>
+
+  <h2>Qué NO borra este procedimiento</h2>
+  <div class="card">
+    <p>Registros que la ley nos obligue a conservar por un plazo determinado
+    (por ejemplo, si existiera algún registro de facturación). Hoy NexFit no
+    procesa pagos, así que en la práctica esto no aplica.</p>
+  </div>
+
+  <h2 style="color:var(--danger)">Esto es permanente</h2>
+  <div class="card danger">
+    <p>El borrado de cuenta no se puede deshacer. Si querés conservar tu
+    historial antes de borrar tu cuenta, usá <strong>Ajustes → Exportar
+    datos</strong> en la app para guardar una copia en tu teléfono antes de
+    continuar.</p>
+  </div>
+
+  <h2>Plazo</h2>
+  <p>El borrado desde la app es inmediato. Un pedido por email
+  (<EMAIL_DE_CONTACTO>) se procesa dentro de los <strong>30 días</strong>
+  siguientes a la verificación del pedido.</p>
+
+  <footer>
+    NexFit · Ver también la <a href="<URL_PRIVACIDAD>">Política de privacidad</a>
+    y los <a href="<URL_TERMINOS>">Términos de uso</a>.
+  </footer>
+</main>
+</body>
+</html>
