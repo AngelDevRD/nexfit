@@ -13,6 +13,18 @@ class SupabaseAuthRepository implements AuthRepository {
 
   SupabaseAuthRepository(this._client);
 
+  /// Ninguna acción de auth puede arreglar esto reintentando -- las
+  /// credenciales de Supabase (SUPABASE_URL/SUPABASE_ANON_KEY) están mal
+  /// armadas o corruptas. Encontrado en un incidente real: la anon key
+  /// llegaba con caracteres "•" literales al pegarse desde una consola que
+  /// la enmascaraba, y el cliente HTTP fallaba con
+  /// `FormatException: Invalid HTTP header field value` recién al armar el
+  /// primer request -- nunca en `Supabase.initialize`, así que el mensaje
+  /// genérico de "intentá de nuevo" era literalmente falso.
+  static const _misconfiguredMessage =
+      'La app tiene mal configuradas las credenciales de Supabase. '
+      'Reintentar no lo va a arreglar -- avisale a quien mantiene la app.';
+
   /// Traduce los mensajes de Supabase Auth (siempre en inglés) a algo
   /// mostrable. Este es el único lugar de la app que conoce el texto exacto
   /// que devuelve Supabase -- si el día de mañana cambia de proveedor, esta
@@ -83,6 +95,8 @@ class SupabaseAuthRepository implements AuthRepository {
         throw AuthFailure('No se pudo completar el registro.');
       }
       return user;
+    } on FormatException {
+      throw AuthFailure(_misconfiguredMessage);
     } on sb.AuthException catch (e) {
       _rethrowAsFailure(e);
     }
@@ -103,6 +117,8 @@ class SupabaseAuthRepository implements AuthRepository {
         throw AuthFailure('Email o contraseña incorrectos.');
       }
       return user;
+    } on FormatException {
+      throw AuthFailure(_misconfiguredMessage);
     } on sb.AuthException catch (e) {
       _rethrowAsFailure(e);
     }
@@ -115,6 +131,8 @@ class SupabaseAuthRepository implements AuthRepository {
   Future<void> resetPassword({required String email}) async {
     try {
       await _client.auth.resetPasswordForEmail(email);
+    } on FormatException {
+      throw AuthFailure(_misconfiguredMessage);
     } on sb.AuthException catch (e) {
       _rethrowAsFailure(e);
     }

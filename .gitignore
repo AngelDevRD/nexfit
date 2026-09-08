@@ -68,6 +68,12 @@ legacy/backend_fastapi/*.db
 # Backend inteligente (Fase 4, docs/FASE_4_DISENO.md)
 backend_ia/.env
 
+# Credenciales de desarrollo local para `flutter run
+# --dart-define-from-file=env.json` (ver README) -- reemplaza pasar
+# --dart-define por línea de comandos, que corrompía la anon key en la
+# consola de Windows (ver ADR/incidente FormatException carácter 9).
+env.json
+
 # Backend actual (FastAPI/Supabase) -- entorno local, no se versiona
 backend/.env
 backend/.venv/
