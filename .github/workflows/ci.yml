@@ -1,0 +1,46 @@
+name: CI
+
+# Quality gate obligatorio (docs/AUDITORIA_2026-09-16_SUPERVISOR.md secciones
+# 15.3 y 16): analisis estatico, suite completa, integridad del test-lock
+# (sin tests borrados/debilitados ni skips no aprobados) y cobertura minima
+# de los archivos tocados.
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  quality-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.2"
+          channel: stable
+
+      - run: flutter pub get
+
+      - run: flutter analyze --no-fatal-infos
+
+      - run: flutter test --coverage
+
+      - run: dart run tools/qa/check_test_lock.dart
+
+      - name: Calcular base para el gate de cobertura
+        id: base
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE="${{ github.event.before }}"
+            if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+              BASE="HEAD~1"
+            fi
+          fi
+          echo "ref=$BASE" >> "$GITHUB_OUTPUT"
+
+      - run: dart run tools/qa/check_coverage.dart --lcov coverage/lcov.info --base ${{ steps.base.outputs.ref }}
