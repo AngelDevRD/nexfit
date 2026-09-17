@@ -10,3 +10,8 @@ lib/core/local/database.dart
 # widget tests que hoy no son estables. Excepcion temporal: se quita al cerrar la tarea
 # de extraer esos dialogos a widgets propios (ver backlog AR3).
 lib/screens/workout/active_workout_screen.dart
+# supabase_auth_repository.dart: adaptador fino sobre SupabaseClient (clase concreta del SDK,
+# no hay costura para falsearla sin el puerto de Q2). Tras extraer la traduccion de errores a
+# auth_error_messages.dart (100% cubierto) este archivo ya NO tiene logica propia: solo llama
+# al SDK y delega. Se quita la excepcion al introducir el puerto (Q2/AR1 de la auditoria).
+lib/core/auth/supabase_auth_repository.dart

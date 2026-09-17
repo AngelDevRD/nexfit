@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+
+import '../../core/auth/password_policy.dart';import 'package:provider/provider.dart';
 
 import '../../core/theme.dart';
 import '../../providers/auth_provider.dart';
@@ -148,7 +149,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           controller: _passwordController,
                           obscureText: _obscurePassword,
                           decoration: InputDecoration(
-                            hintText: 'Contraseña (mín. 8 caracteres)',
+                            hintText: PasswordPolicy.hint,
                             prefixIcon: const Icon(Icons.lock_outline),
                             suffixIcon: IconButton(
                               icon: Icon(
@@ -161,9 +162,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ),
                             ),
                           ),
-                          validator: (v) => (v == null || v.length < 8)
-                              ? 'Mínimo 8 caracteres'
-                              : null,
+                          validator: PasswordPolicy.validate,
                         ),
                         if (_error != null) ...[
                           const SizedBox(height: AppSpacing.sm),

@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
 import '../../models/user.dart';
+import 'auth_error_messages.dart';
 import 'auth_repository.dart';
 
 /// Implementación de [AuthRepository] sobre Supabase Auth. Persistencia de
@@ -25,25 +26,8 @@ class SupabaseAuthRepository implements AuthRepository {
       'La app tiene mal configuradas las credenciales de Supabase. '
       'Reintentar no lo va a arreglar -- avisale a quien mantiene la app.';
 
-  /// Traduce los mensajes de Supabase Auth (siempre en inglés) a algo
-  /// mostrable. Este es el único lugar de la app que conoce el texto exacto
-  /// que devuelve Supabase -- si el día de mañana cambia de proveedor, esta
-  /// traducción se va con este archivo.
   Never _rethrowAsFailure(sb.AuthException e) {
-    final msg = e.message.toLowerCase();
-    if (msg.contains('email not confirmed')) {
-      throw AuthFailure(
-        'Tu email todavía no fue confirmado. Revisá tu bandeja de entrada '
-        '(y spam) y hacé click en el link que te enviamos.',
-      );
-    }
-    if (msg.contains('invalid login credentials')) {
-      throw AuthFailure('Email o contraseña incorrectos.');
-    }
-    if (msg.contains('user already registered')) {
-      throw AuthFailure('Ya existe una cuenta con ese email.');
-    }
-    throw AuthFailure('No se pudo completar la operación. Intentá de nuevo.');
+    throw AuthFailure(translateAuthErrorMessage(e.message));
   }
 
   AppUser? _toAppUser(sb.User? user) {

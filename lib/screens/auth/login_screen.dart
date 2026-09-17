@@ -199,8 +199,15 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                           ),
-                          validator: (v) => (v == null || v.length < 8)
-                              ? 'Mínimo 8 caracteres'
+                          // M16: NO se aplica acá la política de contraseñas
+                          // (ver `PasswordPolicy`, que sí valida el
+                          // registro): una cuenta creada antes de endurecer
+                          // la política puede tener una contraseña más
+                          // corta, y el formulario no puede impedirle
+                          // entrar. Si la contraseña no sirve, lo dice el
+                          // servidor.
+                          validator: (v) => (v == null || v.isEmpty)
+                              ? 'Ingresá tu contraseña'
                               : null,
                         ),
                         Align(
