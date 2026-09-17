@@ -1,39 +1,120 @@
 name: Release
 
 # Reemplaza a codemagic.yaml (nunca conectada como app en Codemagic, sin builds
-# reales). Requiere los secrets SUPABASE_URL y SUPABASE_ANON_KEY configurados en
-# Settings > Secrets and variables > Actions de este repo.
+# reales). Requiere los secrets SUPABASE_URL, SUPABASE_ANON_KEY,
+# ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS y
+# ANDROID_KEY_PASSWORD configurados en Settings > Secrets and variables >
+# Actions de este repo.
+#
+# Publicar una version es un solo gesto: pushear un tag v*.*.* . La version
+# dentro de la APK (build-name/build-number) se deriva del tag, no de
+# pubspec.yaml -- pubspec.yaml ya no es una fuente de verdad de version.
 on:
   push:
-    tags: ['v*']
+    branches:
+      - master
+    paths:
+      - "lib/**"
+      - "android/**"
+      - "assets/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - "windows/**"
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.repository }}
+  cancel-in-progress: false
 
 permissions:
   contents: write
 
 jobs:
-  build-android:
+  version:
     runs-on: ubuntu-latest
     outputs:
-      tag: ${{ steps.tag.outputs.tag }}
+      tag: ${{ steps.compute.outputs.tag }}
+      name: ${{ steps.compute.outputs.name }}
+      skip: ${{ steps.compute.outputs.skip }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Calcular tag y version del release
+        id: compute
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if git log -1 --pretty=%B | grep -qF '[skip release]'; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Commit marcado con [skip release]: se omite el release."
+            exit 0
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            TAG="${{ github.ref_name }}"
+          else
+            LATEST=$(gh release view --repo "${{ github.repository }}" --json tagName -q .tagName 2>/dev/null || true)
+            if [ -z "$LATEST" ]; then
+              TAG="v1.0.0"
+            else
+              TAG=$(node -e "
+                const m = process.argv[1].replace(/^v/i, '').match(/^(\d+)\.(\d+)\.(\d+)/);
+                console.log('v' + m[1] + '.' + m[2] + '.' + (Number(m[3]) + 1));
+              " "$LATEST")
+            fi
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "name=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+  verify-version:
+    needs: version
+    if: needs.version.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificar que el tag es superior al ultimo release publicado
+        run: node tools/verify-release-version.mjs --repo ${{ github.repository }} --new "${{ needs.version.outputs.tag }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-android:
+    needs: [version, verify-version]
+    if: needs.version.outputs.skip != 'true'
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - uses: subosito/flutter-action@v2
         with:
+          flutter-version: "3.47.2"
           channel: stable
 
       - run: flutter pub get
 
       - run: flutter test
 
-      - name: Restaurar keystore de release
+      - name: Restaurar keystore de firma release
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/nexfit-release.jks
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "::error::Falta ANDROID_KEYSTORE_BASE64. Sin keystore la APK se firma con la clave debug, que cambia en cada runner, y Android rechaza instalarla sobre la version ya instalada."
+            exit 1
+          fi
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | tr -d '\r\n ' | base64 -d > android/app/release.jks
           cat > android/key.properties <<EOF
-          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
-          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
-          storeFile=nexfit-release.jks
+          storeFile=release.jks
+          storePassword=$ANDROID_KEYSTORE_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          keyPassword=$ANDROID_KEY_PASSWORD
           EOF
 
       - name: Compilar APK (release)
@@ -42,6 +123,8 @@ jobs:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
           flutter build apk --release \
+            --build-name=${{ needs.version.outputs.name }} \
+            --build-number=${{ github.run_number }} \
             --dart-define=SUPABASE_URL=$SUPABASE_URL \
             --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
 
@@ -51,37 +134,29 @@ jobs:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
           flutter build appbundle --release \
+            --build-name=${{ needs.version.outputs.name }} \
+            --build-number=${{ github.run_number }} \
             --dart-define=SUPABASE_URL=$SUPABASE_URL \
             --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
 
-      - name: Verificar que el tag coincide con pubspec.yaml
-        id: tag
+      - name: Renombrar artefactos
         run: |
-          version=$(grep '^version:' pubspec.yaml | sed 's/version: *//' | cut -d'+' -f1)
-          expected="v$version"
-          actual="${{ github.ref_name }}"
-          if [ "$actual" != "$expected" ]; then
-            echo "El tag pusheado ($actual) no coincide con la version de pubspec.yaml ($expected)." >&2
-            exit 1
-          fi
-          echo "tag=$actual" >> "$GITHUB_OUTPUT"
-
-      - name: Verificar que la version es superior a la ultima publicada
-        run: node tools/verify-release-version.mjs --repo ${{ github.repository }} --new "${{ steps.tag.outputs.tag }}"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          cp build/app/outputs/flutter-apk/app-release.apk nexfit-android.apk
+          cp build/app/outputs/bundle/release/app-release.aab nexfit-android.aab
 
       - uses: actions/upload-artifact@v4
         with:
           name: android-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: nexfit-android.apk
 
       - uses: actions/upload-artifact@v4
         with:
           name: android-aab
-          path: build/app/outputs/bundle/release/app-release.aab
+          path: nexfit-android.aab
 
   build-windows:
+    needs: [version, verify-version]
+    if: needs.version.outputs.skip != 'true'
     # A20: se removio flutter_3d_controller (y con el, flutter_inappwebview),
     # que era la dependencia que forzaba windows-2022 por incompatibilidad
     # con el MSVC 14.51 de windows-latest. Si esta corrida falla en el mismo
@@ -92,13 +167,12 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
+          flutter-version: "3.47.2"
           channel: stable
 
       - run: flutter config --enable-windows-desktop
 
       - run: flutter pub get
-
-      - run: flutter test
 
       - name: Compilar Windows (release)
         env:
@@ -120,16 +194,18 @@ jobs:
           path: nexfit-windows.zip
 
   release:
-    needs: [build-android, build-windows]
+    needs: [version, build-android, build-windows]
+    if: needs.version.outputs.skip != 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
 
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ needs.build-android.outputs.tag }}
+          tag_name: ${{ needs.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
           generate_release_notes: true
           files: |
-            android-apk/app-release.apk
-            android-aab/app-release.aab
+            android-apk/nexfit-android.apk
+            android-aab/nexfit-android.aab
             windows-zip/nexfit-windows.zip
