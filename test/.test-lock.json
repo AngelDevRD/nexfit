@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "files": {
+    "test/tools/test_lock_test.dart": "96ac019b363e2ce5dccc1b9cc462b6f6667eabd6da293036c148807a1401bf32",
+    "test/tools/coverage_gate_test.dart": "65f95f05c402d9487de4e2daf11fca10855ff39888fd5fa01b6602d4e44d5ad6"
+  }
+}

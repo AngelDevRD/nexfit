@@ -186,6 +186,7 @@ void main() {
     // Cuelga por un Timer pendiente de Drift .watchSingleOrNull() contra
     // NativeDatabase.memory() en flutter_test -- ver el comentario de este
     // archivo. No es un bug de HomeShell.
+    // SKIP-APPROVED: Q4 (temporal: Q4 debe quitar este skip)
     skip: true,
   );
 }
