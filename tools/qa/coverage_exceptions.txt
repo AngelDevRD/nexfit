@@ -1,0 +1,5 @@
+# Excepciones al gate de cobertura (solo el supervisor las agrega; archivo bloqueado en test-lock).
+# database.dart: declaraciones de tablas Drift (DSL que build_runner lee, no se ejecuta en runtime)
+# y migraciones historicas. Las migraciones se cubren en Q3 (drift_schemas + SchemaVerifier);
+# al cerrar Q3 esta excepcion se revisa.
+lib/core/local/database.dart

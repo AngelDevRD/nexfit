@@ -12,6 +12,9 @@
     "test/security/account_isolation_test.dart": "ad56201f49f480d3c39f6a738b56f838bbcf46bc80b01e815ece1c02f4fe6db3",
     "test/screens/profile_logout_warning_test.dart": "6175508018b6918d76da78ebe536eae46f4809fe9ae5f5c38d13418e41147372",
     "test/screens/home_shell_test.dart": "758d80d84bce98b73c6ea880817bab2f37336f29c29502aeddbb6125f7b01d4d",
-    "test/security/account_guard_concurrency_test.dart": "b5e16ae8dddb56a9382a5dd1fa29e6a00d727a1b725c379bec709d8452793f7d"
+    "test/security/account_guard_concurrency_test.dart": "b5e16ae8dddb56a9382a5dd1fa29e6a00d727a1b725c379bec709d8452793f7d",
+    "test/providers/auth_provider_test.dart": "68f213d51a1b599906ce7f8af5e6e5b0e285da36c1dc46403bc853498d331630",
+    "test/core/sync/sync_engine_interval_test.dart": "77ce1e71f415c80797f41dee9f859bd9d6b40b6c5596e1d666412728f04003b3",
+    "tools/qa/coverage_exceptions.txt": "ef1840a74da9ad37b2ffb1e3eb182dcb5d463e071a32e270e81fd507140f7af8"
   }
 }
