@@ -3,6 +3,11 @@
   "files": {
     "test/tools/test_lock_test.dart": "96ac019b363e2ce5dccc1b9cc462b6f6667eabd6da293036c148807a1401bf32",
     "test/tools/coverage_gate_test.dart": "65f95f05c402d9487de4e2daf11fca10855ff39888fd5fa01b6602d4e44d5ad6",
-    "test/tools/test_lock_hardening_test.dart": "1fbc61c45b498fc665b99c2eadf361c20ef976430e8eaee3291e9d01e979975c"
+    "test/tools/test_lock_hardening_test.dart": "1fbc61c45b498fc665b99c2eadf361c20ef976430e8eaee3291e9d01e979975c",
+    "tools/qa/test_lock.dart": "9501f7abd073a78e8700766ab959a8ede126566d47e71c7978731fb29cc3ce6d",
+    "tools/qa/coverage_gate.dart": "e0a3a43f7611d37fbd97a0d5905b8f43f44845972450047ea5bd6c28dd07e792",
+    "tools/qa/check_test_lock.dart": "0f1b58e0ba31675e2a6b71eea2fc459006e17eac189abdf1d0cf0ea5cbbd5d91",
+    "tools/qa/check_coverage.dart": "f832cd981fb69b60d9765b42e0a7f8f5a8493715d08e349084bc344bf72676e1",
+    ".github/workflows/ci.yml": "6c83d261555b3bb8d7ba5afcc1ba4308c9898909050412e617c102de6593761e"
   }
 }
