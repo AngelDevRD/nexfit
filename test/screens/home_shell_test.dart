@@ -1,3 +1,4 @@
+import 'package:appgym/core/auth/account_data_guard.dart';
 import 'package:appgym/core/auth/auth_repository.dart';
 import 'package:appgym/core/exercise_animation/animation_repository.dart';
 import 'package:appgym/core/local/database.dart' as local;
@@ -139,7 +140,11 @@ void main() {
         ),
         ChangeNotifierProvider<AuthProvider>(
           create: (_) =>
-              AuthProvider(authRepository, profileRepository)
+              AuthProvider(
+                authRepository,
+                profileRepository,
+                accountGuard: AccountDataGuard(db),
+              )
                 ..tryAutoLogin(),
         ),
       ],
