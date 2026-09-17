@@ -78,6 +78,12 @@ class RoutineRepository {
     }).toList();
   }
 
+  /// T-H2: si un `RoutineExercise` apunta a un ejercicio que ya no existe
+  /// (borrado tras sync -- ver `ExerciseSyncable`/`ExerciseRepository.
+  /// deleteExercise`), se omite en vez de lanzar: antes un solo ejercicio
+  /// borrado dejaba la rutina entera sin poder abrirse. De paso, los
+  /// ejercicios de todos los días se cargan en una sola query (antes era
+  /// una por cada `RoutineExercise`).
   Future<Routine> get(int id) async {
     final routine = await (db.select(
       db.routines,
@@ -86,19 +92,35 @@ class RoutineRepository {
       db.routineDays,
     )..where((t) => t.routineId.equals(id))).get();
     dayRows.sort((a, b) => a.dayIndex.compareTo(b.dayIndex));
+    final dayIds = dayRows.map((d) => d.id).toSet();
 
-    final days = <RoutineDay>[];
-    for (final day in dayRows) {
-      final exerciseRows = await (db.select(
-        db.routineExercises,
-      )..where((t) => t.dayId.equals(day.id))).get();
-      exerciseRows.sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
+    final exRows = dayIds.isEmpty
+        ? <local.RoutineExercise>[]
+        : await (db.select(db.routineExercises)
+                ..where((t) => t.dayId.isIn(dayIds))
+                ..orderBy([(t) => OrderingTerm.asc(t.orderIndex)]))
+              .get();
+    final exerciseIds = exRows.map((e) => e.exerciseId).toSet();
+    final exerciseById = exerciseIds.isEmpty
+        ? <int, local.Exercise>{}
+        : {
+            for (final e
+                in await (db.select(
+                  db.exercises,
+                )..where((t) => t.id.isIn(exerciseIds))).get())
+              e.id: e,
+          };
 
+    final exRowsByDay = <int, List<local.RoutineExercise>>{};
+    for (final ex in exRows) {
+      exRowsByDay.putIfAbsent(ex.dayId, () => []).add(ex);
+    }
+
+    final days = dayRows.map((day) {
       final exercises = <RoutineExercise>[];
-      for (final ex in exerciseRows) {
-        final exerciseRow = await (db.select(
-          db.exercises,
-        )..where((t) => t.id.equals(ex.exerciseId))).getSingle();
+      for (final ex in exRowsByDay[day.id] ?? const []) {
+        final exerciseRow = exerciseById[ex.exerciseId];
+        if (exerciseRow == null) continue;
         exercises.add(
           RoutineExercise(
             id: ex.id,
@@ -120,17 +142,14 @@ class RoutineRepository {
           ),
         );
       }
-
-      days.add(
-        RoutineDay(
-          id: day.id,
-          dayIndex: day.dayIndex,
-          name: day.name,
-          muscleFocus: day.muscleFocus,
-          exercises: exercises,
-        ),
+      return RoutineDay(
+        id: day.id,
+        dayIndex: day.dayIndex,
+        name: day.name,
+        muscleFocus: day.muscleFocus,
+        exercises: exercises,
       );
-    }
+    }).toList();
 
     return Routine(
       id: routine.id,

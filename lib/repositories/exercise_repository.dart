@@ -169,6 +169,32 @@ class ExerciseRepository {
     return row != null;
   }
 
+  /// T-H2: nombres de las rutinas NO borradas que usan este ejercicio en
+  /// algún día, sin duplicados aunque aparezca en varios días de la misma
+  /// rutina. Una sola query con joins (sin N+1) -- borrar un ejercicio
+  /// usado en una rutina activa dejaba `RoutineRepository.get` sin poder
+  /// resolverlo tras el sync (`ExerciseSyncable` borra la fila local).
+  Future<List<String>> routinesUsing(int exerciseId) async {
+    final query = db.selectOnly(db.routines, distinct: true)
+      ..addColumns([db.routines.name])
+      ..join([
+        innerJoin(
+          db.routineDays,
+          db.routineDays.routineId.equalsExp(db.routines.id),
+        ),
+        innerJoin(
+          db.routineExercises,
+          db.routineExercises.dayId.equalsExp(db.routineDays.id),
+        ),
+      ])
+      ..where(
+        db.routines.deleted.equals(false) &
+            db.routineExercises.exerciseId.equals(exerciseId),
+      );
+    final rows = await query.get();
+    return rows.map((r) => r.read(db.routines.name)!).toList();
+  }
+
   /// Solo para ejercicios propios sin series registradas (ver
   /// [hasLoggedSets]) -- el catálogo semilla no se borra desde la app.
   ///
@@ -184,6 +210,12 @@ class ExerciseRepository {
     if (await hasLoggedSets(id)) {
       throw StateError(
         'No se puede eliminar: tiene series registradas en el historial.',
+      );
+    }
+    final usedByRoutines = await routinesUsing(id);
+    if (usedByRoutines.isNotEmpty) {
+      throw StateError(
+        'No se puede eliminar: lo usan las rutinas ${usedByRoutines.join(', ')}.',
       );
     }
     await (db.update(db.exercises)..where((t) => t.id.equals(id))).write(

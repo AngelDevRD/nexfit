@@ -142,6 +142,9 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen>
 
   /// E1: si el ejercicio tiene series registradas, avisa y no borra --
   /// eliminarlo rompería el historial de entrenamientos ya guardado.
+  /// T-H2: mismo criterio si lo sigue usando alguna rutina activa -- tras el
+  /// sync, `ExerciseSyncable` borraría la fila local y la rutina dejaría de
+  /// poder abrirse.
   Future<void> _delete() async {
     final repository = context.read<ExerciseRepository>();
     final hasLoggedSets = await repository.hasLoggedSets(widget.exerciseId);
@@ -154,6 +157,27 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen>
           content: const Text(
             'Este ejercicio tiene series registradas en tu historial. '
             'Eliminarlo lo rompería, así que se mantiene en el catálogo.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Entendido'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+    final usedByRoutines = await repository.routinesUsing(widget.exerciseId);
+    if (!mounted) return;
+    if (usedByRoutines.isNotEmpty) {
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('No se puede eliminar'),
+          content: Text(
+            'Este ejercicio lo usan las rutinas ${usedByRoutines.join(', ')}. '
+            'Sacalo de esas rutinas antes de eliminarlo.',
           ),
           actions: [
             TextButton(
