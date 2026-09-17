@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Cleartext (HTTP) solo para el backend local en desarrollo -- localhost y
+<!-- Cleartext (HTTP) solo para el backend local en desarrollo: localhost y
      10.0.2.2 (host desde el emulador de Android). El manifest de release no
      referencia este archivo, asi que ahi rige el default seguro (solo HTTPS). -->
 <network-security-config>
