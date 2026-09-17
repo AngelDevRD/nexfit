@@ -208,4 +208,28 @@ class ActiveWorkoutRepository {
       db.activeWorkoutDrafts,
     )..where((t) => t.id.equals(_draftId))).go();
   }
+
+  /// T-H7: cierra un entrenamiento abandonado (draft con actividad vieja)
+  /// SIN perder sus series -- para eso está [discard]. A diferencia de
+  /// [finish], acá no hay un `now` real de cuándo terminó: usar
+  /// `DateTime.now()` registraría en el historial/estadísticas una duración
+  /// absurda (p. ej. 20 horas) para un entrenamiento que en realidad se
+  /// abandonó a los pocos minutos. El fin se estima como la última
+  /// actividad conocida (`ActiveWorkoutDrafts.updatedAt`, que `begin`/
+  /// `updateProgress` van actualizando), acotada a como mucho 3 horas
+  /// después del inicio y nunca antes de él.
+  Future<void> finishAbandoned(int sessionId) async {
+    final draft = await (db.select(
+      db.activeWorkoutDrafts,
+    )..where((t) => t.id.equals(_draftId))).getSingleOrNull();
+    final session = await workoutRepository.get(sessionId);
+    final lastActivity = draft?.updatedAt ?? DateTime.now();
+    final maxEndedAt = session.startedAt.add(const Duration(hours: 3));
+
+    var endedAt = lastActivity;
+    if (endedAt.isBefore(session.startedAt)) endedAt = session.startedAt;
+    if (endedAt.isAfter(maxEndedAt)) endedAt = maxEndedAt;
+
+    await finish(sessionId, endedAt: endedAt);
+  }
 }

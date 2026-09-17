@@ -8,7 +8,7 @@ import '../../repositories/routine_repository.dart';
 import '../../repositories/workout_repository.dart';
 import 'active_workout_screen.dart';
 
-enum _ActiveWorkoutAction { resume, discard, cancel }
+enum _ActiveWorkoutAction { resume, discard, finish, cancel }
 
 class StartWorkoutScreen extends StatefulWidget {
   const StartWorkoutScreen({super.key});
@@ -41,15 +41,17 @@ class _StartWorkoutScreenState extends State<StartWorkoutScreen> {
     final activeId = await activeWorkoutRepository.currentSessionId();
     if (!mounted) return;
     if (activeId != null) {
-      final staleId = await activeWorkoutRepository.staleSessionId();
-      Duration? openFor;
-      if (staleId != null) {
-        final session = await workoutRepository.get(staleId);
-        if (!mounted) return;
-        openFor = DateTime.now().difference(session.startedAt);
-      }
+      final activeSession = await workoutRepository.get(activeId);
       if (!mounted) return;
-      final action = await _showActiveWorkoutDialog(openFor);
+      final staleId = await activeWorkoutRepository.staleSessionId();
+      final openFor = staleId != null
+          ? DateTime.now().difference(activeSession.startedAt)
+          : null;
+      if (!mounted) return;
+      final action = await _showActiveWorkoutDialog(
+        openFor,
+        activeSession.sets.length,
+      );
       if (!mounted) return;
       switch (action) {
         case _ActiveWorkoutAction.resume:
@@ -60,8 +62,20 @@ class _StartWorkoutScreenState extends State<StartWorkoutScreen> {
           );
           return;
         case _ActiveWorkoutAction.discard:
-          await activeWorkoutRepository.discard(activeId);
-          if (!mounted) return;
+          if (!await _runOrWarn(
+            () => activeWorkoutRepository.discard(activeId),
+            'No se pudo descartar el entrenamiento. Probá de nuevo.',
+          )) {
+            return;
+          }
+          break;
+        case _ActiveWorkoutAction.finish:
+          if (!await _runOrWarn(
+            () => activeWorkoutRepository.finishAbandoned(activeId),
+            'No se pudo finalizar el entrenamiento. Probá de nuevo.',
+          )) {
+            return;
+          }
           break;
         case _ActiveWorkoutAction.cancel:
         case null:
@@ -78,7 +92,28 @@ class _StartWorkoutScreenState extends State<StartWorkoutScreen> {
     });
   }
 
-  Future<_ActiveWorkoutAction?> _showActiveWorkoutDialog(Duration? openFor) {
+  /// T-H7: "Descartar" es destructivo -- si el usuario lo elige en el
+  /// diálogo de opciones, pide una segunda confirmación con la cantidad de
+  /// series que se van a perder antes de borrar nada. "Volver" no borra y
+  /// vuelve a mostrar el diálogo de opciones.
+  Future<_ActiveWorkoutAction?> _showActiveWorkoutDialog(
+    Duration? openFor,
+    int setsCount,
+  ) async {
+    while (true) {
+      final action = await _showActiveWorkoutOptionsDialog(openFor);
+      if (!mounted || action != _ActiveWorkoutAction.discard) return action;
+
+      final confirmed = await _confirmDiscard(setsCount);
+      if (!mounted) return null;
+      if (confirmed) return _ActiveWorkoutAction.discard;
+      // "Volver": el while vuelve a mostrar las opciones.
+    }
+  }
+
+  Future<_ActiveWorkoutAction?> _showActiveWorkoutOptionsDialog(
+    Duration? openFor,
+  ) {
     final hours = openFor?.inHours;
     return showDialog<_ActiveWorkoutAction>(
       context: context,
@@ -92,6 +127,8 @@ class _StartWorkoutScreenState extends State<StartWorkoutScreen> {
                     '¿Qué querés hacer?'
               : 'Ya tenés un entrenamiento en curso. ¿Qué querés hacer?',
         ),
+        actionsOverflowDirection: VerticalDirection.down,
+        actionsOverflowButtonSpacing: AppSpacing.xs,
         actions: [
           TextButton(
             onPressed: () =>
@@ -103,6 +140,11 @@ class _StartWorkoutScreenState extends State<StartWorkoutScreen> {
                 Navigator.of(context).pop(_ActiveWorkoutAction.discard),
             child: const Text('Descartar y empezar uno nuevo'),
           ),
+          FilledButton.tonal(
+            onPressed: () =>
+                Navigator.of(context).pop(_ActiveWorkoutAction.finish),
+            child: const Text('Finalizar y guardar'),
+          ),
           FilledButton(
             onPressed: () =>
                 Navigator.of(context).pop(_ActiveWorkoutAction.resume),
@@ -111,6 +153,61 @@ class _StartWorkoutScreenState extends State<StartWorkoutScreen> {
         ],
       ),
     );
+  }
+
+  static String _seriesLabel(int count) {
+    if (count == 0) return '0 series';
+    if (count == 1) return '1 serie';
+    return '$count series';
+  }
+
+  Future<bool> _confirmDiscard(int setsCount) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surfaceContainer,
+        title: const Text('¿Descartar entrenamiento?'),
+        content: Text(
+          'Se van a borrar ${_seriesLabel(setsCount)} y no vas a poder '
+          'recuperarlas.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Volver'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Descartar'),
+          ),
+        ],
+      ),
+    );
+    return confirmed ?? false;
+  }
+
+  /// T-H7: si [action] lanza, avisa con un mensaje amigable (nunca
+  /// `e.toString()` crudo) en vez de dejar la pantalla colgada, y cierra
+  /// esta pantalla -- no hay un estado intermedio seguro para seguir
+  /// ofreciendo opciones sobre un entrenamiento cuyo descarte/cierre falló a
+  /// mitad de camino. Devuelve `true` si [action] terminó bien.
+  Future<bool> _runOrWarn(
+    Future<void> Function() action,
+    String friendlyMessage,
+  ) async {
+    try {
+      await action();
+      return true;
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(friendlyMessage)));
+        Navigator.of(context).pop();
+      }
+      return false;
+    }
   }
 
   /// C4: si hay rutina, resuelve qué día entrenar (el único que tenga, o
