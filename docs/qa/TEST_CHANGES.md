@@ -10,3 +10,4 @@ Solo el supervisor (Opus) agrega lineas aqui. Cualquier cambio de este archivo o
 ## Registro
 
 - APPROVED-BY: OPUS | TASK: T-C1 | FILE: test/security/account_guard_concurrency_test.dart | SHA256: b5e16ae8dddb56a9382a5dd1fa29e6a00d727a1b725c379bec709d8452793f7d
+- APPROVED-BY: OPUS | TASK: T-H7 | FILE: test/screens/start_workout_screen_test.dart | SHA256: 26cc6bb7d39555d8cbd428186976fa4312e6dea9fa7cccb8cedf707fbcc363fc

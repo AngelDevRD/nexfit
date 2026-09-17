@@ -252,6 +252,12 @@ void main() {
         await tester.tap(find.text('Descartar y empezar uno nuevo'));
         await settle(tester);
 
+        // T-H7: descartar es destructivo -- pide una segunda confirmación que
+        // dice cuántas series se van a borrar.
+        expect(find.textContaining('1 serie'), findsOneWidget);
+        await tester.tap(find.text('Descartar'));
+        await settle(tester);
+
         // La sesión vieja y sus series ya no existen -- y la pantalla quedó
         // en el flujo normal de "elegir cómo entrenar", no en un limbo.
         expect(await activeRepo.currentSessionId(), isNull);
@@ -281,6 +287,125 @@ void main() {
         expect(find.text('abrir'), findsOneWidget);
         // La sesión activa sigue intacta -- "Cancelar" no descarta nada.
         expect(await activeRepo.currentSessionId(), active.id);
+      },
+    );
+
+    // T-H7 -- Tests escritos por el SUPERVISOR (Opus) antes de la
+    // implementación: descartar exige confirmación y existe "Finalizar y
+    // guardar" para no perder un entrenamiento que solo faltó cerrar.
+    Future<int> activeWithSets(int count) async {
+      await addExercise(1, 'Press banca');
+      final active = await activeRepo.begin();
+      for (var i = 1; i <= count; i++) {
+        await workoutRepo.addSet(active.id, {
+          'exercise_id': 1,
+          'set_number': i,
+          'weight_kg': 60.0,
+          'reps': 8,
+        });
+      }
+      return active.id;
+    }
+
+    testWidgets(
+      'T-H7: el diálogo ofrece "Finalizar y guardar" además de las 3 salidas',
+      (tester) async {
+        await activeWithSets(1);
+
+        await tester.pumpWidget(wrap());
+        await settle(tester);
+
+        expect(find.text('Finalizar y guardar'), findsOneWidget);
+        expect(find.text('Continuar entrenamiento'), findsOneWidget);
+        expect(find.text('Descartar y empezar uno nuevo'), findsOneWidget);
+        expect(find.text('Cancelar'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'T-H7: la confirmación de descarte muestra la cantidad en plural y '
+      '"Volver" no borra nada y regresa a las opciones',
+      (tester) async {
+        final sessionId = await activeWithSets(3);
+
+        await tester.pumpWidget(wrap());
+        await settle(tester);
+
+        await tester.tap(find.text('Descartar y empezar uno nuevo'));
+        await settle(tester);
+
+        expect(find.textContaining('3 series'), findsOneWidget);
+        await tester.tap(find.text('Volver'));
+        await settle(tester);
+
+        expect(await activeRepo.currentSessionId(), sessionId);
+        expect(await db.select(db.workoutSets).get(), hasLength(3));
+        expect(find.text('Continuar entrenamiento'), findsOneWidget,
+            reason: 'vuelve a mostrar las opciones');
+      },
+    );
+
+    testWidgets(
+      'T-H7: "Finalizar y guardar" cierra la sesión con sus series, libera el '
+      'entrenamiento activo y deja empezar uno nuevo',
+      (tester) async {
+        final sessionId = await activeWithSets(2);
+
+        await tester.pumpWidget(wrap());
+        await settle(tester);
+
+        await tester.tap(find.text('Finalizar y guardar'));
+        await settle(tester);
+
+        expect(await activeRepo.currentSessionId(), isNull);
+        final session = await (db.select(
+          db.workoutSessions,
+        )..where((t) => t.id.equals(sessionId))).getSingle();
+        expect(session.endedAt, isNotNull, reason: 'queda en el historial');
+        expect(await db.select(db.workoutSets).get(), hasLength(2));
+        expect(find.text('Entrenamiento libre'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'T-H7: una sesión abandonada hace horas se guarda con un fin '
+      'razonable, no con la hora actual',
+      (tester) async {
+        await addExercise(1, 'Press banca');
+        final started = DateTime.now().subtract(const Duration(hours: 20));
+        final session = await workoutRepo.startSession(startedAt: started);
+        await workoutRepo.addSet(session.id, {
+          'exercise_id': 1,
+          'set_number': 1,
+          'weight_kg': 60.0,
+          'reps': 8,
+        });
+        await db
+            .into(db.activeWorkoutDrafts)
+            .insert(
+              local.ActiveWorkoutDraftsCompanion.insert(
+                id: const Value(1),
+                sessionId: session.id,
+                updatedAt: DateTime.now(),
+              ),
+            );
+
+        await tester.pumpWidget(wrap());
+        await settle(tester);
+        await tester.tap(find.text('Finalizar y guardar'));
+        await settle(tester);
+
+        final saved = await (db.select(
+          db.workoutSessions,
+        )..where((t) => t.id.equals(session.id))).getSingle();
+        // Cerrar con DateTime.now() registraría un entrenamiento de 20 horas
+        // en estadísticas y duración. Criterio: fin = última actividad
+        // registrada (`ActiveWorkoutDrafts.updatedAt`), acotada a inicio + 3
+        // horas, y nunca anterior al inicio.
+        expect(saved.endedAt, isNotNull);
+        final duration = saved.endedAt!.difference(saved.startedAt);
+        expect(duration, lessThanOrEqualTo(const Duration(hours: 3)));
+        expect(duration.isNegative, isFalse);
       },
     );
   });
