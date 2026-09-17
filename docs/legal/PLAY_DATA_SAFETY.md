@@ -66,6 +66,12 @@ términos de servicio de Groq>.
   sistema operativo, pero no hay cifrado adicional a nivel de archivo).
   <PENDIENTE: si Play pide una confirmación explícita de cifrado en reposo del
   lado del cliente, hoy la respuesta real es "no", no inventar que sí>.
+- Copias de seguridad: la base local SQLite y las preferencias del
+  dispositivo (incluida la sesión) están excluidas del backup automático en
+  la nube de Google y de la transferencia entre dispositivos de Android
+  (`android:allowBackup="false"` + `data_extraction_rules.xml`) -- no viajan
+  fuera del teléfono salvo por la sincronización propia de la app con
+  Supabase.
 - El usuario puede pedir el borrado de sus datos: sí (ver 1.3).
 - Los datos siguen las Play Families Policy (si aplica): no aplica, la app no
   está dirigida a niños (ver edad mínima en `docs/legal/TERMINOS.md`).

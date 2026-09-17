@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  T-S2 (docs/AUDITORIA_2026-09-16_SUPERVISOR.md): la base SQLite local
+  guarda datos de salud y SharedPreferences incluye la sesión persistida
+  de Supabase; ninguno de los dos debe viajar al backup en la nube de
+  Google ni en la transferencia entre dispositivos.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="database" path="."/>
+        <exclude domain="sharedpref" path="."/>
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="database" path="."/>
+        <exclude domain="sharedpref" path="."/>
+    </device-transfer>
+</data-extraction-rules>
