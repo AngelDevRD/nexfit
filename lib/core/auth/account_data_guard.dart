@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -22,7 +24,18 @@ class AccountDataGuard {
 
   final AppDatabase _db;
 
-  bool _preparing = false;
+  // T-C1 revisión 1: con Supabase, `login()` y el evento `signedIn` de
+  // `authStateChanges` pueden llamar a `prepareForUser` casi al mismo
+  // tiempo. Una cola FIFO simple (en vez de dejarlas correr en paralelo)
+  // evita la carrera: cada llamada se resuelve con SU PROPIO resultado, pero
+  // la limpieza real solo la hace la primera que se ejecuta -- las
+  // siguientes para la misma cuenta ya encuentran `lastUserId` actualizado y
+  // no vuelven a limpiar. `_processing` cubre tanto la tarea en curso como
+  // las encoladas detrás: `isReadyFor` es falso mientras haya cualquiera de
+  // las dos pendiente.
+  final _queue = <(String, Completer<bool>)>[];
+  bool _draining = false;
+  bool _processing = false;
   String? _readyForUserId;
 
   /// Prepara la base local para [userId]. Devuelve `true` si limpió datos
@@ -31,10 +44,34 @@ class AccountDataGuard {
   /// Marca el estado "en preparación" de forma SÍNCRONA (antes del primer
   /// `await`) para que [isReadyFor] ya lo refleje aunque el llamador no
   /// espere a que termine esta función.
-  Future<bool> prepareForUser(String userId) async {
-    _preparing = true;
-    _readyForUserId = null;
+  Future<bool> prepareForUser(String userId) {
+    final completer = Completer<bool>();
+    _queue.add((userId, completer));
+    _processing = true;
+    if (!_draining) {
+      _draining = true;
+      unawaited(_drainQueue());
+    }
+    return completer.future;
+  }
 
+  Future<void> _drainQueue() async {
+    while (_queue.isNotEmpty) {
+      final (userId, completer) = _queue.removeAt(0);
+      try {
+        completer.complete(await _prepareNow(userId));
+      } catch (e, st) {
+        // No dejar la cola trabada: la siguiente encolada debe poder
+        // correr igual, y esta cuenta no debe quedar marcada como lista.
+        _readyForUserId = null;
+        completer.completeError(e, st);
+      }
+    }
+    _draining = false;
+    _processing = false;
+  }
+
+  Future<bool> _prepareNow(String userId) async {
     final prefs = await SharedPreferences.getInstance();
     final lastUserId = prefs.getString(_lastUserIdPrefsKey);
 
@@ -46,14 +83,14 @@ class AccountDataGuard {
     await prefs.setString(_lastUserIdPrefsKey, userId);
 
     _readyForUserId = userId;
-    _preparing = false;
     return wiped;
   }
 
-  /// `true` solo si [userId] no es null, no hay una preparación en curso y
-  /// coincide con la cuenta ya preparada en ESTA instancia del guard.
+  /// `true` solo si [userId] no es null, no hay ninguna preparación en curso
+  /// NI encolada, y coincide con la cuenta ya preparada en ESTA instancia
+  /// del guard.
   bool isReadyFor(String? userId) =>
-      userId != null && !_preparing && _readyForUserId == userId;
+      userId != null && !_processing && _readyForUserId == userId;
 
   /// Cambios locales que el `SyncEngine` todavía no subió: filas `dirty` de
   /// las entidades sincronizables más las operaciones de serie pendientes.
