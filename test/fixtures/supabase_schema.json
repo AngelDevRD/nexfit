@@ -1,0 +1,53 @@
+{
+  "_comment": "Esquema REAL del proyecto Supabase appgym (btrdczpnuutrvgoprqze), leido con information_schema el 2026-09-17 por el supervisor. 'required' = NOT NULL sin default (el cliente debe mandarlo). Si el esquema remoto cambia, actualizar este archivo en la misma tarea que lo cambie.",
+  "tables": {
+    "nexfit_profiles": {
+      "columns": ["id", "name", "age", "sex", "height_cm", "weight_kg", "body_fat_pct", "goal", "experience_level", "updated_at"],
+      "required": ["id"]
+    },
+    "nexfit_routines": {
+      "columns": ["id", "user_id", "name", "goal", "days_per_week", "created_at"],
+      "required": ["user_id", "name"]
+    },
+    "nexfit_routine_days": {
+      "columns": ["id", "routine_id", "day_index", "name", "muscle_focus"],
+      "required": ["routine_id", "day_index", "name"]
+    },
+    "nexfit_routine_exercises": {
+      "columns": ["id", "routine_day_id", "exercise_id", "order_index", "target_sets", "target_reps_min", "target_reps_max", "target_rest_seconds", "notes", "target_weight_kg", "set_type", "tempo", "target_rpe", "target_rir"],
+      "required": ["routine_day_id", "exercise_id", "order_index"]
+    },
+    "nexfit_workout_sessions": {
+      "columns": ["id", "user_id", "routine_id", "started_at", "ended_at", "notes", "title", "updated_at", "routine_day_id"],
+      "required": ["user_id", "started_at"]
+    },
+    "nexfit_workout_sets": {
+      "columns": ["id", "session_id", "exercise_id", "set_number", "weight_kg", "reps", "rpe", "rir", "rest_seconds", "techniques", "superset_group_id", "tempo", "is_warmup", "notes", "completed", "exercise_notes", "exercise_order"],
+      "required": ["session_id", "exercise_id", "set_number", "weight_kg", "reps"]
+    },
+    "nexfit_goals": {
+      "columns": ["id", "user_id", "title", "metric", "exercise_id", "starting_value", "target_value", "target_date"],
+      "required": ["user_id", "title", "metric", "target_value"]
+    },
+    "nexfit_daily_checkins": {
+      "columns": ["id", "user_id", "checkin_date", "sleep_hours", "perceived_fatigue"],
+      "required": ["user_id", "checkin_date"]
+    },
+    "nexfit_nutrition_logs": {
+      "columns": ["id", "user_id", "log_date", "calories", "protein_g", "carbs_g", "fat_g", "water_ml", "notes", "updated_at"],
+      "required": ["user_id", "log_date"]
+    },
+    "nexfit_custom_exercises": {
+      "columns": ["id", "user_id", "slug", "name", "muscle_group", "difficulty", "detail_json", "updated_at"],
+      "required": ["user_id", "slug", "name", "muscle_group", "difficulty"]
+    },
+    "nexfit_challenges": {
+      "columns": ["id", "owner_id", "name", "description", "metric", "starts_on", "ends_on", "invite_code", "created_at"],
+      "required": ["owner_id", "name", "metric", "starts_on", "ends_on", "invite_code"]
+    },
+    "nexfit_challenge_participants": {
+      "columns": ["challenge_id", "user_id", "joined_at"],
+      "required": ["challenge_id", "user_id"]
+    }
+  }
+}
