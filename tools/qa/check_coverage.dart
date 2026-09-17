@@ -11,16 +11,33 @@ void main(List<String> args) {
   String? base;
   var minPercent = 80.0;
 
+  String? nextArg(int i, String flag) {
+    if (i + 1 >= args.length) {
+      stderr.writeln('ERROR: falta el valor de "$flag"');
+      exit(2);
+    }
+    return args[i + 1];
+  }
+
   for (var i = 0; i < args.length; i++) {
     switch (args[i]) {
       case '--lcov':
-        lcovPath = args[++i];
+        lcovPath = nextArg(i, '--lcov');
+        i++;
         break;
       case '--base':
-        base = args[++i];
+        base = nextArg(i, '--base');
+        i++;
         break;
       case '--min':
-        minPercent = double.parse(args[++i]);
+        final raw = nextArg(i, '--min')!;
+        final parsed = double.tryParse(raw);
+        if (parsed == null) {
+          stderr.writeln('ERROR: "--min" no es numerico: "$raw"');
+          exit(2);
+        }
+        minPercent = parsed;
+        i++;
         break;
       default:
         stderr.writeln('ERROR: argumento desconocido "${args[i]}"');

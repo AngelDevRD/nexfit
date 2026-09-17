@@ -27,12 +27,7 @@ class TestLock {
   const TestLock({required this.files});
 
   factory TestLock.parse(String source) {
-    Object? decoded;
-    try {
-      decoded = jsonDecode(source);
-    } on FormatException {
-      rethrow;
-    }
+    final decoded = jsonDecode(source);
     if (decoded is! Map) {
       throw const FormatException('El lock debe ser un objeto JSON');
     }
@@ -101,7 +96,10 @@ bool _isValidLockedPath(String path) {
   if (path.contains('\\') || path.contains(':')) return false;
   if (path.startsWith('/')) return false;
   if (path.split('/').contains('..')) return false;
-  return path.startsWith('test/') || path.startsWith('integration_test/');
+  return path.startsWith('test/') ||
+      path.startsWith('integration_test/') ||
+      path.startsWith('tools/qa/') ||
+      path.startsWith('.github/workflows/');
 }
 
 /// Compara cada archivo del lock contra el disco y reporta TODAS las
@@ -158,56 +156,116 @@ class SkipViolation {
   const SkipViolation({required this.path, required this.line});
 }
 
-final RegExp _skipValuePattern = RegExp(
-  r'''skip\s*:\s*(true|'[^']*'|"[^"]*")''',
-);
+final RegExp _skipKeywordPattern = RegExp(r'\bskip\s*:');
 final RegExp _skipAnnotationPattern = RegExp(r'@Skip\s*\(');
 final RegExp _skipApprovedPattern = RegExp(r'//\s*SKIP-APPROVED:\s*(\S+)');
 
 enum _CodeState { code, string, comment }
 
+bool _matchesAt(String content, int index, String token) {
+  if (index + token.length > content.length) return false;
+  for (var k = 0; k < token.length; k++) {
+    if (content[index + k] != token[k]) return false;
+  }
+  return true;
+}
+
 /// Marca, para cada posición del contenido, si está en código real, dentro
-/// de un string literal o dentro de un comentario `//`. Así el escaneo no
-/// confunde texto que aparece DENTRO de un string (por ejemplo, un fixture
-/// de ejemplo en un test que prueba este mismo detector) con uso real de
+/// de un string literal (simple, triple, o raw) o de un comentario (`//` o
+/// `/* */`). Así el escaneo no confunde texto que aparece DENTRO de un
+/// string o comentario (por ejemplo, un fixture de ejemplo en un test que
+/// prueba este mismo detector, o el nombre de un test) con uso real de
 /// `skip:`/`@Skip` en código.
 List<_CodeState> _computeCodeStates(String content) {
   final states = List<_CodeState>.filled(content.length, _CodeState.code);
-  var state = _CodeState.code;
-  var stringQuote = '';
   var i = 0;
   while (i < content.length) {
-    final ch = content[i];
-    states[i] = state;
-    switch (state) {
-      case _CodeState.code:
-        if (ch == '/' && i + 1 < content.length && content[i + 1] == '/') {
-          state = _CodeState.comment;
-        } else if (ch == "'" || ch == '"') {
-          state = _CodeState.string;
-          stringQuote = ch;
-        }
-        break;
-      case _CodeState.string:
-        if (ch == r'\') {
-          i++;
-          if (i < content.length) states[i] = _CodeState.string;
-        } else if (ch == stringQuote) {
-          state = _CodeState.code;
-        }
-        break;
-      case _CodeState.comment:
-        if (ch == '\n') state = _CodeState.code;
-        break;
+    if (_matchesAt(content, i, '//')) {
+      final start = i;
+      while (i < content.length && content[i] != '\n') {
+        i++;
+      }
+      for (var k = start; k < i; k++) {
+        states[k] = _CodeState.comment;
+      }
+      continue;
     }
+
+    if (_matchesAt(content, i, '/*')) {
+      final start = i;
+      i += 2;
+      while (i < content.length && !_matchesAt(content, i, '*/')) {
+        i++;
+      }
+      i = i + 2 <= content.length ? i + 2 : content.length;
+      for (var k = start; k < i; k++) {
+        states[k] = _CodeState.comment;
+      }
+      continue;
+    }
+
+    final isRawPrefix = (content[i] == 'r' || content[i] == 'R') &&
+        i + 1 < content.length &&
+        (content[i + 1] == "'" || content[i + 1] == '"');
+    final quoteStart = isRawPrefix ? i + 1 : i;
+    final quoteChar = quoteStart < content.length ? content[quoteStart] : '';
+
+    if (quoteChar == "'" || quoteChar == '"') {
+      final isTriple = _matchesAt(content, quoteStart, quoteChar * 3);
+      final delimiter = isTriple ? quoteChar * 3 : quoteChar;
+      final start = i;
+      var j = quoteStart + delimiter.length;
+      while (j < content.length && !_matchesAt(content, j, delimiter)) {
+        if (!isRawPrefix && content[j] == r'\') {
+          j += 2;
+        } else {
+          j++;
+        }
+      }
+      j = j + delimiter.length <= content.length
+          ? j + delimiter.length
+          : content.length;
+      for (var k = start; k < j; k++) {
+        states[k] = _CodeState.string;
+      }
+      i = j;
+      continue;
+    }
+
     i++;
   }
   return states;
 }
 
-/// Detecta `skip:` (con valor distinto de `false`) y `@Skip` no aprobados.
-/// Una aprobación cubre la misma línea o la línea anterior con
-/// `// SKIP-APPROVED: <TASK-ID>` (TASK-ID no vacío).
+/// Extrae el texto del valor asignado a `skip:` desde justo después de los
+/// dos puntos hasta la coma o el paréntesis/corchete/llave de cierre al
+/// mismo nivel de anidación (sin contar los que están dentro de strings o
+/// comentarios).
+String _extractSkipValue(String content, List<_CodeState> states, int start) {
+  var depth = 0;
+  var i = start;
+  while (i < content.length) {
+    if (states[i] != _CodeState.code) {
+      i++;
+      continue;
+    }
+    final ch = content[i];
+    if (ch == '(' || ch == '[' || ch == '{') {
+      depth++;
+    } else if (ch == ')' || ch == ']' || ch == '}') {
+      if (depth == 0) break;
+      depth--;
+    } else if (ch == ',' && depth == 0) {
+      break;
+    }
+    i++;
+  }
+  return content.substring(start, i).trim();
+}
+
+/// Detecta `skip:` (con cualquier valor distinto del literal `false`) y
+/// `@Skip` no aprobados. Una aprobación cubre la misma línea o la línea
+/// anterior con `// SKIP-APPROVED: <TASK-ID>` (TASK-ID no vacío).
 List<SkipViolation> findUnapprovedSkips({
   required String path,
   required String content,
@@ -233,26 +291,35 @@ List<SkipViolation> findUnapprovedSkips({
     return result;
   }
 
+  bool isApproved(int lineIndex) {
+    final approvedHere = _skipApprovedPattern.hasMatch(lines[lineIndex]);
+    final approvedPrevious =
+        lineIndex > 0 && _skipApprovedPattern.hasMatch(lines[lineIndex - 1]);
+    return approvedHere || approvedPrevious;
+  }
+
   final violations = <SkipViolation>[];
   final seenLines = <int>{};
 
-  void collect(RegExp pattern) {
-    for (final match in pattern.allMatches(content)) {
-      if (states[match.start] != _CodeState.code) continue;
-      final lineIndex = lineIndexAt(match.start);
-      if (!seenLines.add(lineIndex)) continue;
+  for (final match in _skipKeywordPattern.allMatches(content)) {
+    if (states[match.start] != _CodeState.code) continue;
+    final value = _extractSkipValue(content, states, match.end);
+    if (value == 'false') continue;
 
-      final approvedHere = _skipApprovedPattern.hasMatch(lines[lineIndex]);
-      final approvedPrevious =
-          lineIndex > 0 && _skipApprovedPattern.hasMatch(lines[lineIndex - 1]);
-      if (approvedHere || approvedPrevious) continue;
-
-      violations.add(SkipViolation(path: path, line: lineIndex + 1));
-    }
+    final lineIndex = lineIndexAt(match.start);
+    if (!seenLines.add(lineIndex)) continue;
+    if (isApproved(lineIndex)) continue;
+    violations.add(SkipViolation(path: path, line: lineIndex + 1));
   }
 
-  collect(_skipValuePattern);
-  collect(_skipAnnotationPattern);
+  for (final match in _skipAnnotationPattern.allMatches(content)) {
+    if (states[match.start] != _CodeState.code) continue;
+    final lineIndex = lineIndexAt(match.start);
+    if (!seenLines.add(lineIndex)) continue;
+    if (isApproved(lineIndex)) continue;
+    violations.add(SkipViolation(path: path, line: lineIndex + 1));
+  }
+
   violations.sort((a, b) => a.line.compareTo(b.line));
   return violations;
 }
