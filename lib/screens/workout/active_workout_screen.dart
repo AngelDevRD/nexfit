@@ -21,6 +21,7 @@ import '../../widgets/stat_tile.dart';
 import '../../widgets/stepper_field.dart';
 import '../exercises/exercise_picker_screen.dart';
 import 'rest_timer_banner.dart';
+import 'set_edit_controller.dart';
 import 'set_form_sheet.dart';
 import 'workout_summary_screen.dart';
 
@@ -38,6 +39,7 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen>
   late final WorkoutRepository _repository;
   late final ActiveWorkoutRepository _activeRepository;
   late final RoutineRepository _routineRepository;
+  late final SetEditController _setEditController;
   WorkoutSession? _session;
   // A3: la sesión puede no existir más (draft huérfano) -- sin esto, un
   // `getSingle()` que falla dejaba `_session` en null para siempre y la
@@ -73,6 +75,9 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen>
     _repository = context.read<WorkoutRepository>();
     _activeRepository = context.read<ActiveWorkoutRepository>();
     _routineRepository = context.read<RoutineRepository>();
+    _setEditController = SetEditController(
+      write: (setId, payload) => _repository.updateSet(setId, payload),
+    );
     _load();
   }
 
@@ -154,70 +159,29 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _elapsedTimer?.cancel();
-    // No basta con cancelar los timers -- hay que VOLCAR lo pendiente, si no
+    // No basta con cancelar el debounce -- hay que VOLCAR lo pendiente, si no
     // un toque de "+" seguido de cerrar la pantalla dentro de los 500ms
     // pierde esa escritura para siempre. `dispose()` es sync, así que esto
     // no se espera; el repositorio sigue vivo y la escritura sigue su curso
-    // en segundo plano.
-    for (final timer in _updateDebouncers.values) {
-      timer.cancel();
-    }
-    for (final entry in _pendingSetUpdates.entries) {
-      if (entry.value.isEmpty) continue;
-      _repository.updateSet(entry.key, entry.value);
-    }
-    _updateDebouncers.clear();
-    _pendingSetUpdates.clear();
+    // en segundo plano (ver `SetEditController.dispose`).
+    _setEditController.dispose();
     super.dispose();
   }
 
-  // T2: cada toque de +/- en un stepper llamaba `updateSet` + `_load()`
+  // T2/T-H3: cada toque de +/- en un stepper llamaba `updateSet` + `_load()`
   // completo -- una recarga de TODA la sesión (con el N+1 de T1 antes de
   // arreglarlo) por cada tap. Ahora el cambio se aplica en memoria al
   // instante (la UI no espera nada) y la escritura real a la base se
-  // debouncea: varios toques seguidos sobre la misma serie terminan en UNA
-  // sola escritura con el valor final, no una por toque.
-  final Map<int, Timer> _updateDebouncers = {};
-  final Map<int, Map<String, num>> _pendingSetUpdates = {};
-
+  // debouncea en `SetEditController`: varios toques seguidos sobre la misma
+  // serie terminan en UNA sola escritura con el valor final, no una por
+  // toque, y `flush`/`flushAll` esperan también la escritura que el
+  // debounce ya haya disparado.
   Future<void> _updateSetField(WorkoutSet set, String field, num value) async {
     if (_session == null) return;
     setState(() {
       _session = _applySetFieldInMemory(_session!, set.id, field, value);
     });
-
-    (_pendingSetUpdates[set.id] ??= {})[field] = value;
-
-    _updateDebouncers[set.id]?.cancel();
-    _updateDebouncers[set.id] = Timer(const Duration(milliseconds: 500), () {
-      final payload = _pendingSetUpdates.remove(set.id);
-      _updateDebouncers.remove(set.id);
-      if (payload == null || payload.isEmpty) return;
-      _repository.updateSet(set.id, payload);
-    });
-  }
-
-  /// Vuelca a la base, YA, el cambio pendiente de una serie -- cancela su
-  /// debounce y escribe el payload acumulado. Obligatorio antes de cualquier
-  /// lectura que dependa de la fila en la base (`setCompleted` lee
-  /// weight/reps con una query propia) o de cualquier cierre de pantalla:
-  /// si no, la carrera entre el debounce (500ms) y esa lectura/cierre puede
-  /// ganarla la lectura, evaluando un récord contra el valor viejo, o
-  /// perderse la escritura directamente. Sin esto, C5 (completar la serie)
-  /// podía evaluar el peso de ANTES de los últimos toques del stepper.
-  Future<void> _flushPendingSetUpdate(int setId) async {
-    _updateDebouncers[setId]?.cancel();
-    _updateDebouncers.remove(setId);
-    final payload = _pendingSetUpdates.remove(setId);
-    if (payload == null || payload.isEmpty) return;
-    await _repository.updateSet(setId, payload);
-  }
-
-  Future<void> _flushAllPendingSetUpdates() async {
-    final setIds = _pendingSetUpdates.keys.toList();
-    for (final setId in setIds) {
-      await _flushPendingSetUpdate(setId);
-    }
+    _setEditController.queue(set.id, field, value);
   }
 
   WorkoutSession _applySetFieldInMemory(
@@ -334,7 +298,7 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen>
     // el valor del último toque). Sin este flush, subir el peso con el
     // stepper y completar la serie enseguida evaluaba contra el valor viejo
     // -- la regresión que reabrió C2.
-    await _flushPendingSetUpdate(set.id);
+    await _setEditController.flush(set.id);
     final newRecords = await _repository.setCompleted(set.id, completing);
     await _load();
     if (newRecords.isNotEmpty && mounted) {
@@ -397,7 +361,7 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen>
       // Volcar antes: `_load()` de abajo relee la sesión entera de la base,
       // y sin esto un peso/reps recién tocado con el stepper (todavía sin
       // escribir) se pisaría momentáneamente con el valor viejo.
-      await _flushPendingSetUpdate(set.id);
+      await _setEditController.flush(set.id);
       await _repository.updateSet(set.id, {'rest_seconds': seconds});
     }
     await _load();
@@ -426,7 +390,7 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen>
     // guardado sin tocarlos -- pero la escritura de abajo va a viajar YA,
     // mientras el debounce del stepper puede seguir pendiente y pisarla más
     // tarde con un valor viejo si no se vuelca antes.
-    await _flushPendingSetUpdate(set.id);
+    await _setEditController.flush(set.id);
     await _repository.updateSet(set.id, {
       'weight_kg': result.weightKg,
       'reps': result.reps,
@@ -698,7 +662,7 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen>
   /// N4: minimizar -- igual que finalizar, no puede dejar una escritura
   /// pendiente del stepper colgada al salir de la pantalla.
   Future<void> _minimize() async {
-    await _flushAllPendingSetUpdates();
+    await _setEditController.flushAll();
     if (!mounted) return;
     Navigator.of(context).maybePop();
   }
@@ -740,7 +704,7 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen>
     // `rebuildPersonalRecords()` como red de seguridad, pero eso no salva un
     // toque de "+" de los últimos 500ms si la fila en la base todavía tiene
     // el valor viejo cuando se lee para el resumen.
-    await _flushAllPendingSetUpdates();
+    await _setEditController.flushAll();
     await _activeRepository.finish(widget.sessionId);
     if (!mounted) return;
     final finishedSession = await _repository.get(widget.sessionId);
