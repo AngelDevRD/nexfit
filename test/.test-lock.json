@@ -15,6 +15,7 @@
     "test/security/account_guard_concurrency_test.dart": "b5e16ae8dddb56a9382a5dd1fa29e6a00d727a1b725c379bec709d8452793f7d",
     "test/providers/auth_provider_test.dart": "68f213d51a1b599906ce7f8af5e6e5b0e285da36c1dc46403bc853498d331630",
     "test/core/sync/sync_engine_interval_test.dart": "77ce1e71f415c80797f41dee9f859bd9d6b40b6c5596e1d666412728f04003b3",
-    "tools/qa/coverage_exceptions.txt": "ef1840a74da9ad37b2ffb1e3eb182dcb5d463e071a32e270e81fd507140f7af8"
+    "tools/qa/coverage_exceptions.txt": "ef1840a74da9ad37b2ffb1e3eb182dcb5d463e071a32e270e81fd507140f7af8",
+    "test/repositories/custom_exercise_integrity_test.dart": "f53aefa6bfae9e2e1f5f274c06c204e5ea24bde0e38dbf920724e2dfecf2e931"
   }
 }
