@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'core/auth/account_data_guard.dart';
 import 'core/auth/auth_repository.dart';
 import 'core/auth/supabase_auth_repository.dart';
 import 'core/auth/unavailable_auth_repository.dart';
@@ -92,6 +93,7 @@ class AppGymApp extends StatefulWidget {
 
 class _AppGymAppState extends State<AppGymApp> {
   late final AppDatabase _db;
+  late final AccountDataGuard _accountGuard;
   late final ProfileRepository _profileRepository;
   late final AuthProvider _authProvider;
   late final RoutineRepository _routineRepository;
@@ -142,11 +144,17 @@ class _AppGymAppState extends State<AppGymApp> {
         stackTrace: st,
       ),
     );
+    _accountGuard = AccountDataGuard(_db);
     _profileRepository = ProfileRepository(_db);
     _workoutRepository = WorkoutRepository(_db);
     _repairZeroPersonalRecordsOnce();
-    _authProvider = AuthProvider(widget.authRepository, _profileRepository)
-      ..tryAutoLogin();
+    _authProvider =
+        AuthProvider(
+            widget.authRepository,
+            _profileRepository,
+            accountGuard: _accountGuard,
+          )
+          ..tryAutoLogin();
     _routineRepository = RoutineRepository(_db);
     _activeWorkoutRepository = ActiveWorkoutRepository(_db, _workoutRepository);
     _goalRepository = GoalRepository(_db);
@@ -177,6 +185,7 @@ class _AppGymAppState extends State<AppGymApp> {
               NutritionSyncable(supabase),
               RecoverySyncable(supabase),
             ],
+      canSync: () => _accountGuard.isReadyFor(supabase?.auth.currentUser?.id),
     )..start();
   }
 
@@ -209,6 +218,7 @@ class _AppGymAppState extends State<AppGymApp> {
       providers: [
         ChangeNotifierProvider<AuthProvider>.value(value: _authProvider),
         Provider<AppDatabase>.value(value: _db),
+        Provider<AccountDataGuard>.value(value: _accountGuard),
         Provider<ProfileRepository>.value(value: _profileRepository),
         Provider<RoutineRepository>.value(value: _routineRepository),
         Provider<WorkoutRepository>.value(value: _workoutRepository),

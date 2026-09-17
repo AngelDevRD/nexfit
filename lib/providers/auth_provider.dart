@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../core/auth/account_data_guard.dart';
 import '../core/auth/auth_repository.dart';
 import '../models/profile.dart';
 import '../models/user.dart';
@@ -19,14 +20,27 @@ class AuthProvider extends ChangeNotifier {
   // combina con `AppUser` para no tener que tocar `profile_screen.dart`.
   final ProfileRepository _profileRepository;
 
+  // T-C1: garantiza que los datos locales están aislados por cuenta (limpios
+  // si cambió de usuario) ANTES de notificar como autenticada la cuenta
+  // nueva -- ver docs/AUDITORIA_2026-09-16_SUPERVISOR.md hallazgo C1.
+  final AccountDataGuard _accountGuard;
+
   StreamSubscription<AuthStatus>? _authStateSub;
 
   AuthStatus status = AuthStatus.unknown;
   AppUser? user;
   String? error;
 
-  AuthProvider(this._authRepository, this._profileRepository) {
+  AuthProvider(
+    this._authRepository,
+    this._profileRepository, {
+    required AccountDataGuard accountGuard,
+  }) : _accountGuard = accountGuard {
     _authStateSub = _authRepository.authStateChanges.listen((newStatus) async {
+      if (newStatus == AuthStatus.authenticated) {
+        final identity = _authRepository.currentUser;
+        if (identity != null) await _accountGuard.prepareForUser(identity.id);
+      }
       status = newStatus;
       await _refreshUser();
       notifyListeners();
@@ -34,13 +48,22 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> tryAutoLogin() async {
-    status = await _authRepository.restoreSession();
+    final newStatus = await _authRepository.restoreSession();
+    if (newStatus == AuthStatus.authenticated) {
+      final identity = _authRepository.currentUser;
+      if (identity != null) await _accountGuard.prepareForUser(identity.id);
+    }
+    status = newStatus;
     await _refreshUser();
     notifyListeners();
   }
 
   Future<bool> login(String email, String password) => _run(() async {
-    await _authRepository.login(email: email, password: password);
+    final identity = await _authRepository.login(
+      email: email,
+      password: password,
+    );
+    await _accountGuard.prepareForUser(identity.id);
     status = AuthStatus.authenticated;
     await _refreshUser();
   });
@@ -55,9 +78,13 @@ class AuthProvider extends ChangeNotifier {
         // Si el proyecto Supabase exige confirmar el email, signUp no deja
         // sesión activa todavía -- currentUser será null hasta que el
         // usuario confirme y haga login.
-        status = _authRepository.currentUser != null
-            ? AuthStatus.authenticated
-            : AuthStatus.unauthenticated;
+        final identity = _authRepository.currentUser;
+        if (identity != null) {
+          await _accountGuard.prepareForUser(identity.id);
+          status = AuthStatus.authenticated;
+        } else {
+          status = AuthStatus.unauthenticated;
+        }
         await _refreshUser();
       });
 

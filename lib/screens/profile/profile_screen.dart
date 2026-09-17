@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/auth/account_data_guard.dart';
 import '../../core/theme.dart';
 import '../../core/units.dart';
 import '../../models/user.dart';
@@ -72,6 +73,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // T-C1: si hay cambios sin sincronizar, avisa que cambiar de cuenta en
+  // este teléfono los va a borrar (decisión D4 del dueño) antes de cerrar
+  // sesión.
+  Future<void> _handleLogout() async {
+    final guard = context.read<AccountDataGuard>();
+    final auth = context.read<AuthProvider>();
+    final unsyncedCount = await guard.unsyncedChangesCount();
+    if (!mounted) return;
+
+    if (unsyncedCount == 0) {
+      await auth.logout();
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cambios sin sincronizar'),
+        content: Text(
+          'Tenés $unsyncedCount cambios sin sincronizar. Si después entrás '
+          'con otra cuenta en este teléfono, esos datos se van a borrar.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Cerrar sesión'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await auth.logout();
+  }
+
   @override
   void dispose() {
     _ageController.dispose();
@@ -91,8 +130,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
+        // Sin sesión (p. ej. justo después de cerrar sesión) no hay nada que
+        // cargar -- mostrar el spinner igual dejaría una animación
+        // indeterminada corriendo mientras el resto de la app todavía no
+        // navegó a la pantalla de login.
         child: user == null
-            ? const Center(child: CircularProgressIndicator())
+            ? (auth.status == AuthStatus.unauthenticated
+                  ? const SizedBox.shrink()
+                  : const Center(child: CircularProgressIndicator()))
             : SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(
                   AppSpacing.md,
@@ -130,8 +175,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             color: AppColors.onSurfaceVariant,
                           ),
                           tooltip: 'Cerrar sesión',
-                          onPressed: () =>
-                              context.read<AuthProvider>().logout(),
+                          onPressed: _handleLogout,
                         ),
                       ],
                     ),

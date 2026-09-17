@@ -21,11 +21,16 @@ class SyncEngine extends ChangeNotifier {
   final AppDatabase db;
   final List<SyncableEntity> entities;
   Duration backupInterval;
+  // T-C1: si está presente y devuelve `false`, `syncNow` no sube nada. Evita
+  // subir datos de una cuenta cuyos datos locales todavía no terminaron de
+  // prepararse/limpiarse (`AccountDataGuard.isReadyFor`).
+  final bool Function()? canSync;
 
   SyncEngine({
     required this.db,
     required this.entities,
     this.backupInterval = const Duration(hours: 3),
+    this.canSync,
   });
 
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
@@ -70,10 +75,12 @@ class SyncEngine extends ChangeNotifier {
   /// Dart es single-threaded en el isolate de UI, no hace falta un mutex).
   Future<void> syncNow() async {
     if (_syncing) return;
+    if (canSync != null && !canSync!()) return;
     _syncing = true;
     String? failureThisPass;
     try {
       for (final entity in entities) {
+        if (canSync != null && !canSync!()) break;
         try {
           await entity.push(db);
         } catch (e, st) {

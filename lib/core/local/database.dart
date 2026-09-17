@@ -436,12 +436,23 @@ class AppDatabase extends _$AppDatabase {
     },
   );
 
-  /// Borra todas las filas de todas las tablas. Usado al eliminar la cuenta:
-  /// la identidad y los datos remotos ya se borraron en el backend, esto
-  /// limpia lo que queda en el telefono.
+  /// Borra todos los datos de usuario de todas las tablas, CONSERVANDO el
+  /// catálogo semilla de ejercicios (id < 1.000.000, ver
+  /// `ExerciseRepository.customExerciseIdStart`): si se borrara también, la
+  /// lista de ejercicios queda vacía después, porque `syncExerciseCatalog`
+  /// no vuelve a fusionar el catálogo mientras no cambie su hash en
+  /// preferencias (ver `local_bootstrap.dart`). Los ejercicios PROPIOS
+  /// (id >= 1.000.000) sí se borran, como el resto de los datos de usuario.
+  /// Usado al eliminar la cuenta y al cambiar de cuenta (`AccountDataGuard`).
   Future<void> clearAllData() => transaction(() async {
     for (final table in allTables) {
-      await delete(table).go();
+      if (table == exercises) {
+        await (delete(exercises)
+              ..where((t) => t.id.isBiggerOrEqualValue(1000000)))
+            .go();
+      } else {
+        await delete(table).go();
+      }
     }
   });
 }
