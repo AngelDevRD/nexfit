@@ -15,13 +15,14 @@
     "test/security/account_guard_concurrency_test.dart": "b5e16ae8dddb56a9382a5dd1fa29e6a00d727a1b725c379bec709d8452793f7d",
     "test/providers/auth_provider_test.dart": "68f213d51a1b599906ce7f8af5e6e5b0e285da36c1dc46403bc853498d331630",
     "test/core/sync/sync_engine_interval_test.dart": "77ce1e71f415c80797f41dee9f859bd9d6b40b6c5596e1d666412728f04003b3",
-    "tools/qa/coverage_exceptions.txt": "ef1840a74da9ad37b2ffb1e3eb182dcb5d463e071a32e270e81fd507140f7af8",
+    "tools/qa/coverage_exceptions.txt": "0c7f5544b0e3db46c90180cf4fa0d4c85b53284af65b279f56ad53744774fe7d",
     "test/repositories/custom_exercise_integrity_test.dart": "f53aefa6bfae9e2e1f5f274c06c204e5ea24bde0e38dbf920724e2dfecf2e931",
     "test/security/android_backup_config_test.dart": "4b7e28598edfe41bccec294a05476ea0cae65be91980ad60237da64345085140",
     "test/security/android_xml_resources_test.dart": "b2a6ff273a035622d229683ca7e86e92c77eee561957a6a6815f9a035f24a263",
     "test/screens/start_workout_screen_test.dart": "26cc6bb7d39555d8cbd428186976fa4312e6dea9fa7cccb8cedf707fbcc363fc",
     "test/unit/set_edit_controller_test.dart": "8ee49c29016b6edc560e828937e725c7546c6ea6f0d34306a9d5721d52799f96",
     "test/sync/supabase_payload_contract_test.dart": "c9a7b193e7595396b3a253568185dcde7a2f759208705e4dce2f58b869c7671e",
-    "test/fixtures/supabase_schema.json": "5d34eba4cd045da9bea908f41bb70c4443a044b5ed21fc8b1357c98c429d44db"
+    "test/fixtures/supabase_schema.json": "5d34eba4cd045da9bea908f41bb70c4443a044b5ed21fc8b1357c98c429d44db",
+    "test/screens/active_workout_exercise_actions_test.dart": "03a8848040d675127a4fcea343d410810a8a01ea3782e5bfc43ff6b3d48aec16"
   }
 }

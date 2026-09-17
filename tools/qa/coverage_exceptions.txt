@@ -3,3 +3,10 @@
 # y migraciones historicas. Las migraciones se cubren en Q3 (drift_schemas + SchemaVerifier);
 # al cerrar Q3 esta excepcion se revisa.
 lib/core/local/database.dart
+# active_workout_screen.dart: pantalla legada de 1.570 lineas con la logica de estado
+# mezclada en el widget (hallazgo AR3 de la auditoria). Quedo en 74,7% cuando T-H3 saco
+# de ahi la logica de edicion de series (que SI esta al 100% en set_edit_controller.dart).
+# Lo que falta cubrir son dialogos de acciones por ejercicio y del descanso: necesitan
+# widget tests que hoy no son estables. Excepcion temporal: se quita al cerrar la tarea
+# de extraer esos dialogos a widgets propios (ver backlog AR3).
+lib/screens/workout/active_workout_screen.dart
