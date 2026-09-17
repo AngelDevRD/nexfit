@@ -19,6 +19,7 @@
     "test/repositories/custom_exercise_integrity_test.dart": "f53aefa6bfae9e2e1f5f274c06c204e5ea24bde0e38dbf920724e2dfecf2e931",
     "test/security/android_backup_config_test.dart": "4b7e28598edfe41bccec294a05476ea0cae65be91980ad60237da64345085140",
     "test/security/android_xml_resources_test.dart": "b2a6ff273a035622d229683ca7e86e92c77eee561957a6a6815f9a035f24a263",
-    "test/screens/start_workout_screen_test.dart": "26cc6bb7d39555d8cbd428186976fa4312e6dea9fa7cccb8cedf707fbcc363fc"
+    "test/screens/start_workout_screen_test.dart": "26cc6bb7d39555d8cbd428186976fa4312e6dea9fa7cccb8cedf707fbcc363fc",
+    "test/unit/set_edit_controller_test.dart": "8ee49c29016b6edc560e828937e725c7546c6ea6f0d34306a9d5721d52799f96"
   }
 }
